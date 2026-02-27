@@ -1,0 +1,29 @@
+services:
+  # Frontend Web Service
+  - type: web
+    name: euajudo-frontend
+    env: static
+    plan: free
+    buildCommand: npm run build
+    staticPublishPath: dist
+    
+    # Environment variables
+    envVars:
+      - key: VITE_API_URL
+        value: https://euajudo-api.onrender.com
+      
+      - key: NODE_VERSION
+        value: 18
+    
+    # Auto-deploy on push to master
+    autoDeploy: true
+    
+    # Custom domain (optional)
+    # domains:
+    #   - euajudo.org
+    
+    # Redirect rules
+    routes:
+      - type: rewrite
+        source: /.*
+        destination: /index.html

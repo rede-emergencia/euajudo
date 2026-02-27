@@ -272,18 +272,46 @@ jfood/
 
 ## 🚀 Deploy
 
-### Backend (Sugestões)
+### 🟢 Render.com (Recomendado)
+
+Deploy automático e gratuito com CI/CD:
+
+1. **Backend API**: `https://euajudo-api.onrender.com`
+2. **Frontend**: `https://euajudo-frontend.onrender.com`
+3. **Database**: PostgreSQL gratuito
+
+**Setup Automático**:
+```bash
+# 1. Conectar repositório no Render
+# 2. Usar render.yaml já configurado
+# 3. Deploy automático no push para master
+```
+
+📖 **Veja [DEPLOYMENT.md](DEPLOYMENT.md)** para instruções detalhadas.
+
+---
+
+### 📋 Outras Opções
+
+**Backend**:
 - Heroku
 - Railway
-- Render
 - DigitalOcean
+- AWS ECS
 
-### Frontend (Sugestões)
+**Frontend**:
 - Vercel
 - Netlify
 - GitHub Pages
+- AWS S3 + CloudFront
 
-### Banco de Dados
+**Database**:
+- PostgreSQL (produção)
+- MySQL
+- MongoDB
+- AWS RDS
+
+### Banco de Dados em Produção
 Para produção, migre de SQLite para PostgreSQL:
 1. Instale `psycopg2`
 2. Altere `DATABASE_URL` no `.env`
@@ -381,6 +409,7 @@ make db-backup      # Backup do banco SQLite
 - **[BUGS.md](BUGS.md)** - Lista de bugs conhecidos e problemas em aberto
 - **[ROADMAP.md](ROADMAP.md)** - Plano de migração para Event-Driven Microservices
 - **[NEXT_STEPS.md](NEXT_STEPS.md)** - Tarefas prioritárias para contribuidores
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Guia completo de deployment em produção
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Guia completo de contribuição
 - **[docs/architecture/](docs/architecture/)** - Documentação técnica detalhada
 
