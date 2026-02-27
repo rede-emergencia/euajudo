@@ -45,7 +45,9 @@ function makeIcon(svgPath, color, size = 30) {
 }
 
 export default function MapView() {
-  const [filterType, setFilterType] = useState('all'); // all, delivery, meal, hygiene, clothing
+  const [activeFilters, setActiveFilters] = useState({ abrigos: true, fornecedores: true, insumos: true });
+  const [pendingFilters, setPendingFilters] = useState({ abrigos: true, fornecedores: true, insumos: true });
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [locations, setLocations] = useState([]);
   const [locationsWithStatus, setLocationsWithStatus] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -71,6 +73,7 @@ export default function MapView() {
     onConfirm: () => {},
     type: 'info'
   });
+  const [legendOpen, setLegendOpen] = useState(false);
   const { user } = useAuth(); // Adicionar hook do AuthContext
 
   // Helper function para mostrar modal de confirmação
@@ -172,7 +175,7 @@ export default function MapView() {
   useEffect(() => {
     console.log('🔄 useEffect disparado - iniciando mapa');
     initMap();
-  }, [locationsWithStatus, batches, resourceRequests, providers, filterType]);
+  }, [locationsWithStatus, batches, resourceRequests, providers, activeFilters.abrigos, activeFilters.fornecedores, activeFilters.insumos]);
 
   const loadData = async () => {
     try {
@@ -320,7 +323,7 @@ export default function MapView() {
 
     // Adicionar marcadores baseados no filtro
     
-    if (filterType === 'all' || filterType === 'delivery' || ['meal', 'hygiene', 'clothing'].includes(filterType)) {
+    if (activeFilters.abrigos) {
       console.log('🏠 Processando abrigos...');
       
       // Agrupar deliveries por location para mostrar múltiplos tipos de recursos
@@ -341,11 +344,7 @@ export default function MapView() {
         if (location.latitude && location.longitude) {
           const activeDeliveries = deliveriesByLocation[location.id] || [];
           
-          // Filtrar por tipo de produto se necessário
-          let filteredDeliveries = activeDeliveries;
-          if (['meal', 'hygiene', 'clothing'].includes(filterType)) {
-            filteredDeliveries = activeDeliveries.filter(d => d.product_type === filterType);
-          }
+          const filteredDeliveries = activeDeliveries;
           
           const hasActiveOrder = filteredDeliveries.length > 0;
           
@@ -437,24 +436,19 @@ export default function MapView() {
     }
 
     // Adicionar marcadores para lotes de produtos disponíveis APENAS se estiverem READY
-    if (filterType !== 'ingredients') {
+    if (activeFilters.fornecedores) {
       console.log('🏪 Processando fornecedores com produtos disponíveis...');
       let batchMarkers = 0;
-      
+
       batches.forEach(batch => {
         // MOSTRAR APENAS FORNECEDORES COM PRODUTOS DISPONÍVEIS (READY)
-        if (batch.provider && 
-            batch.provider.latitude && 
-            batch.provider.longitude && 
+        if (batch.provider &&
+            batch.provider.latitude &&
+            batch.provider.longitude &&
             batch.status === 'ready' &&  // Apenas batches prontos!
             batch.quantity_available > 0) { // E com quantidade disponível!
-          
+
           const coords = [batch.provider.latitude, batch.provider.longitude];
-          
-          // Filtrar por tipo de produto se necessário
-          if (['meal', 'hygiene', 'clothing'].includes(filterType) && batch.product_type !== filterType) {
-            return; // Pular este batch se não corresponder ao filtro
-          }
           
           // Definir ícone e emoji baseado no tipo de produto
           const productIcons = {
@@ -484,7 +478,7 @@ export default function MapView() {
     
     console.log('✅ Todos os marcadores foram adicionados ao mapa');
 
-    if (filterType === 'all' || filterType === 'ingredients') {
+    if (activeFilters.insumos) {
       // Adicionar marcadores para pedidos de insumos
       resourceRequests.forEach(request => {
         // Para pedidos de insumos, o provider está no relacionamento
@@ -557,16 +551,11 @@ export default function MapView() {
       // Adicionar marcadores para lotes de produtos disponíveis
     }
 
-    // Adicionar marcadores para lotes de produtos disponíveis (sempre mostrar para todos os filtros exceto ingredients)
-    if (filterType !== 'ingredients') {
+    // Adicionar marcadores para lotes de produtos disponíveis
+    if (activeFilters.fornecedores) {
       batches.forEach(batch => {
         if (batch.provider && batch.provider.latitude && batch.provider.longitude) {
           const coords = [batch.provider.latitude, batch.provider.longitude];
-          
-          // Filtrar por tipo de produto se necessário
-          if (['meal', 'hygiene', 'clothing'].includes(filterType) && batch.product_type !== filterType) {
-            return; // Pular este batch se não corresponder ao filtro
-          }
           
           // Definir ícone e emoji baseado no tipo de produto
           const productIcons = {
@@ -877,209 +866,253 @@ export default function MapView() {
 
   return (
     <div style={{ height: '100vh', width: '100vw', position: 'relative' }}>
-      <Header 
-        showFilters={true}
-        onFilterChange={setFilterType}
-        currentFilter={filterType}
+      <Header
         onLoginClick={openLoginModal}
         onRegisterClick={openRegisterModal}
       />
 
       {/* Map */}
-      <div id="map" style={{ 
-        width: '100%', 
-        height: 'calc(100vh - 80px)', 
+      <div id="map" style={{
+        width: '100%',
+        height: 'calc(100vh - 60px)',
         position: 'absolute',
-        top: '80px',
+        top: '60px',
         left: 0,
         right: 0,
         bottom: 0,
         zIndex: 0
       }}></div>
 
-      {/* Legend */}
+      {/* Legend — bottom-left, collapsible on mobile */}
       <div style={{
         position: 'absolute',
-        top: '180px',
-        right: '20px',
-        background: 'white',
-        borderRadius: '12px',
-        padding: '16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        border: '1px solid #e5e7eb',
+        bottom: '24px',
+        left: '12px',
         zIndex: 1000,
-        minWidth: '200px',
-        maxWidth: '280px'
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '6px',
       }}>
-        <h3 style={{
-          margin: '0 0 12px 0',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          color: '#1f2937',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}>
-          <MapPin size={16} />
-          Legenda do Mapa
-        </h3>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Abrigos */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Abrigos
+        {/* Toggle button (always visible) */}
+        <button
+          onClick={() => setLegendOpen(o => !o)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '7px 12px',
+            background: 'white',
+            border: '1px solid #d1d5db',
+            borderRadius: '20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#374151',
+          }}
+        >
+          <MapPin size={14} color="#2563eb" />
+          Legenda
+          <span style={{ fontSize: '10px', color: '#9ca3af' }}>{legendOpen ? '▼' : '▲'}</span>
+        </button>
+
+        {/* Legend panel */}
+        {legendOpen && (
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '12px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+            border: '1px solid #e5e7eb',
+            width: '200px',
+          }}>
+            {/* Abrigos */}
+            <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Abrigos</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#10b981', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+                  <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                </div>
+                <span style={{ fontSize: '12px', color: '#374151' }}>Sem pedido ativo</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#ef4444', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+                  <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                </div>
+                <span style={{ fontSize: '12px', color: '#374151' }}>Com pedido ativo</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}>
-                <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                </svg>
+
+            {/* Fornecedores */}
+            <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fornecedores</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#10b981', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+                  <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+                </div>
+                <span style={{ fontSize: '12px', color: '#374151' }}>🍽️ Cozinha</span>
               </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>Sem pedido</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>Abrigando tranquilamente</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#10b981', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+                  <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                </div>
+                <span style={{ fontSize: '12px', color: '#374151' }}>⚕️ Farmácia</span>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: '#ef4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}>
-                <svg width="13" height="13" fill="white" viewBox="0 0 24 24">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>Com pedido ativo</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>Precisando de recursos</div>
-              </div>
+
+            {/* Cores de status */}
+            <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {[
+                { color: '#10b981', label: 'Disponível' },
+                { color: '#f97316', label: 'Solicitando' },
+                { color: '#eab308', label: 'Ocioso' },
+              ].map(({ color, label }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: '12px', color: '#374151' }}>{label}</span>
+                </div>
+              ))}
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Fornecedores */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Fornecedores por Tipo
-            </div>
-            
-            {/* Cozinha Comunitária */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}>
-                <svg width="13" height="13" fill="white" viewBox="0 0 24 24">
-                  <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>🍽️ Cozinha Comunitária</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>Com marmitas disponíveis</div>
-              </div>
-            </div>
-            
-            {/* Farmácia */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}>
-                <svg width="13" height="13" fill="white" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>⚕️ Farmácia</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>Com medicamentos disponíveis</div>
-              </div>
+      {/* Filter button — bottom-center */}
+      <div style={{
+        position: 'absolute',
+        bottom: '24px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '8px',
+      }}>
+        {/* Panel (opens above the button) */}
+        {showFilterPanel && (
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '16px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            border: '1px solid #e5e7eb',
+            width: '252px',
+          }}>
+            <p style={{ margin: '0 0 10px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Mostrar no mapa
+            </p>
+
+            {[
+              { key: 'abrigos',      emoji: '🏠', label: 'Abrigos precisando de ajuda' },
+              { key: 'fornecedores', emoji: '🍽️', label: 'Fornecedores com itens' },
+              { key: 'insumos',      emoji: '📦', label: 'Pedidos de insumos' },
+            ].map(({ key, emoji, label }) => (
+              <label
+                key={key}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 8px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  background: pendingFilters[key] ? '#f0fdf4' : 'transparent',
+                  marginBottom: '4px',
+                  transition: 'background 0.15s',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={pendingFilters[key]}
+                  onChange={() => setPendingFilters(prev => ({ ...prev, [key]: !prev[key] }))}
+                  style={{ width: '16px', height: '16px', accentColor: '#16a34a', cursor: 'pointer', flexShrink: 0 }}
+                />
+                <span style={{ fontSize: '13px', color: '#374151', fontWeight: pendingFilters[key] ? '600' : '400' }}>
+                  {emoji} {label}
+                </span>
+              </label>
+            ))}
+
+            {/* Ações */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f3f4f6' }}>
+              <button
+                onClick={() => {
+                  setPendingFilters({ abrigos: true, fornecedores: true, insumos: true });
+                  setActiveFilters({ abrigos: true, fornecedores: true, insumos: true });
+                  setShowFilterPanel(false);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '9px 0',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  background: 'white',
+                  color: '#6b7280',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                }}
+              >
+                Remover filtros
+              </button>
+              <button
+                onClick={() => {
+                  setActiveFilters({ ...pendingFilters });
+                  setShowFilterPanel(false);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '9px 0',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: '#1d4ed8',
+                  color: 'white',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                Aplicar
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Tipos de Recursos - Mostrar apenas os ativos */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Recursos Ativos
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '11px' }}>
-              {(() => {
-                // Calcular tipos de recursos ativos
-                const activeTypes = new Set();
-                deliveries.forEach(d => {
-                  if (['available', 'reserved', 'picked_up', 'in_transit'].includes(d.status)) {
-                    activeTypes.add(d.product_type || 'meal');
-                  }
-                });
-                batches.forEach(b => {
-                  if (b.status === 'ready') {
-                    activeTypes.add(b.product_type || 'meal');
-                  }
-                });
-
-                const productIcons = {
-                  'meal': { emoji: '🍽️', label: 'Marmitas' },
-                  'hygiene': { emoji: '🧼', label: 'Higiene' },
-                  'clothing': { emoji: '👕', label: 'Roupas' },
-                  'medicine': { emoji: '💊', label: 'Remédios' },
-                  'cleaning': { emoji: '🧹', label: 'Limpeza' }
-                };
-
-                return Array.from(activeTypes).map(type => {
-                  const icon = productIcons[type] || productIcons['meal'];
-                  return (
-                    <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>{icon.emoji}</span>
-                      <span style={{ color: '#374151' }}>{icon.label}</span>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          marginTop: '12px',
-          paddingTop: '12px',
-          borderTop: '1px solid #e5e7eb',
-          fontSize: '11px',
-          color: '#6b7280',
-          textAlign: 'center',
-          fontStyle: 'italic'
-        }}>
-          {filterType === 'all' ? 'Mostrando todos os recursos' : `Filtrando: ${filterType === 'delivery' ? 'Entregas' : filterType === 'ingredients' ? 'Insumos' : filterType === 'meal' ? 'Marmitas' : filterType === 'hygiene' ? 'Higiene' : filterType === 'clothing' ? 'Roupas' : filterType}`}
-        </div>
+        {/* Toggle button */}
+        <button
+          onClick={() => {
+            if (!showFilterPanel) setPendingFilters({ ...activeFilters });
+            setShowFilterPanel(o => !o);
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            background: showFilterPanel ? '#1d4ed8' : 'white',
+            color: showFilterPanel ? 'white' : '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '24px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            transition: 'all 0.2s',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+          </svg>
+          Filtros
+          {Object.values(activeFilters).some(v => !v) && (
+            <span style={{ background: '#ef4444', color: 'white', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold' }}>
+              {Object.values(activeFilters).filter(v => !v).length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Modal de Escolha de Local de Entrega */}
