@@ -1,0 +1,162 @@
+{
+  "_comment": "Source of truth for all enums. Used by backend (shared_enums.py) and frontend (src/shared/enums.js).",
+
+  "OrderStatus": {
+    "IDLE": "idle",
+    "REQUESTING": "requesting",
+    "OFFERING": "offering",
+    "RESERVED": "reserved",
+    "IN_PROGRESS": "in_progress",
+    "AWAITING_PICKUP": "awaiting_pickup",
+    "PICKED_UP": "picked_up",
+    "IN_TRANSIT": "in_transit",
+    "PENDING_CONFIRMATION": "pending_confirmation",
+    "COMPLETED": "completed",
+    "CANCELLED": "cancelled",
+    "EXPIRED": "expired"
+  },
+
+  "BatchStatus": {
+    "PRODUCING": "producing",
+    "READY": "ready",
+    "IN_DELIVERY": "in_delivery",
+    "COMPLETED": "completed",
+    "CANCELLED": "cancelled",
+    "EXPIRED": "expired"
+  },
+
+  "DeliveryStatus": {
+    "AVAILABLE": "available",
+    "RESERVED": "reserved",
+    "PICKED_UP": "picked_up",
+    "IN_TRANSIT": "in_transit",
+    "DELIVERED": "delivered",
+    "CANCELLED": "cancelled",
+    "EXPIRED": "expired"
+  },
+
+  "ProductType": {
+    "MEAL": "meal",
+    "INGREDIENT": "ingredient",
+    "CLOTHING": "clothing",
+    "MEDICINE": "medicine",
+    "HYGIENE": "hygiene",
+    "CLEANING": "cleaning",
+    "SCHOOL_SUPPLIES": "school_supplies",
+    "BABY_ITEMS": "baby_items",
+    "PET_SUPPLIES": "pet_supplies",
+    "GENERIC": "generic"
+  },
+
+  "OrderType": {
+    "DONATION": "donation",
+    "REQUEST": "request",
+    "PURCHASE": "purchase",
+    "LOAN": "loan"
+  },
+
+  "UserRole": {
+    "PROVIDER": "provider",
+    "SHELTER": "shelter",
+    "VOLUNTEER": "volunteer",
+    "ADMIN": "admin"
+  },
+
+  "displayNames": {
+    "OrderStatus": {
+      "idle": "Inativo",
+      "requesting": "Solicitando",
+      "offering": "Ofertando",
+      "reserved": "Reservado",
+      "in_progress": "Em Andamento",
+      "awaiting_pickup": "Aguardando Retirada",
+      "picked_up": "Retirado",
+      "in_transit": "Em Trânsito",
+      "pending_confirmation": "Pendente Confirmação",
+      "completed": "Concluído",
+      "cancelled": "Cancelado",
+      "expired": "Expirado"
+    },
+    "BatchStatus": {
+      "producing": "Produzindo",
+      "ready": "Disponível para Retirada",
+      "in_delivery": "Em Entrega",
+      "completed": "Concluído",
+      "cancelled": "Cancelado",
+      "expired": "Expirado"
+    },
+    "DeliveryStatus": {
+      "available": "Disponível",
+      "reserved": "Aceito por Voluntário",
+      "picked_up": "Retirado",
+      "in_transit": "Em Trânsito",
+      "delivered": "Entregue",
+      "cancelled": "Cancelado",
+      "expired": "Expirado"
+    },
+    "ProductType": {
+      "meal": "Marmitas",
+      "ingredient": "Insumos",
+      "clothing": "Roupas",
+      "medicine": "Medicamentos",
+      "hygiene": "Higiene",
+      "cleaning": "Limpeza",
+      "school_supplies": "Material Escolar",
+      "baby_items": "Itens de Bebê",
+      "pet_supplies": "Itens para Pets",
+      "generic": "Genérico"
+    },
+    "UserRole": {
+      "provider": "Fornecedor",
+      "shelter": "Abrigo",
+      "volunteer": "Voluntário",
+      "admin": "Administrador"
+    }
+  },
+
+  "colors": {
+    "OrderStatus": {
+      "idle": "bg-gray-100 text-gray-700",
+      "requesting": "bg-blue-100 text-blue-800",
+      "offering": "bg-yellow-100 text-yellow-800",
+      "reserved": "bg-purple-100 text-purple-800",
+      "in_progress": "bg-orange-100 text-orange-800",
+      "awaiting_pickup": "bg-indigo-100 text-indigo-800",
+      "picked_up": "bg-cyan-100 text-cyan-800",
+      "in_transit": "bg-teal-100 text-teal-800",
+      "pending_confirmation": "bg-pink-100 text-pink-800",
+      "completed": "bg-green-100 text-green-800",
+      "cancelled": "bg-red-100 text-red-800",
+      "expired": "bg-gray-100 text-gray-500"
+    },
+    "BatchStatus": {
+      "producing": "bg-yellow-100 text-yellow-800",
+      "ready": "bg-green-100 text-green-800",
+      "in_delivery": "bg-blue-100 text-blue-800",
+      "completed": "bg-gray-100 text-gray-700",
+      "cancelled": "bg-red-100 text-red-800",
+      "expired": "bg-orange-100 text-orange-800"
+    },
+    "DeliveryStatus": {
+      "available": "bg-blue-100 text-blue-800",
+      "reserved": "bg-purple-100 text-purple-800",
+      "picked_up": "bg-cyan-100 text-cyan-800",
+      "in_transit": "bg-teal-100 text-teal-800",
+      "delivered": "bg-green-100 text-green-800",
+      "cancelled": "bg-red-100 text-red-800",
+      "expired": "bg-gray-100 text-gray-500"
+    }
+  },
+
+  "mapIcons": {
+    "shelter": {
+      "idle":      { "color": "#22c55e", "label": "Abrigo sem pedidos" },
+      "requesting":{ "color": "#ef4444", "label": "Abrigo pedindo doação" }
+    },
+    "provider": {
+      "idle":       { "color": "#eab308", "label": "Fornecedor disponível" },
+      "requesting": { "color": "#f97316", "label": "Fornecedor pedindo insumos" },
+      "ready":      { "color": "#10b981", "label": "Fornecedor ofertando marmitas" }
+    }
+  }
+}
