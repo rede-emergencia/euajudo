@@ -71,7 +71,7 @@ Criar um sistema **genérico e extensível** que suporte qualquer tipo de recurs
 ### Setup Automático (Recomendado)
 ```bash
 # Clonar repositório
-git clone https://github.com/SEU_USERNAME/euajudo.git
+git clone https://github.com/rede-emergencia/euajudo.git
 cd euajudo
 
 # Configurar tudo (Python + Node + dependências)
@@ -373,6 +373,16 @@ make db-backup      # Backup do banco SQLite
    ```
 
 3. **Contribua**: Veja [CONTRIBUTING.md](CONTRIBUTING.md)
+
+---
+
+## 📚 Documentação Adicional
+
+- **[BUGS.md](BUGS.md)** - Lista de bugs conhecidos e problemas em aberto
+- **[ROADMAP.md](ROADMAP.md)** - Plano de migração para Event-Driven Microservices
+- **[NEXT_STEPS.md](NEXT_STEPS.md)** - Tarefas prioritárias para contribuidores
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Guia completo de contribuição
+- **[docs/architecture/](docs/architecture/)** - Documentação técnica detalhada
 
 ---
 
