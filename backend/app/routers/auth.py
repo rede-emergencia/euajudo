@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from app.database import get_db
-from app.models import User
+from app.models import User, DeliveryLocation
 from app.schemas import UserCreate, UserResponse, Token
 from app.auth import (
     verify_password,
@@ -20,11 +20,12 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    approved = "admin" not in user.roles
+
+    # Providers require admin approval; volunteers and shelters are auto-approved
+    approved = True
     if "provider" in user.roles:
         approved = False
-    
+
     new_user = User(
         email=user.email,
         hashed_password=get_password_hash(user.password),
@@ -36,12 +37,31 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         establishment_type=user.establishment_type,
         production_capacity=user.production_capacity,
         delivery_capacity=user.delivery_capacity,
+        operating_hours=user.operating_hours,
         approved=approved
     )
-    
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # For shelter role: automatically create a linked DeliveryLocation
+    if "shelter" in user.roles and user.location_address:
+        location = DeliveryLocation(
+            name=user.location_name or user.name,
+            address=user.location_address,
+            city_id=user.city_id or 'belo-horizonte',
+            contact_person=user.contact_person,
+            phone=user.location_phone,
+            daily_need=user.daily_need,
+            operating_hours=user.location_operating_hours,
+            user_id=new_user.id,
+            approved=False,
+            active=True,
+        )
+        db.add(location)
+        db.commit()
+
     return new_user
 
 @router.post("/login", response_model=Token)
