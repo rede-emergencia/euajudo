@@ -1,8 +1,68 @@
 import { useState, useEffect } from 'react';
-import { Package, Menu, X, User, LogOut, LayoutDashboard, Home, Bell } from 'lucide-react';
+import { 
+  Package, Menu, X, User, LogOut, LayoutDashboard, Home, Bell,
+  MapPin, Store, Truck, UtensilsCrossed, Pill, Droplet, Shirt, Sparkles, Filter as FilterIcon
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { batches, resourceRequests } from '../lib/api';
+
+// FilterChip Component - Reutilizável e consistente
+function FilterChip({ icon: Icon, label, active, color, onClick, count }) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: isMobile ? '4px' : '6px',
+        padding: isMobile ? '6px 10px' : '8px 12px',
+        borderRadius: '20px',
+        border: active ? `2px solid ${color}` : '1px solid #d1d5db',
+        backgroundColor: active ? color : 'white',
+        color: active ? 'white' : '#374151',
+        fontSize: isMobile ? '12px' : '13px',
+        cursor: 'pointer',
+        fontWeight: '500',
+        transition: 'all 0.2s ease',
+        whiteSpace: 'nowrap',
+        boxShadow: active ? `0 2px 8px ${color}40` : 'none',
+        transform: active ? 'scale(1.02)' : 'scale(1)'
+      }}
+      onMouseOver={(e) => {
+        if (!active) {
+          e.currentTarget.style.borderColor = color;
+          e.currentTarget.style.color = color;
+        }
+      }}
+      onMouseOut={(e) => {
+        if (!active) {
+          e.currentTarget.style.borderColor = '#d1d5db';
+          e.currentTarget.style.color = '#374151';
+        }
+      }}
+    >
+      <Icon size={isMobile ? 14 : 16} strokeWidth={2.5} />
+      {!isMobile && <span>{label}</span>}
+      {count > 0 && (
+        <span style={{
+          background: active ? 'rgba(255,255,255,0.3)' : color,
+          color: active ? 'white' : 'white',
+          borderRadius: '10px',
+          padding: '2px 6px',
+          fontSize: '10px',
+          fontWeight: 'bold',
+          minWidth: '18px',
+          textAlign: 'center'
+        }}>
+          {count}
+        </span>
+      )}
+    </button>
+  );
+}
 
 export default function Header({ showFilters = false, onFilterChange, currentFilter, onLoginClick = () => {}, onRegisterClick = () => {} }) {
   const { user } = useAuth();
@@ -341,96 +401,89 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
           </button>
         </div>
 
-        {/* Filters Row */}
+        {/* Filters Row - Mobile First Design */}
         {showFilters && (
           <div style={{ 
             marginTop: '12px', 
             paddingTop: '12px', 
             borderTop: '1px solid #e5e7eb',
-            display: 'flex',
-            gap: '8px',
-            flexWrap: 'wrap'
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
           }}>
-            <button
-              onClick={() => onFilterChange('all')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: currentFilter === 'all' ? '2px solid #2563eb' : '1px solid #d1d5db',
-                backgroundColor: currentFilter === 'all' ? '#2563eb' : 'white',
-                color: currentFilter === 'all' ? 'white' : '#374151',
-                fontSize: '13px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}
-            >
-              🌐 Todos
-            </button>
-            <button
-              onClick={() => onFilterChange('delivery')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: currentFilter === 'delivery' ? '2px solid #10b981' : '1px solid #d1d5db',
-                backgroundColor: currentFilter === 'delivery' ? '#10b981' : 'white',
-                color: currentFilter === 'delivery' ? 'white' : '#374151',
-                fontSize: '13px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}
-            >
-              📍 Entregas
-            </button>
-            <button
-              onClick={() => onFilterChange('meal')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: currentFilter === 'meal' ? '2px solid #10b981' : '1px solid #d1d5db',
-                backgroundColor: currentFilter === 'meal' ? '#10b981' : 'white',
-                color: currentFilter === 'meal' ? 'white' : '#374151',
-                fontSize: '13px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}
-            >
-              🍽️ Marmitas
-            </button>
-            <button
-              onClick={() => onFilterChange('hygiene')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: currentFilter === 'hygiene' ? '2px solid #3b82f6' : '1px solid #d1d5db',
-                backgroundColor: currentFilter === 'hygiene' ? '#3b82f6' : 'white',
-                color: currentFilter === 'hygiene' ? 'white' : '#374151',
-                fontSize: '13px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}
-            >
-              🧼 Higiene
-            </button>
-            <button
-              onClick={() => onFilterChange('clothing')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: currentFilter === 'clothing' ? '2px solid #8b5cf6' : '1px solid #d1d5db',
-                backgroundColor: currentFilter === 'clothing' ? '#8b5cf6' : 'white',
-                color: currentFilter === 'clothing' ? 'white' : '#374151',
-                fontSize: '13px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}
-            >
-              👕 Roupas
-            </button>
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              minWidth: 'min-content',
+              paddingBottom: '4px'
+            }}>
+              <FilterChip 
+                icon={MapPin}
+                label="Todos"
+                active={currentFilter === 'all'}
+                color="#6366f1"
+                onClick={() => onFilterChange('all')}
+              />
+              <FilterChip 
+                icon={Home}
+                label="Abrigos"
+                active={currentFilter === 'shelters'}
+                color="#10b981"
+                onClick={() => onFilterChange('shelters')}
+              />
+              <FilterChip 
+                icon={Store}
+                label="Fornecedores"
+                active={currentFilter === 'providers'}
+                color="#10b981"
+                onClick={() => onFilterChange('providers')}
+              />
+              <FilterChip 
+                icon={Truck}
+                label="Entregas"
+                active={currentFilter === 'delivery'}
+                color="#3b82f6"
+                onClick={() => onFilterChange('delivery')}
+              />
+              <div style={{ width: '1px', background: '#e5e7eb', margin: '0 4px' }} />
+              <FilterChip 
+                icon={UtensilsCrossed}
+                label="Marmitas"
+                active={currentFilter === 'meal'}
+                color="#f59e0b"
+                onClick={() => onFilterChange('meal')}
+              />
+              <FilterChip 
+                icon={Pill}
+                label="Medicamentos"
+                active={currentFilter === 'medicine'}
+                color="#ef4444"
+                onClick={() => onFilterChange('medicine')}
+              />
+              <FilterChip 
+                icon={Droplet}
+                label="Higiene"
+                active={currentFilter === 'hygiene'}
+                color="#3b82f6"
+                onClick={() => onFilterChange('hygiene')}
+              />
+              <FilterChip 
+                icon={Shirt}
+                label="Roupas"
+                active={currentFilter === 'clothing'}
+                color="#8b5cf6"
+                onClick={() => onFilterChange('clothing')}
+              />
+              <FilterChip 
+                icon={Sparkles}
+                label="Limpeza"
+                active={currentFilter === 'cleaning'}
+                color="#14b8a6"
+                onClick={() => onFilterChange('cleaning')}
+              />
+            </div>
           </div>
         )}
 
@@ -555,6 +608,11 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
           .mobile-menu-btn {
             display: block !important;
           }
+        }
+        
+        /* Hide scrollbar for filters */
+        div::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </header>

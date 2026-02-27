@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import { MapPin, Utensils, X, Phone, Clock } from 'lucide-react';
+import { 
+  MapPin, X, Phone, Clock,
+  Home, Store, Truck, 
+  UtensilsCrossed, Pill, Droplet, Shirt, Sparkles,
+  Filter, Info
+} from 'lucide-react';
 import Header from '../components/Header';
 import LoginModal from '../components/LoginModal';
 import RegisterModal from '../components/RegisterModal';
@@ -10,16 +15,40 @@ import { useAuth } from '../contexts/AuthContext';
 import { getProductInfo, getProductText } from '../lib/productUtils';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-// SVG paths reusable for icons
-const SVG_HOUSE = 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z';
-const SVG_FORK  = 'M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z'; // Restaurante/Cozinha
-const SVG_DROPLET = 'M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z'; // Higiene
-const SVG_SHIRT = 'M16 20h3V6.5l-2-2V3h-2v1.5L12 2 9 4.5V3H7v1.5l-2 2V20h3v-6h8v6zm-2-10H10V8h4v2z'; // Roupas
-const SVG_CROSS = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z'; // Cruz de Saúde/Farmácia
-const SVG_HEART = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'; // ONG
-const SVG_SHOPPING = 'M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z'; // Bazar
 
-function makeIcon(svgPath, color, size = 30) {
+// SVG paths dos ícones Lucide para uso no mapa (mesmos da legenda)
+const LUCIDE_ICONS = {
+  home: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10', // Home
+  store: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10', // Store (similar)
+  truck: 'M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', // Truck
+  utensils: 'M3 2v7c0 1.1.9 2 2 2h2v11h2V11h2c1.1 0 2-.9 2-2V2 M16 2v20 M21 15V2', // UtensilsCrossed
+  pill: 'M10.5 20.5 3 13l6.5-6.5a7 7 0 1 1 1 1l-6.5 6.5 6.5 6.5a7 7 0 1 1-1-1z', // Pill
+  droplet: 'M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z', // Droplet
+  shirt: 'M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z', // Shirt
+  sparkles: 'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z M20 3v4 M22 5h-4 M4 17v4 M6 19H2' // Sparkles
+};
+
+// Cores baseadas no estado (mesmas da legenda)
+const STATE_COLORS = {
+  available: '#10b981',    // Verde - Disponível / Sem necessidade
+  urgent: '#ef4444',       // Vermelho - Urgente / Com pedido ativo
+  inTransit: '#3b82f6',    // Azul - Em trânsito
+  inactive: '#9ca3af'      // Cinza - Inativo
+};
+
+// Cores por tipo de recurso (mesmas da legenda)
+const RESOURCE_COLORS = {
+  meal: '#f59e0b',         // Âmbar - Marmitas
+  medicine: '#ef4444',     // Vermelho - Medicamentos
+  hygiene: '#3b82f6',      // Azul - Higiene
+  clothing: '#8b5cf6',     // Roxo - Roupas
+  cleaning: '#14b8a6'      // Teal - Limpeza
+};
+
+// Função para criar ícones Lucide no mapa (consistente com a legenda)
+function makeLucideIcon(iconKey, color, size = 30) {
+  const svgPath = LUCIDE_ICONS[iconKey] || LUCIDE_ICONS.home;
+  
   return L.divIcon({
     html: `<div style="
       background: ${color}; 
@@ -34,7 +63,7 @@ function makeIcon(svgPath, color, size = 30) {
       z-index: 1000;
       position: relative;
     ">
-      <svg width="${size * 0.55}" height="${size * 0.55}" fill="white" viewBox="0 0 24 24">
+      <svg width="${size * 0.5}" height="${size * 0.5}" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
         <path d="${svgPath}"/>
       </svg>
     </div>`,
@@ -44,8 +73,21 @@ function makeIcon(svgPath, color, size = 30) {
   });
 }
 
+// Função auxiliar para determinar cor baseada no estado
+function getStateColor(hasActiveOrder, isInTransit) {
+  if (isInTransit) return STATE_COLORS.inTransit;
+  if (hasActiveOrder) return STATE_COLORS.urgent;
+  return STATE_COLORS.available;
+}
+
+// Função auxiliar para determinar tamanho baseado no estado
+function getStateSize(hasActiveOrder) {
+  return hasActiveOrder ? 32 : 28;
+}
+
 export default function MapView() {
   const [filterType, setFilterType] = useState('all'); // all, delivery, meal, hygiene, clothing
+  const [showLegend, setShowLegend] = useState(false); // Controla visibilidade da legenda
   const [locations, setLocations] = useState([]);
   const [locationsWithStatus, setLocationsWithStatus] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -87,62 +129,55 @@ export default function MapView() {
     setShowConfirmationModal(true);
   };
 
-  // Function to get icon based on product type
-  const getIconForProductType = (productType, hasRequest = false) => {
-    const size = hasRequest ? 32 : 30;
-    const color = hasRequest ? '#ef4444' : '#10b981'; // red if has request, green otherwise
+  // Máquina de Estados: Verifica se usuário tem QUALQUER compromisso ativo
+  const getUserActiveCommitments = () => {
+    if (!user) return { hasActiveCommitment: true, commitments: [] };
     
-    switch(productType) {
-      case 'meal':
-        return makeIcon(SVG_FORK, color, size);
-      case 'hygiene':
-        return makeIcon(SVG_DROPLET, color, size);
-      case 'clothing':
-        return makeIcon(SVG_SHIRT, color, size);
-      case 'medicine':
-        return makeIcon(SVG_CROSS, color, size);
-      default:
-        return makeIcon(SVG_HOUSE, color, size);
+    const commitments = [];
+    
+    // 1. Verificar entregas de marmitas ativas (deliveries)
+    const activeDeliveryStatuses = new Set(['available', 'reserved', 'picked_up', 'in_transit']);
+    const userActiveDeliveries = deliveries.filter(d => 
+      d.volunteer_id === user.id && activeDeliveryStatuses.has(d.status)
+    );
+    
+    if (userActiveDeliveries.length > 0) {
+      commitments.push({
+        type: 'delivery',
+        count: userActiveDeliveries.length,
+        description: 'Entrega de marmitas em andamento'
+      });
     }
-  };
-
-  // Function to get icon based on establishment type
-  const getIconForEstablishment = (establishmentType, status = 'ready') => {
-    const size = status === 'ready' ? 32 : 30;
     
-    // Colors by status
-    const colors = {
-      ready: '#10b981',      // green
-      requesting: '#f97316',  // orange
-      idle: '#eab308'        // yellow
+    // 2. Verificar reservas de ingredientes ativas (resource requests)
+    const activeResourceStatuses = new Set(['reserved', 'in_progress']);
+    const userActiveResourceReservations = resourceRequests.filter(r => {
+      // Verificar se alguma reserva do request pertence ao usuário
+      return r.reservations?.some(res => 
+        res.volunteer_id === user.id && activeResourceStatuses.has(res.status)
+      );
+    });
+    
+    if (userActiveResourceReservations.length > 0) {
+      commitments.push({
+        type: 'resource_reservation',
+        count: userActiveResourceReservations.length,
+        description: 'Reserva de ingredientes em andamento'
+      });
+    }
+    
+    return {
+      hasActiveCommitment: commitments.length > 0,
+      commitments: commitments
     };
-    
-    const color = colors[status] || colors.ready;
-    
-    // Icons by establishment type - cada um com seu ícone único!
-    switch(establishmentType?.toLowerCase()) {
-      case 'farmácia':
-      case 'pharmacy':
-        return makeIcon(SVG_CROSS, color, size); // ⚕️ Cruz de Saúde
-      case 'cozinha':
-      case 'cozinha comunitária':
-      case 'restaurante':
-      case 'community kitchen':
-        return makeIcon(SVG_FORK, color, size); // 🍽️ Garfo
-      case 'ong':
-        return makeIcon(SVG_HEART, color, size); // ❤️ Coração
-      case 'bazar':
-        return makeIcon(SVG_SHOPPING, color, size); // 🛒 Carrinho
-      default:
-        return makeIcon(SVG_FORK, color, size); // Padrão: garfo
-    }
   };
 
-  // Icons with hardcoded colors for providers
-  const providerIdleIcon     = makeIcon(SVG_FORK, '#eab308', 30);    // yellow
-  const providerRequestIcon  = makeIcon(SVG_FORK, '#f97316', 32);    // orange  
-  const providerReadyIcon    = makeIcon(SVG_FORK, '#10b981', 32);    // green
-  
+  // Helper function simplificada para verificar se usuário está ocioso
+  const isUserIdle = () => {
+    const { hasActiveCommitment } = getUserActiveCommitments();
+    return !hasActiveCommitment;
+  };
+
   useEffect(() => {
     loadData();
     
@@ -336,7 +371,7 @@ export default function MapView() {
       
       let shelterMarkers = 0;
       
-      // Mostrar todos os abrigos com cores baseadas no status
+      // Mostrar todos os abrigos com cores baseadas no estado
       locationsWithStatus.forEach(location => {
         if (location.latitude && location.longitude) {
           const activeDeliveries = deliveriesByLocation[location.id] || [];
@@ -349,15 +384,10 @@ export default function MapView() {
           
           const hasActiveOrder = filteredDeliveries.length > 0;
           
-          // Determinar ícone baseado no tipo de produto principal
-          let icon;
-          if (hasActiveOrder && filteredDeliveries.length > 0) {
-            // Usar ícone do primeiro delivery disponível
-            const primaryDelivery = filteredDeliveries[0];
-            icon = getIconForProductType(primaryDelivery.product_type, true);
-          } else {
-            icon = makeIcon(SVG_HOUSE, '#10b981', 30); // Casa verde padrão
-          }
+          // Usar ícone Home com cor baseada no estado (consistente com legenda)
+          const color = getStateColor(hasActiveOrder, false);
+          const size = getStateSize(hasActiveOrder);
+          const icon = makeLucideIcon('home', color, size);
           
           const titleColor = hasActiveOrder ? '#ef4444' : '#10b981';
           const statusIcon = hasActiveOrder ? '🔴' : '📍';
@@ -407,10 +437,20 @@ export default function MapView() {
               // Adicionar botão para cada delivery disponível
               buttonsHtml += `
                 <button 
-                  onclick="window.commitToDelivery(${delivery.id})" 
-                  style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%; margin-top: 6px; font-weight: 500;"
+                  ${isUserIdle() ? `onclick="window.commitToDelivery(${delivery.id})"` : ''}
+                  style="background: ${isUserIdle() ? '#3b82f6' : '#9ca3af'}; 
+                         color: white; 
+                         border: none; 
+                         padding: 8px 12px; 
+                         border-radius: 6px; 
+                         cursor: ${isUserIdle() ? 'pointer' : 'not-allowed'}; 
+                         font-size: 12px; 
+                         width: 100%; 
+                         margin-top: 6px; 
+                         font-weight: 500;
+                         opacity: ${isUserIdle() ? '1' : '0.6'};"
                 >
-                  🤝 Me Comprometer - ${label}
+                  ${isUserIdle() ? `🤝 Me Comprometer - ${label}` : '⏳ Compromisso em Andamento'}
                 </button>
               `;
             });
@@ -458,19 +498,19 @@ export default function MapView() {
           
           // Definir ícone e emoji baseado no tipo de produto
           const productIcons = {
-            'meal': { emoji: '🍽️', label: 'Marmitas', color: '#10b981' },
+            'meal': { emoji: '🍽️', label: 'Marmitas', color: '#f59e0b' },
             'hygiene': { emoji: '🧼', label: 'Itens Higiênicos', color: '#3b82f6' },
             'clothing': { emoji: '👕', label: 'Roupas', color: '#8b5cf6' },
-            'medicine': { emoji: '💊', label: 'Medicamentos', color: '#ec4899' },
+            'medicine': { emoji: '💊', label: 'Medicamentos', color: '#ef4444' },
             'cleaning': { emoji: '🧹', label: 'Produtos de Limpeza', color: '#14b8a6' }
           };
           
           const productType = batch.product_type || 'meal';
           const productInfo = productIcons[productType] || productIcons['meal'];
           
-          // Usar ícone específico baseado no tipo de estabelecimento
-          const establishmentIcon = getIconForEstablishment(batch.provider.establishment_type, 'ready');
-          const marker = L.marker(coords, { icon: establishmentIcon })
+          // Usar ícone Store com cor verde (disponível) - consistente com legenda
+          const icon = makeLucideIcon('store', STATE_COLORS.available, 30);
+          const marker = L.marker(coords, { icon })
             .addTo(map);
           
           batchMarkers++;
@@ -507,7 +547,9 @@ export default function MapView() {
           const hasItemsAvailable = itemsWithStatus.some(item => !item.isCompletelyReserved);
           const isCompletelyReserved = !hasItemsAvailable;
           
-          const icon = isCompletelyReserved ? providerIdleIcon : providerRequestIcon;
+          // Usar ícone Store com cor baseada no estado
+          const color = isCompletelyReserved ? STATE_COLORS.inactive : STATE_COLORS.urgent;
+          const icon = makeLucideIcon('store', color, 30);
           const titleColor = isCompletelyReserved ? '#eab308' : '#3b82f6';
           const statusText = isCompletelyReserved ? '⏳ Reservado' : '🛒 Disponível';
           
@@ -536,13 +578,22 @@ export default function MapView() {
                 
                 ${!isCompletelyReserved ? `
                   <button 
-                    onclick="window.acceptIngredientRequest(${request.id})" 
-                    style="background: #3b82f6; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; width: 100%; margin-top: 8px;"
+                    ${isUserIdle() ? `onclick="window.acceptIngredientRequest(${request.id})"` : ''}
+                    style="background: ${isUserIdle() ? '#3b82f6' : '#9ca3af'}; 
+                           color: white; 
+                           border: none; 
+                           padding: 8px 12px; 
+                           border-radius: 4px; 
+                           cursor: ${isUserIdle() ? 'pointer' : 'not-allowed'}; 
+                           font-size: 12px; 
+                           width: 100%; 
+                           margin-top: 8px;
+                           opacity: ${isUserIdle() ? '1' : '0.6'};"
                   >
-                    Quero Fornecer Parte
+                    ${isUserIdle() ? 'Quero Fornecer Parte' : '⏳ Compromisso em Andamento'}
                   </button>
                   <p style="margin: 4px 0 0 0; font-size: 11px; color: #6b7280; text-align: center; font-style: italic;">
-                    Você pode fornecer apenas parte dos ingredientes
+                    ${isUserIdle() ? 'Você pode fornecer apenas parte dos ingredientes' : 'Finalize seu compromisso atual para criar um novo'}
                   </p>
                 ` : `
                   <p style="margin: 8px 0 0 0; font-size: 12px; color: #eab308; text-align: center; font-style: italic;">
@@ -580,7 +631,9 @@ export default function MapView() {
           const productType = batch.product_type || 'meal';
           const productInfo = productIcons[productType] || productIcons['meal'];
           
-          const marker = L.marker(coords, { icon: providerReadyIcon })
+          // Usar ícone Store com cor verde (disponível) - consistente com legenda
+          const icon = makeLucideIcon('store', STATE_COLORS.available, 30);
+          const marker = L.marker(coords, { icon })
             .addTo(map)
             .bindPopup(`
               <div style="min-width: 250px;">
@@ -598,11 +651,24 @@ export default function MapView() {
                     ⚠️ Expira em: ${batch.expires_at ? new Date(batch.expires_at).toLocaleString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '4h'}
                   </p>
                 </div>
-                <button onclick="window.reserveBatch(${batch.id})" style="background: #059669; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; width: 100%; transition: background 0.2s;" onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">
-                  🚚 Quero Entregar
+                
+                <button ${isUserIdle() ? `onclick="window.reserveBatch(${batch.id})"` : ''} 
+                        style="background: ${isUserIdle() ? '#059669' : '#9ca3af'}; 
+                               color: white; 
+                               border: none; 
+                               padding: 10px 16px; 
+                               border-radius: 6px; 
+                               cursor: ${isUserIdle() ? 'pointer' : 'not-allowed'}; 
+                               font-size: 13px; 
+                               font-weight: 600; 
+                               width: 100%; 
+                               transition: background 0.2s; 
+                               opacity: ${isUserIdle() ? '1' : '0.6'};" 
+                        ${isUserIdle() ? 'onmouseover="this.style.background=\'#047857\'" onmouseout="this.style.background=\'#059669\'"' : ''}>
+                  ${isUserIdle() ? '🚚 Quero Entregar' : '⏳ Entrega em Andamento'}
                 </button>
                 <p style="margin: 8px 0 0 0; font-size: 11px; color: #6b7280; text-align: center;">
-                  Você escolherá o abrigo de destino
+                  ${isUserIdle() ? 'Você escolherá o abrigo de destino' : 'Finalize sua entrega atual para criar uma nova'}
                 </p>
               </div>
             `);
@@ -643,6 +709,19 @@ export default function MapView() {
         );
         return;
       }
+
+      // Verificar se usuário tem algum compromisso ativo usando máquina de estados
+      const { hasActiveCommitment, commitments } = getUserActiveCommitments();
+      if (hasActiveCommitment) {
+        const commitmentDescriptions = commitments.map(c => `• ${c.description}`).join('\n');
+        showConfirmation(
+          '⚠️ Compromisso em Andamento',
+          `Você já possui compromisso(s) ativo(s):\n\n${commitmentDescriptions}\n\nPor favor, finalize seu compromisso atual antes de criar um novo.`,
+          () => {},
+          'warning'
+        );
+        return;
+      }
       
       // Buscar o pedido completo com itens
       const request = resourceRequests.find(r => r.id === requestId);
@@ -653,6 +732,29 @@ export default function MapView() {
     };
 
     window.reserveBatch = (batchId) => {
+      if (!user) {
+        showConfirmation(
+          'Login Necessário',
+          'Você precisa estar logado para reservar entregas',
+          () => setShowLoginModal(true),
+          'warning'
+        );
+        return;
+      }
+
+      // Verificar se usuário tem algum compromisso ativo usando máquina de estados
+      const { hasActiveCommitment, commitments } = getUserActiveCommitments();
+      if (hasActiveCommitment) {
+        const commitmentDescriptions = commitments.map(c => `• ${c.description}`).join('\n');
+        showConfirmation(
+          '⚠️ Compromisso em Andamento',
+          `Você já possui compromisso(s) ativo(s):\n\n${commitmentDescriptions}\n\nPor favor, finalize seu compromisso atual antes de criar um novo.`,
+          () => {},
+          'warning'
+        );
+        return;
+      }
+
       const batch = batches.find(b => b.id === batchId);
       if (batch) {
         setSelectedBatch(batchId);
@@ -677,6 +779,19 @@ export default function MapView() {
           'Apenas voluntários podem se comprometer com entregas',
           () => {},
           'error'
+        );
+        return;
+      }
+
+      // Verificar se usuário tem algum compromisso ativo usando máquina de estados
+      const { hasActiveCommitment, commitments } = getUserActiveCommitments();
+      if (hasActiveCommitment) {
+        const commitmentDescriptions = commitments.map(c => `• ${c.description}`).join('\n');
+        showConfirmation(
+          '⚠️ Compromisso em Andamento',
+          `Você já possui compromisso(s) ativo(s):\n\n${commitmentDescriptions}\n\nPor favor, finalize seu compromisso atual antes de criar um novo.`,
+          () => {},
+          'warning'
         );
         return;
       }
@@ -817,6 +932,23 @@ export default function MapView() {
       return;
     }
 
+    // Verificação de segurança: garantir que usuário ainda está ocioso
+    const { hasActiveCommitment, commitments } = getUserActiveCommitments();
+    if (hasActiveCommitment) {
+      const commitmentDescriptions = commitments.map(c => `• ${c.description}`).join('\n');
+      showConfirmation(
+        '⚠️ Compromisso em Andamento',
+        `Você já possui compromisso(s) ativo(s):\n\n${commitmentDescriptions}\n\nPor favor, finalize seu compromisso atual antes de criar um novo.`,
+        () => {
+          setShowModalChooseLocation(false);
+          setSelectedBatch(null);
+          setChosenLocation(null);
+        },
+        'warning'
+      );
+      return;
+    }
+
     try {
       const response = await fetch('http://localhost:8000/api/deliveries/', {
         method: 'POST',
@@ -897,190 +1029,254 @@ export default function MapView() {
         zIndex: 0
       }}></div>
 
-      {/* Legend */}
+      {/* Legend Toggle Button */}
       <div style={{
-        position: 'absolute',
-        top: '180px',
+        position: 'fixed',
+        top: '140px',
         right: '20px',
-        background: 'white',
-        borderRadius: '12px',
-        padding: '16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        border: '1px solid #e5e7eb',
-        zIndex: 1000,
-        minWidth: '200px',
-        maxWidth: '280px'
+        zIndex: 900
       }}>
-        <h3 style={{
-          margin: '0 0 12px 0',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          color: '#1f2937',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px'
-        }}>
-          <MapPin size={16} />
-          Legenda do Mapa
-        </h3>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Abrigos */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Abrigos
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}>
-                <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>Sem pedido</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>Abrigando tranquilamente</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: '#ef4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}>
-                <svg width="13" height="13" fill="white" viewBox="0 0 24 24">
-                  <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>Com pedido ativo</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>Precisando de recursos</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Fornecedores */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Fornecedores por Tipo
-            </div>
-            
-            {/* Cozinha Comunitária */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}>
-                <svg width="13" height="13" fill="white" viewBox="0 0 24 24">
-                  <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>🍽️ Cozinha Comunitária</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>Com marmitas disponíveis</div>
-              </div>
-            </div>
-            
-            {/* Farmácia */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-              }}>
-                <svg width="13" height="13" fill="white" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-                </svg>
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>⚕️ Farmácia</div>
-                <div style={{ fontSize: '11px', color: '#6b7280' }}>Com medicamentos disponíveis</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tipos de Recursos - Mostrar apenas os ativos */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Recursos Ativos
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '11px' }}>
-              {(() => {
-                // Calcular tipos de recursos ativos
-                const activeTypes = new Set();
-                deliveries.forEach(d => {
-                  if (['available', 'reserved', 'picked_up', 'in_transit'].includes(d.status)) {
-                    activeTypes.add(d.product_type || 'meal');
-                  }
-                });
-                batches.forEach(b => {
-                  if (b.status === 'ready') {
-                    activeTypes.add(b.product_type || 'meal');
-                  }
-                });
-
-                const productIcons = {
-                  'meal': { emoji: '🍽️', label: 'Marmitas' },
-                  'hygiene': { emoji: '🧼', label: 'Higiene' },
-                  'clothing': { emoji: '👕', label: 'Roupas' },
-                  'medicine': { emoji: '💊', label: 'Remédios' },
-                  'cleaning': { emoji: '🧹', label: 'Limpeza' }
-                };
-
-                return Array.from(activeTypes).map(type => {
-                  const icon = productIcons[type] || productIcons['meal'];
-                  return (
-                    <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>{icon.emoji}</span>
-                      <span style={{ color: '#374151' }}>{icon.label}</span>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          marginTop: '12px',
-          paddingTop: '12px',
-          borderTop: '1px solid #e5e7eb',
-          fontSize: '11px',
-          color: '#6b7280',
-          textAlign: 'center',
-          fontStyle: 'italic'
-        }}>
-          {filterType === 'all' ? 'Mostrando todos os recursos' : `Filtrando: ${filterType === 'delivery' ? 'Entregas' : filterType === 'ingredients' ? 'Insumos' : filterType === 'meal' ? 'Marmitas' : filterType === 'hygiene' ? 'Higiene' : filterType === 'clothing' ? 'Roupas' : filterType}`}
-        </div>
+        <button
+          onClick={() => setShowLegend(!showLegend)}
+          style={{
+            background: showLegend ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(229, 231, 235, 0.8)',
+            borderRadius: '12px',
+            padding: '10px 14px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: window.innerWidth < 768 ? '12px' : '13px',
+            fontWeight: '500',
+            color: '#374151',
+            transition: 'all 0.3s ease',
+            transform: showLegend ? 'scale(1.02)' : 'scale(1)',
+            minWidth: window.innerWidth < 768 ? '80px' : '100px'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.95)';
+            e.target.style.transform = 'scale(1.02)';
+          }}
+          onMouseOut={(e) => {
+            if (!showLegend) {
+              e.target.style.background = 'rgba(255, 255, 255, 0.85)';
+              e.target.style.transform = 'scale(1)';
+            }
+          }}
+        >
+          <MapPin size={window.innerWidth < 768 ? 14 : 16} style={{ color: '#6366f1' }} />
+          <span style={{ display: window.innerWidth < 768 ? 'none' : 'inline' }}>
+            {showLegend ? 'Ocultar' : 'Legenda'}
+          </span>
+          <span style={{ 
+            fontSize: '10px', 
+            marginLeft: '2px',
+            transform: showLegend ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.3s ease',
+            display: 'inline-block'
+          }}>
+            ▼
+          </span>
+        </button>
       </div>
+
+      {/* Expandable Legend */}
+      {showLegend && (
+        <div 
+          className="legend-container"
+          style={{
+            position: 'fixed',
+            top: window.innerWidth < 768 ? '190px' : '190px',
+            right: window.innerWidth < 768 ? '10px' : '20px',
+            left: window.innerWidth < 768 ? '10px' : 'auto',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '12px',
+            padding: window.innerWidth < 768 ? '12px' : '16px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(229, 231, 235, 0.8)',
+            zIndex: 899,
+            minWidth: window.innerWidth < 768 ? 'auto' : '200px',
+            maxWidth: window.innerWidth < 768 ? '100%' : '280px',
+            maxHeight: window.innerWidth < 768 ? 'calc(100vh - 200px)' : 'calc(100vh - 200px)',
+            overflowY: 'auto',
+            animation: 'slideIn 0.3s ease-out'
+          }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{
+              margin: 0,
+              fontSize: window.innerWidth < 768 ? '13px' : '14px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <MapPin size={window.innerWidth < 768 ? 14 : 16} style={{ color: '#6366f1' }} />
+              Legenda do Mapa
+            </h3>
+            <button
+              onClick={() => setShowLegend(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.background = '#f3f4f6';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.background = 'none';
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Estados dos Marcadores */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                Estados
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#10b981', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                  <span style={{ fontSize: '12px', color: '#374151' }}>Disponível / Sem necessidade</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#ef4444', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                  <span style={{ fontSize: '12px', color: '#374151' }}>Com pedido ativo / Urgente</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#3b82f6', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                  <span style={{ fontSize: '12px', color: '#374151' }}>Em trânsito</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tipos de Participantes */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                Participantes
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Home size={16} style={{ color: '#10b981' }} />
+                  <span style={{ fontSize: '12px', color: '#374151' }}>Abrigos</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Store size={16} style={{ color: '#10b981' }} />
+                  <span style={{ fontSize: '12px', color: '#374151' }}>Fornecedores</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Truck size={16} style={{ color: '#3b82f6' }} />
+                  <span style={{ fontSize: '12px', color: '#374151' }}>Entregas</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tipos de Recursos */}
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                Recursos
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <UtensilsCrossed size={14} style={{ color: '#f59e0b' }} />
+                  <span style={{ fontSize: '11px', color: '#374151' }}>Marmitas</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Pill size={14} style={{ color: '#ef4444' }} />
+                  <span style={{ fontSize: '11px', color: '#374151' }}>Remédios</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Droplet size={14} style={{ color: '#3b82f6' }} />
+                  <span style={{ fontSize: '11px', color: '#374151' }}>Higiene</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Shirt size={14} style={{ color: '#8b5cf6' }} />
+                  <span style={{ fontSize: '11px', color: '#374151' }}>Roupas</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Sparkles size={14} style={{ color: '#14b8a6' }} />
+                  <span style={{ fontSize: '11px', color: '#374151' }}>Limpeza</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '12px',
+            paddingTop: '12px',
+            borderTop: '1px solid #e5e7eb',
+            fontSize: '11px',
+            color: '#6b7280',
+            textAlign: 'center',
+            fontStyle: 'italic'
+          }}>
+            {filterType === 'all' ? 'Mostrando todos os recursos' : `Filtrando: ${filterType === 'delivery' ? 'Entregas' : filterType === 'ingredients' ? 'Insumos' : filterType === 'meal' ? 'Marmitas' : filterType === 'hygiene' ? 'Higiene' : filterType === 'clothing' ? 'Roupas' : filterType}`}
+          </div>
+        </div>
+      )}
+
+      {/* Overlay para fechar legenda em mobile */}
+      {showLegend && window.innerWidth < 768 && (
+        <div
+          onClick={() => setShowLegend(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.1)',
+            zIndex: 898
+          }}
+        />
+      )}
+
+      {/* Add CSS animation */}
+      <style jsx>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          .legend-container {
+            animation: slideUp 0.3s ease-out;
+          }
+        }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
 
       {/* Modal de Escolha de Local de Entrega */}
       {showModalChooseLocation && (
@@ -1102,8 +1298,8 @@ export default function MapView() {
             borderRadius: '12px',
             maxWidth: '600px',
             width: '100%',
-            height: '70vh',
-            maxHeight: '70vh',
+            height: window.innerWidth <= 768 ? '80vh' : '70vh',
+            maxHeight: window.innerWidth <= 768 ? '80vh' : '70vh',
             display: 'flex',
             flexDirection: 'column',
             position: 'relative'
@@ -1155,7 +1351,7 @@ export default function MapView() {
                           {batch.quantity_available} marmitas
                         </p>
                       </div>
-                      {local && (
+                      {location && (
                         <div>
                           <p style={{ margin: '0', fontSize: '12px', color: '#6b7280' }}>Abrigo precisa</p>
                           <p style={{ margin: '0', fontSize: '18px', fontWeight: 'bold', color: '#dc2626' }}>

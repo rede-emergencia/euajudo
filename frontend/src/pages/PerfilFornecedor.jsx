@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { users } from '../lib/api';
-import { MapPin, Save, X, Phone, Store, Clock } from 'lucide-react';
+import { MapPin, Save, X, Phone, Store, Clock, Package, Utensils, Pill, Shirt, Droplet } from 'lucide-react';
 
 export default function PerfilFornecedor() {
   const { user, updateUser } = useAuth();
@@ -19,8 +19,19 @@ export default function PerfilFornecedor() {
     longitude: -43.3505, // Centro de Juiz de Fora
     tipo_estabelecimento: '',
     capacidade_producao: '',
-    horario_funcionamento: ''
+    horario_funcionamento: '',
+    tipos_produtos: [] // Novo campo para tipos de produtos/serviços
   });
+
+  // Tipos de produtos/serviços disponíveis
+  const tiposDisponiveis = [
+    { id: 'meal', nome: 'Marmitas', icone: Utensils, descricao: 'Refeições prontas para entrega' },
+    { id: 'hygiene', nome: 'Itens Higiênicos', icone: Droplet, descricao: 'Sabonetes, shampoos, papel higiênico' },
+    { id: 'clothing', nome: 'Roupas', icone: Shirt, descricao: 'Vestimentas e cobertores' },
+    { id: 'medicine', nome: 'Medicamentos', icone: Pill, descricao: 'Remédios e produtos farmacêuticos' },
+    { id: 'cleaning', nome: 'Produtos Limpeza', icone: Package, descricao: 'Material de limpeza em geral' },
+    { id: 'other', nome: 'Outros', icone: Package, descricao: 'Outros tipos de produtos' }
+  ];
 
   useEffect(() => {
     if (user) {
@@ -33,7 +44,8 @@ export default function PerfilFornecedor() {
         longitude: user.longitude || -43.3505,
         tipo_estabelecimento: user.tipo_estabelecimento || 'restaurante',
         capacidade_producao: user.capacidade_producao || 100,
-        horario_funcionamento: user.horario_funcionamento || '08:00 - 18:00'
+        horario_funcionamento: user.horario_funcionamento || '08:00 - 18:00',
+        tipos_produtos: user.tipos_produtos || ['meal'] // Default para marmitas
       });
     }
   }, [user]);
@@ -68,7 +80,8 @@ export default function PerfilFornecedor() {
         longitude: user.longitude || -43.3505,
         tipo_estabelecimento: user.tipo_estabelecimento || 'restaurante',
         capacidade_producao: user.capacidade_producao || 100,
-        horario_funcionamento: user.horario_funcionamento || '08:00 - 18:00'
+        horario_funcionamento: user.horario_funcionamento || '08:00 - 18:00',
+        tipos_produtos: user.tipos_produtos || ['meal']
       });
     }
   };
@@ -359,6 +372,92 @@ export default function PerfilFornecedor() {
                     cursor: editing ? 'text' : 'not-allowed'
                   }}
                 />
+              </div>
+            </div>
+
+            {/* Tipos de Produtos/Serviços Oferecidos */}
+            <div>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#374151' }}>
+                <Package style={{ width: '16px', height: '16px', marginRight: '8px', display: 'inline' }} />
+                Tipos de Produtos/Serviços Oferecidos
+              </h3>
+              
+              <div style={{ 
+                backgroundColor: editing ? 'white' : '#f9fafb',
+                border: editing ? '1px solid #d1d5db' : '1px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '16px'
+              }}>
+                <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6b7280' }}>
+                  Selecione os tipos de produtos que seu estabelecimento pode oferecer para doação:
+                </p>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  {tiposDisponiveis.map((tipo) => {
+                    const Icone = tipo.icone;
+                    const isSelected = formData.tipos_produtos.includes(tipo.id);
+                    
+                    return (
+                      <div
+                        key={tipo.id}
+                        onClick={() => {
+                          if (editing) {
+                            const novosTipos = isSelected
+                              ? formData.tipos_produtos.filter(id => id !== tipo.id)
+                              : [...formData.tipos_produtos, tipo.id];
+                            setFormData({ ...formData, tipos_produtos: novosTipos });
+                          }
+                        }}
+                        style={{
+                          border: `2px solid ${isSelected ? '#2563eb' : '#e5e7eb'}`,
+                          borderRadius: '8px',
+                          padding: '12px',
+                          cursor: editing ? 'pointer' : 'default',
+                          backgroundColor: isSelected ? '#eff6ff' : 'white',
+                          transition: 'all 0.2s',
+                          opacity: editing ? 1 : 0.8
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                          <Icone 
+                            style={{ 
+                              width: '20px', 
+                              height: '20px', 
+                              marginRight: '8px',
+                              color: isSelected ? '#2563eb' : '#6b7280'
+                            }} 
+                          />
+                          <span style={{ 
+                            fontWeight: '600', 
+                            fontSize: '14px',
+                            color: isSelected ? '#1e40af' : '#374151'
+                          }}>
+                            {tipo.nome}
+                          </span>
+                        </div>
+                        <p style={{ 
+                          margin: 0, 
+                          fontSize: '12px', 
+                          color: '#6b7280',
+                          lineHeight: '1.4'
+                        }}>
+                          {tipo.descricao}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {formData.tipos_produtos.length === 0 && editing && (
+                  <p style={{ 
+                    margin: '12px 0 0 0', 
+                    fontSize: '12px', 
+                    color: '#ef4444',
+                    fontStyle: 'italic'
+                  }}>
+                    ⚠️ Selecione pelo menos um tipo de produto
+                  </p>
+                )}
               </div>
             </div>
           </div>

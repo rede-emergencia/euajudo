@@ -6,6 +6,7 @@ import MapView from './pages/MapView';
 import ProviderDashboard from './pages/ProviderDashboard';
 import VolunteerDashboard from './pages/VolunteerDashboard';
 import ShelterDashboard from './pages/ShelterDashboard';
+import UnifiedDashboard from './pages/UnifiedDashboard';
 import Admin from './pages/Admin';
 import PerfilFornecedor from './pages/PerfilFornecedor';
 
@@ -16,6 +17,17 @@ function App() {
         <Routes>
           <Route path="/" element={<MapView />} />
           
+          {/* Unified Dashboard - New modular architecture */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <UnifiedDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Legacy Dashboards - Keep for backward compatibility */}
           <Route
             path="/dashboard/fornecedor"
             element={

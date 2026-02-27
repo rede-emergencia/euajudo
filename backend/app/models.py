@@ -42,6 +42,9 @@ class User(Base):
     production_capacity = Column(Integer)
     delivery_capacity = Column(Integer)
     
+    # Product types offered (JSON array) - nullable para compatibilidade
+    tipos_produtos = Column(JSON, nullable=True)
+    
     # Relationships
     batches = relationship("ProductBatch", back_populates="provider", foreign_keys="ProductBatch.provider_id")
     deliveries = relationship("Delivery", back_populates="volunteer", foreign_keys="Delivery.volunteer_id")
