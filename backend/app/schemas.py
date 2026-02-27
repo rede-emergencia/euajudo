@@ -78,8 +78,21 @@ class UserBase(BaseModel):
         example=50,
         ge=1
     )
+    operating_hours: Optional[str] = Field(
+        None,
+        description="Operating / available hours",
+        example="08:00-18:00"
+    )
 
 class UserCreate(UserBase):
+    # Shelter-specific fields (creates DeliveryLocation automatically)
+    location_name: Optional[str] = None
+    location_address: Optional[str] = None
+    contact_person: Optional[str] = None
+    location_phone: Optional[str] = None
+    daily_need: Optional[int] = None
+    needed_product_types: Optional[str] = None  # comma-separated, e.g. "meal,hygiene"
+    location_operating_hours: Optional[str] = None
     password: str = Field(
         ...,
         description="User password (6-72 characters)",
@@ -102,7 +115,7 @@ class UserUpdate(BaseModel):
     address: Optional[str] = None
     production_capacity: Optional[int] = None
     delivery_capacity: Optional[int] = None
-    tipos_produtos: Optional[List[str]] = None
+    operating_hours: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int
@@ -133,14 +146,15 @@ class DeliveryLocationBase(BaseModel):
     operating_hours: Optional[str] = None
 
 class DeliveryLocationCreate(DeliveryLocationBase):
-    pass
+    user_id: Optional[int] = None
 
 class DeliveryLocationResponse(DeliveryLocationBase):
     id: int
     active: bool
     approved: bool
     created_at: datetime
-    
+    user_id: Optional[int] = None
+
     class Config:
         from_attributes = True
 

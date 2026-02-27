@@ -41,6 +41,7 @@ class User(Base):
     establishment_type = Column(String)
     production_capacity = Column(Integer)
     delivery_capacity = Column(Integer)
+    operating_hours = Column(String)  # e.g. "08:00-18:00"
     
     # Product types offered (JSON array) - nullable para compatibilidade
     tipos_produtos = Column(JSON, nullable=True)
@@ -68,9 +69,11 @@ class DeliveryLocation(Base):
     active = Column(Boolean, default=True)
     approved = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
     # Relationships
     deliveries = relationship("Delivery", back_populates="location")
+    owner = relationship("User", foreign_keys=[user_id])
 
 # ============================================================================
 # PRODUCT BATCH MODEL (Generic for any product type)

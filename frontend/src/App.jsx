@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import Home from './pages/Home';
 import MapView from './pages/MapView';
 import ProviderDashboard from './pages/ProviderDashboard';
 import VolunteerDashboard from './pages/VolunteerDashboard';
@@ -15,7 +16,8 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<MapView />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/mapa" element={<MapView />} />
           
           {/* Unified Dashboard - New modular architecture */}
           <Route
