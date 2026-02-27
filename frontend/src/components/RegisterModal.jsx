@@ -1,15 +1,42 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Package, X, User, Mail, Phone } from 'lucide-react';
+import { Package, X, User, Mail, Phone, Truck, MapPin } from 'lucide-react';
 
-export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
+const ROLE_INFO = {
+  provider: {
+    label: 'Fornecedor',
+    description: 'Produzo ou forneço itens para doação',
+    color: '#16a34a',
+    bg: '#f0fdf4',
+    border: '#bbf7d0',
+    Icon: Package,
+  },
+  volunteer: {
+    label: 'Transporte',
+    description: 'Faço o transporte e entrega de doações',
+    color: '#2563eb',
+    bg: '#eff6ff',
+    border: '#bfdbfe',
+    Icon: Truck,
+  },
+  shelter: {
+    label: 'Ponto de Recolhimento',
+    description: 'Recebo e distribuo doações para quem precisa',
+    color: '#dc2626',
+    bg: '#fef2f2',
+    border: '#fecaca',
+    Icon: MapPin,
+  },
+};
+
+export default function RegisterModal({ isOpen, onClose, onSwitchToLogin, preselectedRole }) {
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
     password: '',
     telefone: '',
-    roles: 'volunteer'
+    roles: preselectedRole || 'volunteer'
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,34 +93,47 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
       }}>
         {/* Header */}
-        <div style={{
-          padding: '24px 24px 0 24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Package style={{ width: '32px', height: '32px', color: '#2563eb' }} />
-            <div>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Criar Conta</h2>
-              <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                Junte-se ao JFood
-              </p>
+        <div style={{ padding: '24px 24px 0 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: preselectedRole ? '16px' : '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Package style={{ width: '32px', height: '32px', color: '#2563eb' }} />
+              <div>
+                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Criar Conta</h2>
+                <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>Junte-se ao EuAjudo</p>
+              </div>
             </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', color: '#6b7280' }}>
+              <X style={{ width: '20px', height: '20px' }} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '4px',
-              borderRadius: '4px',
-              color: '#6b7280'
-            }}
-          >
-            <X style={{ width: '20px', height: '20px' }} />
-          </button>
+
+          {/* Badge de perfil fixado */}
+          {preselectedRole && (() => {
+            const info = ROLE_INFO[preselectedRole];
+            if (!info) return null;
+            const { Icon } = info;
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '12px 14px',
+                background: info.bg,
+                border: `1.5px solid ${info.border}`,
+                borderRadius: '10px',
+              }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: info.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size={18} color="white" />
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: info.color }}>
+                    {info.label}
+                  </p>
+                  <p style={{ margin: '1px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                    {info.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Form */}
@@ -204,39 +244,26 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
               />
             </div>
 
-            <div>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '6px'
-              }}>
-                Tipo de Perfil
-              </label>
-              <select
-                name="roles"
-                value={formData.roles}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s',
-                  backgroundColor: 'white'
-                }}
-                onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                required
-              >
-                <option value="volunteer">Voluntário (ajudo com insumos e entregas)</option>
-                <option value="provider">Fornecedor (produzo marmitas)</option>
-                <option value="shelter">Abrigo (recebo marmitas)</option>
-              </select>
-            </div>
+            {!preselectedRole && (
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                  Tipo de Perfil
+                </label>
+                <select
+                  name="roles"
+                  value={formData.roles}
+                  onChange={handleChange}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', backgroundColor: 'white' }}
+                  onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  required
+                >
+                  <option value="volunteer">Voluntário (ajudo com insumos e entregas)</option>
+                  <option value="provider">Fornecedor (produzo marmitas)</option>
+                  <option value="shelter">Abrigo (recebo marmitas)</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label style={{
