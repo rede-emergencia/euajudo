@@ -43,6 +43,7 @@ export const auth = {
 };
 
 export const users = {
+  getAll: () => api.get('/api/users/'),
   getPendingApproval: () => api.get('/api/users/pending-approval'),
   approve: (userId) => api.post(`/api/users/${userId}/approve`),
   updateProfile: (data) => api.put('/api/users/me', data),

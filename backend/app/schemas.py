@@ -124,6 +124,7 @@ class UserResponse(UserBase):
     created_at: datetime
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    tipos_produtos: Optional[List[str]] = None
     
     class Config:
         from_attributes = True

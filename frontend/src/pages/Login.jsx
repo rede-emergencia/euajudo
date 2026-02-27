@@ -1,24 +1,68 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { users } from '@/lib/api';
 import { Package } from 'lucide-react';
 
 export default function Login() {
   const [selectedUser, setSelectedUser] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [usuarios, setUsuarios] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Usuários pré-configurados
-  const usuarios = [
-    { email: 'f1@j.com', nome: 'F1 - Fornecedor', role: 'fornecedor', descricao: 'Restaurante no Centro' },
-    { email: 'a1@j.com', nome: 'A1 - Abrigo', role: 'recebedor', descricao: 'Zona Norte de JF' },
-    { email: 'a2@j.com', nome: 'A2 - Abrigo', role: 'recebedor', descricao: 'Zona Sul de JF' },
-    { email: 'v1@j.com', nome: 'V1 - Voluntário', role: 'voluntario', descricao: 'Entregador/Comprador' },
-    { email: 'v2@j.com', nome: 'V2 - Voluntário', role: 'voluntario', descricao: 'Entregador' },
-    { email: 'adm@j.com', nome: 'ADM - Admin', role: 'admin', descricao: 'Administrador' }
-  ];
+  // Buscar usuários do banco de dados
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await users.getAll();
+        const usuariosData = response.data.map(user => ({
+          email: user.email,
+          nome: user.name,
+          role: getRoleDisplay(user.roles),
+          descricao: getUserDescription(user),
+          roles: user.roles
+        }));
+        setUsuarios(usuariosData);
+      } catch (err) {
+        console.error('Erro ao buscar usuários:', err);
+        // Fallback para usuários hardcoded em caso de erro
+        setUsuarios([
+          { email: 'f1@j.com', nome: 'F1 - Fornecedor', role: 'fornecedor', descricao: 'Restaurante no Centro' },
+          { email: 'a1@j.com', nome: 'A1 - Abrigo', role: 'recebedor', descricao: 'Zona Norte de JF' },
+          { email: 'v1@j.com', nome: 'V1 - Voluntário', role: 'voluntario', descricao: 'Entregador/Comprador' },
+          { email: 'adm@j.com', nome: 'ADM - Admin', role: 'admin', descricao: 'Administrador' }
+        ]);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // Helper functions
+  const getRoleDisplay = (roles) => {
+    if (roles.includes('admin')) return 'admin';
+    if (roles.includes('provider')) return 'fornecedor';
+    if (roles.includes('volunteer')) return 'voluntario';
+    return 'recebedor';
+  };
+
+  const getUserDescription = (user) => {
+    if (user.address) {
+      // Extrair apenas o nome da rua/bairro do endereço completo
+      const addressParts = user.address.split(',');
+      const streetPart = addressParts[0] || 'Local não informado';
+      return streetPart.length > 30 ? streetPart.substring(0, 30) + '...' : streetPart;
+    }
+    if (user.roles.includes('admin')) return 'Administrador do Sistema';
+    if (user.roles.includes('provider')) return 'Fornecedor de Produtos';
+    if (user.roles.includes('volunteer')) return 'Voluntário Entregador';
+    return 'Usuário do Sistema';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,14 +78,14 @@ export default function Login() {
     try {
       const userData = await login(selectedUser, '123');
       
-      // Redirecionar baseado no perfil
+      // Redirecionar baseado no perfil (usando roles do banco)
       if (userData.roles.includes('admin')) {
         navigate('/dashboard/admin');
-      } else if (userData.roles.includes('produtor')) {
+      } else if (userData.roles.includes('provider')) {
         navigate('/dashboard/fornecedor');
-      } else if (userData.roles.includes('voluntario')) {
+      } else if (userData.roles.includes('volunteer')) {
         navigate('/dashboard/voluntario');
-      } else if (userData.roles.includes('recebedor')) {
+      } else if (userData.roles.includes('shelter')) {
         navigate('/dashboard/abrigo');
       } else {
         navigate('/');
@@ -74,50 +118,57 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">Selecione o usuário:</label>
-              
-              {usuarios.map((usuario) => (
-                <label key={usuario.email} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                  <input
-                    type="radio"
-                    name="usuario"
-                    value={usuario.email}
-                    checked={selectedUser === usuario.email}
-                    onChange={(e) => setSelectedUser(e.target.value)}
-                    className="mr-3 text-primary-600 focus:ring-primary-500"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">{usuario.nome}</div>
-                    <div className="text-sm text-gray-500">{usuario.descricao}</div>
-                    <div className="text-xs text-gray-400">{usuario.email}</div>
-                  </div>
-                  <div className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">
-                    {usuario.role}
-                  </div>
-                </label>
-              ))}
+          {loadingUsers ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <span className="ml-2 text-gray-600">Carregando usuários...</span>
             </div>
-
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-              <div className="flex items-center text-blue-800">
-                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span className="text-sm font-medium">Senha: 123 (já preenchida)</span>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">Selecione o usuário:</label>
+                
+                {usuarios.map((usuario) => (
+                  <label key={usuario.email} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="usuario"
+                      value={usuario.email}
+                      checked={selectedUser === usuario.email}
+                      onChange={(e) => setSelectedUser(e.target.value)}
+                      className="mr-3 text-primary-600 focus:ring-primary-500"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{usuario.nome}</div>
+                      <div className="text-sm text-gray-500">{usuario.descricao}</div>
+                      <div className="text-xs text-gray-400">{usuario.email}</div>
+                    </div>
+                    <div className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">
+                      {usuario.role}
+                    </div>
+                  </label>
+                ))}
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading || !selectedUser}
-              className="btn btn-primary w-full"
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                <div className="flex items-center text-blue-800">
+                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium">Senha: 123 (já preenchida)</span>
+                </div>
+              </div>
 
+              <button
+                type="submit"
+                disabled={loading || !selectedUser}
+                className="btn btn-primary w-full"
+              >
+                {loading ? 'Entrando...' : 'Entrar'}
+              </button>
+            </form>
+          )}
+          
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Não tem uma conta?{' '}

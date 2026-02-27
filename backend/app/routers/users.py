@@ -53,6 +53,8 @@ def update_profile(
         current_user.production_capacity = user_update.production_capacity
     if user_update.delivery_capacity is not None:
         current_user.delivery_capacity = user_update.delivery_capacity
+    if user_update.tipos_produtos is not None:
+        current_user.tipos_produtos = user_update.tipos_produtos
     
     db.commit()
     db.refresh(current_user)

@@ -13,7 +13,8 @@ from app.routers import (
     resources,
     locations,
     admin,
-    product_config
+    product_config,
+    dashboard
 )
 
 # Create tables
@@ -71,6 +72,7 @@ app.include_router(resources.router)
 app.include_router(locations.router)
 app.include_router(admin.router)
 app.include_router(product_config.router)
+app.include_router(dashboard.router)
 
 @app.get("/")
 def root():

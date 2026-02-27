@@ -43,6 +43,9 @@ class User(Base):
     delivery_capacity = Column(Integer)
     operating_hours = Column(String)  # e.g. "08:00-18:00"
     
+    # Product types offered (JSON array) - nullable para compatibilidade
+    tipos_produtos = Column(JSON, nullable=True)
+    
     # Relationships
     batches = relationship("ProductBatch", back_populates="provider", foreign_keys="ProductBatch.provider_id")
     deliveries = relationship("Delivery", back_populates="volunteer", foreign_keys="Delivery.volunteer_id")
