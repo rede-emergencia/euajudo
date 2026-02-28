@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Package, Menu, X, User, LogOut, LayoutDashboard, Home,
+import {
+  Package, X, User, LogOut, Home,
   MapPin, Store, Truck, UtensilsCrossed, Pill, Droplet, Shirt, Sparkles, Filter as FilterIcon,
   Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart
 } from 'lucide-react';
@@ -25,7 +25,7 @@ document.head.appendChild(style);
 // FilterChip Component - Reutilizável e consistente
 function FilterChip({ icon: Icon, label, active, color, onClick, count }) {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  
+
   return (
     <button
       onClick={onClick}
@@ -63,12 +63,12 @@ function FilterChip({ icon: Icon, label, active, color, onClick, count }) {
   );
 }
 
-export default function Header({ showFilters = false, onFilterChange, currentFilter, onLoginClick = () => {}, onRegisterClick = () => {}, onOperationStatusChange }) {
+export default function Header({ showFilters = false, onFilterChange, currentFilter, onLoginClick = () => { }, onOperationStatusChange }) {
   const { user } = useAuth();
   const { userState, colors, refreshState, activeOperations } = useUserState();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
   const [showActionsModal, setShowActionsModal] = useState(false);
 
   // Estado para modal padrão de confirmação por código
@@ -142,7 +142,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
     // Modal de confirmação suave em vez de confirm()
     const confirmed = await showConfirmationModal('Confirmar Retirada', 'Deseja confirmar a retirada? Código: 123456');
     if (!confirmed) return;
-    
+
     try {
       const response = await fetch(`/api/deliveries/${deliveryId}/confirm-pickup`, {
         method: 'POST',
@@ -171,7 +171,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
     // Pedir código de entrega ao voluntário
     const deliveryCode = prompt('Digite o código de entrega fornecido pelo abrigo:');
     if (!deliveryCode) return;
-    
+
     try {
       const response = await fetch(`/api/deliveries/${deliveryId}/validate-delivery`, {
         method: 'POST',
@@ -198,7 +198,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
   // Funções para modal padrão de código
   // PRINCÍPIO: Quem DOA/ENTREGA confirma o código (type='confirm')
   //            Quem RECEBE mostra o código (type='display')
-  
+
   const openConfirmCodeModal = (title, description, expectedCode, itemDetails, onConfirmCallback) => {
     setCodeModal({
       show: true,
@@ -235,19 +235,19 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
   };
 
   const { cancelEntity, loading: cancelLoading, error: cancelError } = useCancel();
-  
+
   const handleCancelOperation = async () => {
     if (!userState.activeOperation) {
       console.log('❌ Header: Nenhuma operação ativa para cancelar');
       return;
     }
-    
-    console.log('🗑️ Header: Cancelando operação:', { 
-      type: userState.activeOperation.type, 
+
+    console.log('🗑️ Header: Cancelando operação:', {
+      type: userState.activeOperation.type,
       id: userState.activeOperation.id,
-      description: userState.activeOperation.description 
+      description: userState.activeOperation.description
     });
-    
+
     const result = await cancelEntity(userState.activeOperation.type, userState.activeOperation.id, {
       showConfirm: false,
       onSuccess: (result) => {
@@ -265,7 +265,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
         showNotification('❌ Erro ao cancelar operação: ' + result.message, 'error');
       }
     });
-    
+
     console.log('📊 Header: Resultado do cancelEntity:', result);
   };
 
@@ -290,7 +290,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
           }
         }
       );
-      
+
       if (result.success) {
         setShowActionsModal(false);
         // Evento adicional já foi disparado no onSuccess
@@ -310,7 +310,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
     if (previousHadOperation && !hasActiveOperation) {
       setIsFlashing(true);
     }
-    
+
     setPreviousHadOperation(hasActiveOperation);
   }, [userState.activeOperation, previousHadOperation]);
 
@@ -335,15 +335,15 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
 
   const headerColors = colors || {
     background: '#dcfce7',
-    border: '#bbf7d0', 
+    border: '#bbf7d0',
     shadow: 'rgba(34, 197, 94, 0.2)'
   };
 
   // Efeito para sincronizar cores com as bordas do App.jsx
   useEffect(() => {
     // Disparar evento para atualizar cores das bordas
-    window.dispatchEvent(new CustomEvent('headerColorChange', { 
-      detail: { colors: headerColors } 
+    window.dispatchEvent(new CustomEvent('headerColorChange', {
+      detail: { colors: headerColors }
     }));
   }, [headerColors.background, headerColors.border, headerColors.shadow]);
 
@@ -368,11 +368,11 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
         {/* Top Row */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {/* Logo */}
-          <div 
+          <div
             onClick={() => navigate('/mapa')}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
               gap: '10px',
               cursor: 'pointer'
             }}
@@ -381,8 +381,8 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
             <div>
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>EuAjudo</h1>
               <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>
-                {activeOperations.length > 0 
-                  ? `⚡ ${activeOperations.length} Operação(ões)` 
+                {activeOperations.length > 0
+                  ? `⚡ ${activeOperations.length} Operação(ões)`
                   : '✅ Pronto para Ajudar'
                 }
               </p>
@@ -390,57 +390,17 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
           </div>
 
           {/* Desktop Navigation */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
             gap: '16px'
           }} className="desktop-nav">
             {user ? (
               <>
-                {/* Botão Mapa */}
-                <button
-                  onClick={() => navigate('/mapa')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #d1d5db',
-                    background: 'white',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151'
-                  }}
-                >
-                  <MapPin style={{ width: '16px', height: '16px' }} />
-                  <span>Mapa</span>
-                </button>
 
-                {/* Botão Dashboard */}
+                {/* Botão Ações — escondido em mobile, visível no desktop */}
                 <button
-                  onClick={() => navigate(getDashboardRoute() || '/')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #d1d5db',
-                    background: 'white',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151'
-                  }}
-                >
-                  <LayoutDashboard style={{ width: '16px', height: '16px' }} />
-                  <span>Dashboard</span>
-                </button>
-
-                {/* Botão Ações */}
-                <button
+                  className="actions-desktop-only"
                   onClick={() => setShowActionsModal(!showActionsModal)}
                   style={{
                     position: 'relative',
@@ -522,7 +482,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                     }}>
                       {user.name?.charAt(0).toUpperCase() || user.nome?.charAt(0).toUpperCase() || 'U'}
                     </div>
-                    <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span className="user-menu-name" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {user.name || user.nome || 'Usuário'}
                     </span>
                   </button>
@@ -530,7 +490,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                   {/* Dropdown Menu */}
                   {showUserMenu && (
                     <>
-                      <div 
+                      <div
                         style={{
                           position: 'fixed',
                           top: 0,
@@ -586,61 +546,30 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                 </div>
               </>
             ) : (
-              <>
-                <button
-                  data-testid="login-button"
-                  onClick={onLoginClick}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: 'none',
-                    color: '#374151',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                >
-                  Login
-                </button>
-                <button
-                  onClick={onRegisterClick}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}
-                >
-                  Cadastrar
-                </button>
-              </>
+              <button
+                data-testid="login-button"
+                onClick={onLoginClick}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: 'none',
+                  color: '#374151',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                Login
+              </button>
             )}
           </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            style={{
-              display: 'none',
-              padding: '8px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer'
-            }}
-            className="mobile-menu-btn"
-          >
-            {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
-          </button>
         </div>
 
         {/* Filters Row - Mobile First Design */}
         {showFilters && (
-          <div style={{ 
-            marginTop: '12px', 
-            paddingTop: '12px', 
+          <div style={{
+            marginTop: '12px',
+            paddingTop: '12px',
             borderTop: '1px solid #e5e7eb',
             overflowX: 'auto',
             overflowY: 'hidden',
@@ -654,28 +583,28 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
               minWidth: 'min-content',
               paddingBottom: '4px'
             }}>
-              <FilterChip 
+              <FilterChip
                 icon={MapPin}
                 label="Todos"
                 active={currentFilter === 'all'}
                 color="#6366f1"
                 onClick={() => onFilterChange('all')}
               />
-              <FilterChip 
+              <FilterChip
                 icon={Home}
                 label="Abrigos"
                 active={currentFilter === 'shelters'}
                 color="#10b981"
                 onClick={() => onFilterChange('shelters')}
               />
-              <FilterChip 
+              <FilterChip
                 icon={Store}
                 label="Fornecedores"
                 active={currentFilter === 'providers'}
                 color="#10b981"
                 onClick={() => onFilterChange('providers')}
               />
-              <FilterChip 
+              <FilterChip
                 icon={Truck}
                 label="Entregas"
                 active={currentFilter === 'delivery'}
@@ -683,35 +612,35 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                 onClick={() => onFilterChange('delivery')}
               />
               <div style={{ width: '1px', background: '#e5e7eb', margin: '0 4px' }} />
-              <FilterChip 
+              <FilterChip
                 icon={UtensilsCrossed}
                 label="Marmitas"
                 active={currentFilter === 'meal'}
                 color="#f59e0b"
                 onClick={() => onFilterChange('meal')}
               />
-              <FilterChip 
+              <FilterChip
                 icon={Pill}
                 label="Medicamentos"
                 active={currentFilter === 'medicine'}
                 color="#ef4444"
                 onClick={() => onFilterChange('medicine')}
               />
-              <FilterChip 
+              <FilterChip
                 icon={Droplet}
                 label="Higiene"
                 active={currentFilter === 'hygiene'}
                 color="#3b82f6"
                 onClick={() => onFilterChange('hygiene')}
               />
-              <FilterChip 
+              <FilterChip
                 icon={Shirt}
                 label="Roupas"
                 active={currentFilter === 'clothing'}
                 color="#8b5cf6"
                 onClick={() => onFilterChange('clothing')}
               />
-              <FilterChip 
+              <FilterChip
                 icon={Sparkles}
                 label="Limpeza"
                 active={currentFilter === 'cleaning'}
@@ -758,8 +687,8 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                     Minhas Ações
                   </h2>
                   <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                    {activeOperations.length > 0 
-                      ? `Você tem ${activeOperations.length} operação(ões) em andamento` 
+                    {activeOperations.length > 0
+                      ? `Você tem ${activeOperations.length} operação(ões) em andamento`
                       : 'Nenhuma operação ativa no momento'
                     }
                   </p>
@@ -854,91 +783,91 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                       </div>
 
                       {/* Código de Retirada - para deliveries pending_confirmation */}
-                      {operation.type === 'delivery' && 
-                       (operation.status === 'pending_confirmation' || operation.status === 'reserved') && 
-                       operation.pickup_code && (
-                        <div style={{ 
-                          marginTop: '8px', 
-                          padding: '8px', 
-                          background: '#fef3c7', 
-                          borderRadius: '6px',
-                          border: '1px solid #f59e0b'
-                        }}>
-                          <p style={{ margin: '0', fontSize: '11px', color: '#92400e', fontWeight: '500' }}>
-                            📋 Código de Retirada
-                          </p>
-                          <p style={{ 
-                            margin: '2px 0 0 0', 
-                            fontSize: '14px', 
-                            fontWeight: 'bold', 
-                            color: '#92400e',
-                            fontFamily: 'monospace',
-                            letterSpacing: '1px'
+                      {operation.type === 'delivery' &&
+                        (operation.status === 'pending_confirmation' || operation.status === 'reserved') &&
+                        operation.pickup_code && (
+                          <div style={{
+                            marginTop: '8px',
+                            padding: '8px',
+                            background: '#fef3c7',
+                            borderRadius: '6px',
+                            border: '1px solid #f59e0b'
                           }}>
-                            {operation.pickup_code}
-                          </p>
-                          <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#92400e' }}>
-                            Mostre ao fornecedor
-                          </p>
-                        </div>
-                      )}
+                            <p style={{ margin: '0', fontSize: '11px', color: '#92400e', fontWeight: '500' }}>
+                              📋 Código de Retirada
+                            </p>
+                            <p style={{
+                              margin: '2px 0 0 0',
+                              fontSize: '14px',
+                              fontWeight: 'bold',
+                              color: '#92400e',
+                              fontFamily: 'monospace',
+                              letterSpacing: '1px'
+                            }}>
+                              {operation.pickup_code}
+                            </p>
+                            <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#92400e' }}>
+                              Mostre ao fornecedor
+                            </p>
+                          </div>
+                        )}
 
                       {/* Código de Entrega - quando em trânsito */}
-                      {(operation.status === 'picked_up' || 
-                        operation.status === 'in_transit') && 
+                      {(operation.status === 'picked_up' ||
+                        operation.status === 'in_transit') &&
                         operation.delivery_code && (
-                        <div style={{ 
-                          marginTop: '8px', 
-                          padding: '8px', 
-                          background: '#dbeafe', 
-                          borderRadius: '6px',
-                          border: '1px solid #3b82f6'
-                        }}>
-                          <p style={{ margin: '0', fontSize: '11px', color: '#1e40af', fontWeight: '500' }}>
-                            📋 Código de Entrega
-                          </p>
-                          <p style={{ 
-                            margin: '2px 0 0 0', 
-                            fontSize: '14px', 
-                            fontWeight: 'bold', 
-                            color: '#1e40af',
-                            fontFamily: 'monospace',
-                            letterSpacing: '1px'
+                          <div style={{
+                            marginTop: '8px',
+                            padding: '8px',
+                            background: '#dbeafe',
+                            borderRadius: '6px',
+                            border: '1px solid #3b82f6'
                           }}>
-                            {operation.delivery_code}
-                          </p>
-                          <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#1e40af' }}>
-                            Peça este código ao abrigo
-                          </p>
-                        </div>
-                      )}
+                            <p style={{ margin: '0', fontSize: '11px', color: '#1e40af', fontWeight: '500' }}>
+                              📋 Código de Entrega
+                            </p>
+                            <p style={{
+                              margin: '2px 0 0 0',
+                              fontSize: '14px',
+                              fontWeight: 'bold',
+                              color: '#1e40af',
+                              fontFamily: 'monospace',
+                              letterSpacing: '1px'
+                            }}>
+                              {operation.delivery_code}
+                            </p>
+                            <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#1e40af' }}>
+                              Peça este código ao abrigo
+                            </p>
+                          </div>
+                        )}
 
                       {/* Botões de Ação */}
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '8px', 
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
                         marginTop: '12px'
                       }}>
-                        {operation.type === 'delivery' && 
-                         (operation.status === 'pending_confirmation' || operation.status === 'reserved') && (
-                          <button
-                            onClick={() => handleCancelClick(operation)}
-                            style={{
-                              flex: 1,
-                              background: '#ef4444',
-                              color: 'white',
-                              border: 'none',
-                              padding: '6px 12px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Cancelar
-                          </button>
-                        )}
-                        
+                        {operation.type === 'delivery' &&
+                          (operation.status === 'pending_confirmation' || operation.status === 'reserved') && (
+                            <button
+                              onClick={() => handleCancelClick(operation)}
+                              style={{
+                                flex: 1,
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Cancelar
+                            </button>
+                          )}
+
                         {operation.type === 'delivery' && operation.status === 'picked_up' && (
                           <button
                             onClick={() => openConfirmCodeModal(
@@ -996,34 +925,34 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
               )}
             </div>
 
-              {/* Footer */}
-              {userState.activeOperation && (
-                <div style={{ 
-                  marginTop: '24px', 
-                  paddingTop: '16px', 
-                  borderTop: '1px solid #e5e7eb' 
-                }}>
-                  <button
-                    onClick={() => {
-                      navigate(getDashboardRoute() || '/');
-                      setShowActionsModal(false);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: 'none',
-                      borderRadius: '8px',
-                      background: '#3b82f6',
-                      color: 'white',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Ver no Dashboard
-                  </button>
-                </div>
-              )}
+            {/* Footer */}
+            {userState.activeOperation && (
+              <div style={{
+                marginTop: '24px',
+                paddingTop: '16px',
+                borderTop: '1px solid #e5e7eb'
+              }}>
+                <button
+                  onClick={() => {
+                    navigate(getDashboardRoute() || '/');
+                    setShowActionsModal(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    background: '#3b82f6',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Ver no Dashboard
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1126,6 +1055,16 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
             opacity: 1;
           }
         }
+        /* Ocultar botão Ações do header em mobile */
+        @media (max-width: 768px) {
+          .actions-desktop-only { display: none !important; }
+          .actions-mobile-fab { display: flex !important; }
+          .nav-btn-text { display: none; }
+          .user-menu-name { display: none; }
+        }
+        @media (min-width: 769px) {
+          .actions-mobile-fab { display: none !important; }
+        }
       `}</style>
 
       {/* Modal Padrão de Confirmação por Código */}
@@ -1139,6 +1078,46 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
         expectedCode={codeModal.code}
         itemDetails={codeModal.itemDetails}
       />
+      {/* FAB — Ações (somente mobile) */}
+      <button
+        className="actions-mobile-fab"
+        onClick={() => setShowActionsModal(!showActionsModal)}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '16px',
+          transform: 'none',
+          zIndex: 1100,
+          alignItems: 'center',
+          gap: '8px',
+          padding: '14px 28px',
+          borderRadius: '999px',
+          border: 'none',
+          background: userState.activeOperation ? '#d97706' : '#16a34a',
+          color: 'white',
+          fontSize: '15px',
+          fontWeight: '700',
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <Activity size={18} />
+        Ações
+        {activeOperations.length > 0 && (
+          <span style={{
+            background: 'rgba(255,255,255,0.3)',
+            borderRadius: '999px',
+            padding: '2px 8px',
+            fontSize: '13px',
+            fontWeight: '800',
+            marginLeft: '4px',
+          }}>
+            {activeOperations.length}
+          </span>
+        )}
+      </button>
+
     </header>
   );
 }
