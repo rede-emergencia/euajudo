@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { 
+import { useNavigate } from 'react-router-dom';
+import {
   MapPin, X, Phone, Clock,
-  Home, Store, Truck, 
+  Home, Store, Truck, LayoutDashboard,
   UtensilsCrossed, Pill, Droplet, Shirt, Sparkles,
   Filter, Info
 } from 'lucide-react';
@@ -64,34 +65,6 @@ const RESOURCE_COLORS = {
   clothing: '#8b5cf6',     // Roxo - Roupas
   cleaning: '#14b8a6'      // Teal - Limpeza
 };
-
-// Função para criar ícones personalizados no mapa
-function makeCustomIcon(iconKey, color, size = 30) {
-  const svgPath = CUSTOM_ICONS[iconKey] || CUSTOM_ICONS.home;
-  
-  return L.divIcon({
-    html: `<div style="
-      background: ${color}; 
-      width: ${size}px; 
-      height: ${size}px; 
-      border-radius: 50%; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      border: 2px solid white; 
-      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-      z-index: 1000;
-      position: relative;
-    ">
-      <svg width="${size * 0.5}" height="${size * 0.5}" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-        <path d="${svgPath}"/>
-      </svg>
-    </div>`,
-    className: 'custom-div-icon',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
 
 // Função para criar ícones Lucide no mapa (consistente com a legenda)
 function makeLucideIcon(iconKey, color, size = 30) {
@@ -206,11 +179,19 @@ export default function MapView() {
   const [confirmationData, setConfirmationData] = useState({
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: 'info'
   });
   const { user } = useAuth();
-  const { userState, refreshState } = useUserState(); // Adicionar hook do AuthContext
+  const { userState, refreshState } = useUserState();
+  const navigate = useNavigate();
+
+  const getDashboardRoute = () => {
+    if (user?.roles?.includes('provider')) return '/dashboard/fornecedor';
+    if (user?.roles?.includes('shelter')) return '/dashboard/abrigo';
+    if (user?.roles?.includes('volunteer')) return '/dashboard/voluntario';
+    return '/dashboard';
+  };
 
   // Helper function para verificar se usuário pode fazer deliveries
   const canUserDoDeliveries = () => {
@@ -258,7 +239,7 @@ export default function MapView() {
       console.log('🔄 Evento userStateChange recebido - recarregando dados do mapa');
       loadData();
     };
-    
+
     window.addEventListener('userStateChange', handleUserStateChange);
     return () => window.removeEventListener('userStateChange', handleUserStateChange);
   }, []);
@@ -303,7 +284,7 @@ export default function MapView() {
   const loadData = async () => {
     try {
       console.log('🔄 Carregando dados...');
-      
+
       // Carregar locais de entrega (agora usando locations)
       const responseEntrega = await fetch(`${API_URL}/api/locations/?active_only=true`);
       console.log('📍 Response locations:', responseEntrega.status, responseEntrega.ok);
@@ -338,7 +319,7 @@ export default function MapView() {
         const pedidos = await responseDeliveries.json();
         console.log('🚚 Deliveries carregados:', pedidos.length);
         setDeliveries(pedidos);
-        
+
         // Debug: verificar se as deliveries do João estão vindo
         if (user) {
           const joaoDeliveries = pedidos.filter(d => d.volunteer_id === user.id);
@@ -392,9 +373,9 @@ export default function MapView() {
 
   const initMap = async () => {
     console.log('🗺️ Inicializando mapa...');
-    
+
     if (typeof window === 'undefined') return;
-    
+
     // Se o mapa já existe, apenas atualizar marcadores
     if (mapInstance) {
       console.log('♻️ Mapa já existe, atualizando marcadores...');
@@ -414,17 +395,17 @@ export default function MapView() {
       console.log('🔄 Container já tem mapa, reutilizando...');
       return;
     }
-    
+
     try {
       console.log('🆕 Criando novo mapa...');
-      
+
       // Criar mapa com Leaflet já importado
       const map = L.map('map', {
         center: [-21.7642, -43.3502],
         zoom: 13,
         zoomControl: false // Remover controle de zoom padrão
       });
-      
+
       // Adicionar tiles do OpenStreetMap
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -432,16 +413,18 @@ export default function MapView() {
       }).addTo(map);
 
       // Criar controle de zoom personalizado no canto inferior direito
-      const zoomControl = L.control({ position: 'bottomright' });
-      
-      zoomControl.onAdd = function(map) {
+      const zoomControl = L.control({ position: 'topleft' });
+
+      zoomControl.onAdd = function (map) {
         const div = L.DomUtil.create('div', 'custom-zoom-control');
         div.style.backgroundColor = 'white';
         div.style.border = '2px solid #d1d5db';
         div.style.borderRadius = '8px';
         div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
         div.style.overflow = 'hidden';
-        
+        div.style.marginTop = '16px';
+        div.style.marginLeft = '16px';
+
         // Botão de zoom in
         const zoomInButton = L.DomUtil.create('button', '', div);
         zoomInButton.innerHTML = '+';
@@ -458,7 +441,7 @@ export default function MapView() {
           transition: all 0.2s;
           border-bottom: 1px solid #e5e7eb;
         `;
-        
+
         // Botão de zoom out
         const zoomOutButton = L.DomUtil.create('button', '', div);
         zoomOutButton.innerHTML = '−';
@@ -474,7 +457,7 @@ export default function MapView() {
           cursor: pointer;
           transition: all 0.2s;
         `;
-        
+
         // Hover effects
         zoomInButton.onmouseover = () => {
           zoomInButton.style.backgroundColor = '#f3f4f6';
@@ -484,7 +467,7 @@ export default function MapView() {
           zoomInButton.style.backgroundColor = 'white';
           zoomInButton.style.color = '#374151';
         };
-        
+
         zoomOutButton.onmouseover = () => {
           zoomOutButton.style.backgroundColor = '#f3f4f6';
           zoomOutButton.style.color = '#1f2937';
@@ -493,59 +476,59 @@ export default function MapView() {
           zoomOutButton.style.backgroundColor = 'white';
           zoomOutButton.style.color = '#374151';
         };
-        
+
         // Prevenir eventos de clique no mapa
         L.DomEvent.disableClickPropagation(div);
-        
+
         // Adicionar eventos de zoom
-        L.DomEvent.on(zoomInButton, 'click', function() {
+        L.DomEvent.on(zoomInButton, 'click', function () {
           map.zoomIn();
         });
-        
-        L.DomEvent.on(zoomOutButton, 'click', function() {
+
+        L.DomEvent.on(zoomOutButton, 'click', function () {
           map.zoomOut();
         });
-        
+
         return div;
       };
-      
+
       zoomControl.addTo(map);
-      
+
       console.log('✅ Mapa criado com sucesso');
-      
+
       setMapInstance(map);
       setMapLoaded(true);
-      
+
       // Esperar o mapa estar totalmente carregado antes de adicionar marcadores
       map.whenReady(() => {
         console.log('🗺️ Mapa está pronto, adicionando marcadores...');
         updateMarkers(map);
       });
-      
+
     } catch (error) {
       console.error('❌ Erro ao criar mapa:', error);
     }
   };
-  
+
   const updateMarkers = (map) => {
     if (!map) {
       console.log('⚠️ Mapa não disponível para atualizar marcadores');
       return;
     }
-    
+
     // Verificar se o container do mapa está no DOM
     const mapContainer = document.getElementById('map');
     if (!mapContainer || !mapContainer.parentNode) {
       console.log('⚠️ Container do mapa não está no DOM');
       return;
     }
-    
+
     // Verificar se o mapa está inicializado e pronto
     if (!map._container || !map._loaded) {
       console.log('⚠️ Mapa não está totalmente carregado');
       return;
     }
-    
+
     console.log('🔄 Atualizando marcadores...');
     console.log('Dados:', {
       locations: locations.length,
@@ -565,10 +548,10 @@ export default function MapView() {
     });
 
     // Adicionar marcadores baseados no filtro
-    
+
     if (activeFilters.abrigos) {
       console.log('🏠 Processando abrigos...');
-      
+
       // Agrupar deliveries por location para mostrar múltiplos tipos de recursos
       const deliveriesByLocation = {};
       deliveries.forEach(delivery => {
@@ -579,26 +562,27 @@ export default function MapView() {
           deliveriesByLocation[delivery.location_id].push(delivery);
         }
       });
-      
+
       let shelterMarkers = 0;
-      
-      // Mostrar todos os abrigos com ícones personalizados
+
+      // Mostrar todos os abrigos com cores baseadas no estado
       locationsWithStatus.forEach(location => {
         if (location.latitude && location.longitude) {
           const activeDeliveries = deliveriesByLocation[location.id] || [];
-          
+
           const filteredDeliveries = activeDeliveries;
-          
+
           const hasActiveOrder = filteredDeliveries.length > 0;
-          
-          // Usar ícone personalizado para abrigos
-          const iconData = getLocationIconAndColor(location, hasActiveOrder, false);
-          const icon = iconData.icon;
-          
+
+          // Usar ícone Home com cor baseada no estado (consistente com legenda)
+          const color = getStateColor(hasActiveOrder, false);
+          const size = getStateSize(hasActiveOrder);
+          const icon = makeLucideIcon('home', color, size);
+
           const titleColor = hasActiveOrder ? '#ef4444' : '#10b981';
           const statusIcon = hasActiveOrder ? '🔴' : '📍';
           const statusText = hasActiveOrder ? 'Possui pedido ativo' : 'Sem pedido ativo no momento';
-          
+
           // Agrupar por tipo de produto
           const productTypes = {};
           filteredDeliveries.forEach(d => {
@@ -609,7 +593,7 @@ export default function MapView() {
             productTypes[type].count++;
             productTypes[type].quantity += d.quantity;
           });
-          
+
           const productTypeLabels = {
             'meal': '🍽️ Marmitas',
             'hygiene': '🧼 Itens Higiênicos',
@@ -617,30 +601,30 @@ export default function MapView() {
             'medicine': '💊 Medicamentos',
             'cleaning': '🧹 Limpeza'
           };
-          
+
           const marker = L.marker([location.latitude, location.longitude], { icon })
             .addTo(map);
-          
+
           shelterMarkers++;
           console.log(`📍 Abrigo adicionado: ${location.name} em [${location.latitude}, ${location.longitude}]`);
-          
+
           let productsHtml = '';
           let buttonsHtml = '';
-          
+
           if (hasActiveOrder) {
             productsHtml = '<div style="margin: 8px 0; padding: 8px; background: #fef2f2; border-radius: 6px; border-left: 3px solid #ef4444;">';
             productsHtml += '<p style="margin: 0 0 6px 0; font-size: 12px; font-weight: bold; color: #dc2626;">📋 Necessidades Ativas:</p>';
-            
+
             // Mostrar deliveries disponíveis (sem voluntário)
-            const availableDeliveries = filteredDeliveries.filter(d => 
+            const availableDeliveries = filteredDeliveries.filter(d =>
               d.status === 'available' && !d.volunteer_id
             );
-            
+
             availableDeliveries.forEach(delivery => {
               const label = productTypeLabels[delivery.product_type] || delivery.product_type;
               productsHtml += `<p style="margin: 2px 0; font-size: 12px; color: #374151;">• ${label}: <strong>${delivery.quantity} unidades</strong></p>`;
             });
-            
+
             // Adicionar botão único de comprometer para todos os locais com deliveries disponíveis
             const locationDeliveries = deliveries.filter(d => d.location_id === location.id && d.status === 'available');
             if (locationDeliveries.length > 0) {
@@ -667,10 +651,10 @@ export default function MapView() {
                 </button>
               `;
             }
-            
+
             productsHtml += '</div>';
           }
-          
+
           marker.bindPopup(`
             <div style="min-width: 250px;">
               <h3 style="margin: 0 0 8px 0; color: ${titleColor};">${statusIcon} ${location.name}</h3>
@@ -685,7 +669,7 @@ export default function MapView() {
           `);
         }
       });
-      
+
       console.log(`📍 ${shelterMarkers} marcadores de abrigos criados`);
     }
 
@@ -697,13 +681,13 @@ export default function MapView() {
       batches.forEach(batch => {
         // MOSTRAR APENAS FORNECEDORES COM PRODUTOS DISPONÍVEIS (READY)
         if (batch.provider &&
-            batch.provider.latitude &&
-            batch.provider.longitude &&
-            batch.status === 'ready' &&  // Apenas batches prontos!
-            batch.quantity_available > 0) { // E com quantidade disponível!
+          batch.provider.latitude &&
+          batch.provider.longitude &&
+          batch.status === 'ready' &&  // Apenas batches prontos!
+          batch.quantity_available > 0) { // E com quantidade disponível!
 
           const coords = [batch.provider.latitude, batch.provider.longitude];
-          
+
           // Definir ícone e emoji baseado no tipo de produto
           const productIcons = {
             'meal': { emoji: '🍽️', label: 'Marmitas', color: '#f59e0b' },
@@ -712,26 +696,24 @@ export default function MapView() {
             'medicine': { emoji: '💊', label: 'Medicamentos', color: '#ef4444' },
             'cleaning': { emoji: '🧹', label: 'Produtos de Limpeza', color: '#14b8a6' }
           };
-          
+
           const productType = batch.product_type || 'meal';
           const productInfo = productIcons[productType] || productIcons['meal'];
-          
-          // Usar ícone personalizado baseado no tipo de estabelecimento
-          const locationData = { user: batch.provider };
-          const iconData = getLocationIconAndColor(locationData, false, false);
-          const icon = iconData.icon;
+
+          // Usar ícone Store com cor verde (disponível) - consistente com legenda
+          const icon = makeLucideIcon('store', STATE_COLORS.available, 30);
           const marker = L.marker(coords, { icon })
             .addTo(map);
-          
+
           batchMarkers++;
           const establishmentType = batch.provider.establishment_type || 'Cozinha';
           console.log(`🏪 ${establishmentType} DISPONÍVEL adicionado: ${batch.provider.name} (${productInfo.label}) em [${coords[0]}, ${coords[1]}]`);
         }
       });
-      
+
       console.log(`🏪 ${batchMarkers} marcadores de fornecedores disponíveis criados`);
     }
-    
+
     console.log('✅ Todos os marcadores foram adicionados ao mapa');
 
     if (activeFilters.insumos) {
@@ -740,30 +722,29 @@ export default function MapView() {
         // Para pedidos de insumos, o provider está no relacionamento
         if (request.provider && request.provider.latitude && request.provider.longitude) {
           const coords = [request.provider.latitude, request.provider.longitude];
-          
+
           // Calcular quantidades já reservadas
           const itemsWithStatus = (request.items || []).map(item => {
             const quantityAvailable = item.quantity - (item.quantity_reserved || 0);
             const isCompletelyReserved = quantityAvailable <= 0;
-            
+
             return {
               ...item,
               quantityAvailable,
               isCompletelyReserved
             };
           });
-          
+
           // Verificar se algum item ainda tem quantidade disponível
           const hasItemsAvailable = itemsWithStatus.some(item => !item.isCompletelyReserved);
           const isCompletelyReserved = !hasItemsAvailable;
-          
-          // Usar ícone personalizado baseado no tipo de estabelecimento
-          const locationData = { user: request.provider };
-          const iconData = getLocationIconAndColor(locationData, !isCompletelyReserved, false);
-          const icon = iconData.icon;
+
+          // Usar ícone Store com cor baseada no estado
+          const color = isCompletelyReserved ? STATE_COLORS.inactive : STATE_COLORS.urgent;
+          const icon = makeLucideIcon('store', color, 30);
           const titleColor = isCompletelyReserved ? '#eab308' : '#3b82f6';
           const statusText = isCompletelyReserved ? '⏳ Reservado' : '🛒 Disponível';
-          
+
           const marker = L.marker(coords, { icon })
             .addTo(map)
             .bindPopup(`
@@ -780,9 +761,9 @@ export default function MapView() {
                       <span style="color: ${item.isCompletelyReserved ? '#d97706' : '#1e40af'}">
                         ${item.quantityAvailable}${item.unit} disponíveis
                       </span>
-                      ${item.quantityAvailable < item.quantity ? 
-                        `<span style="color: #6b7280;"> (de ${item.quantity}${item.unit} total)</span>` : ''
-                      }
+                      ${item.quantityAvailable < item.quantity ?
+                `<span style="color: #6b7280;"> (de ${item.quantity}${item.unit} total)</span>` : ''
+              }
                     </div>
                   `).join('')}
                 </div>
@@ -829,7 +810,7 @@ export default function MapView() {
       batches.forEach(batch => {
         if (batch.provider && batch.provider.latitude && batch.provider.longitude) {
           const coords = [batch.provider.latitude, batch.provider.longitude];
-          
+
           // Definir ícone e emoji baseado no tipo de produto
           const productIcons = {
             'meal': { emoji: '🍽️', label: 'Marmitas', color: '#10b981' },
@@ -838,14 +819,12 @@ export default function MapView() {
             'medicine': { emoji: '💊', label: 'Medicamentos', color: '#ec4899' },
             'cleaning': { emoji: '🧹', label: 'Produtos de Limpeza', color: '#14b8a6' }
           };
-          
+
           const productType = batch.product_type || 'meal';
           const productInfo = productIcons[productType] || productIcons['meal'];
-          
-          // Usar ícone personalizado baseado no tipo de estabelecimento
-          const locationData = { user: batch.provider };
-          const iconData = getLocationIconAndColor(locationData, false, false);
-          const icon = iconData.icon;
+
+          // Usar ícone Store com cor verde (disponível) - consistente com legenda
+          const icon = makeLucideIcon('store', STATE_COLORS.available, 30);
           const marker = L.marker(coords, { icon })
             .addTo(map)
             .bindPopup(`
@@ -861,7 +840,7 @@ export default function MapView() {
                 </div>
                 <div style="background: #fef2f2; padding: 8px; border-radius: 4px; margin-bottom: 12px;">
                   <p style="margin: 0; font-size: 12px; color: #dc2626; text-align: center;">
-                    ⚠️ Expira em: ${batch.expires_at ? new Date(batch.expires_at).toLocaleString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '4h'}
+                    ⚠️ Expira em: ${batch.expires_at ? new Date(batch.expires_at).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '4h'}
                   </p>
                 </div>
                 
@@ -907,12 +886,12 @@ export default function MapView() {
         );
         return;
       }
-      
+
       if (!user.roles.includes('volunteer') && !user.roles.includes('volunteer_comprador')) {
         showConfirmation(
           'Acesso Restrito',
           'Apenas voluntários podem aceitar pedidos de insumos',
-          () => {},
+          () => { },
           'error'
         );
         return;
@@ -923,12 +902,12 @@ export default function MapView() {
         showConfirmation(
           '⚠️ Compromisso em Andamento',
           `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
-          () => {},
+          () => { },
           'warning'
         );
         return;
       }
-      
+
       // Buscar o pedido completo com itens
       const request = resourceRequests.find(r => r.id === requestId);
       if (request) {
@@ -953,7 +932,7 @@ export default function MapView() {
         showConfirmation(
           '⚠️ Compromisso em Andamento',
           `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
-          () => {},
+          () => { },
           'warning'
         );
         return;
@@ -972,7 +951,7 @@ export default function MapView() {
         user: user ? { id: user.id, name: user.name } : null,
         totalDeliveries: deliveries.length
       });
-      
+
       if (!user) {
         console.log('❌ DEBUG - Usuário não logado');
         showConfirmation(
@@ -983,13 +962,13 @@ export default function MapView() {
         );
         return;
       }
-      
+
       if (!user.roles.includes('volunteer')) {
         console.log('❌ DEBUG - Usuário não é voluntário. Roles:', user.roles);
         showConfirmation(
           'Acesso Restrito',
           'Apenas voluntários podem se comprometer com entregas',
-          () => {},
+          () => { },
           'error'
         );
         return;
@@ -1012,11 +991,11 @@ export default function MapView() {
       console.log('✅ DEBUG - Verificando compromissos ativos...');
 
       // Verificar se já tem compromissos ativos
-      const activeDeliveries = deliveries.filter(d => 
-        d.volunteer_id === user.id && 
+      const activeDeliveries = deliveries.filter(d =>
+        d.volunteer_id === user.id &&
         d.status === 'pending_confirmation'
       );
-      
+
       console.log('🔍 DEBUG - MapView openSimplifiedCommitment:', {
         userId: user.id,
         totalDeliveries: deliveries.length,
@@ -1028,13 +1007,13 @@ export default function MapView() {
           isMatch: d.volunteer_id === user.id && d.status === 'pending_confirmation'
         }))
       });
-      
+
       if (activeDeliveries.length > 0) {
         console.log('❌ DEBUG - Usuário tem compromissos ativos, mostrando aviso');
         showConfirmation(
           '⚠️ Limite de Compromissos',
           `Você já tem ${activeDeliveries.length} compromisso(s) ativo(s).\n\nComplete as entregas ativas antes de aceitar novas.`,
-          () => {},
+          () => { },
           'warning'
         );
         return;
@@ -1048,7 +1027,7 @@ export default function MapView() {
         setShowCommitmentModal(true);
       }
     };
-    
+
     return () => {
       delete window.acceptIngredientRequest;
       delete window.reserveBatch;
@@ -1082,13 +1061,13 @@ export default function MapView() {
   const handleSimplifiedCommitment = async (locationId, commitments) => {
     try {
       const token = localStorage.getItem('token');
-      
+
       // Verificar se voluntário já tem compromissos ativos
-      const activeDeliveries = deliveries.filter(d => 
-        d.volunteer_id === user.id && 
+      const activeDeliveries = deliveries.filter(d =>
+        d.volunteer_id === user.id &&
         d.status === 'pending_confirmation'
       );
-      
+
       console.log('🔍 DEBUG - MapView handleSimplifiedCommitment:', {
         userId: user.id,
         totalDeliveries: deliveries.length,
@@ -1100,24 +1079,24 @@ export default function MapView() {
           isMatch: d.volunteer_id === user.id && d.status === 'pending_confirmation'
         }))
       });
-      
+
       if (activeDeliveries.length > 0) {
         showConfirmation(
           '⚠️ Compromisso em Andamento',
           `Você já tem ${activeDeliveries.length} compromisso(s) ativo(s).\n\nComplete ou cancele antes de aceitar outro.`,
-          () => {},
+          () => { },
           'warning'
         );
         return;
       }
-      
+
       // Para cada compromisso, criar um delivery (mantido assim por enquanto)
       const promises = commitments.map(async (commitment) => {
         // Encontrar deliveries disponíveis para este local e tipo
         const availableDeliveries = deliveries.filter(
-          d => d.location_id === locationId && 
-               d.product_type === commitment.product_type && 
-               d.status === 'available'
+          d => d.location_id === locationId &&
+            d.product_type === commitment.product_type &&
+            d.status === 'available'
         );
 
         if (availableDeliveries.length === 0) {
@@ -1132,8 +1111,8 @@ export default function MapView() {
           if (remainingQuantity <= 0) break;
 
           const quantityToCommit = Math.min(remainingQuantity, delivery.quantity);
-          
-          const response = await fetch(`${API_URL}/api/deliveries/${delivery.id}/commit`, {
+
+          const response = await fetch(`/api/deliveries/${delivery.id}/commit`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1155,7 +1134,7 @@ export default function MapView() {
       });
 
       await Promise.all(promises);
-      
+
       // Mostrar sucesso
       setCommittedDeliveryData({
         location: { name: selectedLocationForCommitment?.name },
@@ -1164,7 +1143,7 @@ export default function MapView() {
       });
       setShowCommitmentSuccess(true);
       setShowCommitmentModal(false);
-      
+
       await loadData();
       await refreshState();
     } catch (error) {
@@ -1178,35 +1157,35 @@ export default function MapView() {
     const R = 6371; // Raio da Terra em km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c; // Distância em km
   };
 
   // Filtrar e ordenar locais por distância e compatibilidade com quantidade
   const getLocationsForDelivery = () => {
     if (!selectedBatch) return [];
-    
+
     // Encontrar o batch selecionado para obter coordenadas do restaurante
     const batch = batches.find(b => b.id === selectedBatch);
     if (!batch || !batch.provider) return [];
-    
+
     const restLat = batch.provider.latitude;
     const restLon = batch.provider.longitude;
-    
+
     // Filtrar apenas locais com pedidos em aberto
     const locationsWithOrder = locationsWithStatus.filter(location => location.hasActiveOrder);
-    
+
     // Adicionar compatibilidade e calcular distância
     const locationsWithInfo = locationsWithOrder.map(location => {
       const shelterOrder = deliveries.find(d => d.location_id === location.id);
       const shelterNeed = shelterOrder?.quantity || 25;
       const maxToReserve = Math.min(batch.quantity_available, shelterNeed);
       const canTakeAll = maxToReserve === shelterNeed; // Se pode levar tudo que o abrigo precisa
-      
+
       return {
         ...location,
         distance: calculateDistance(restLat, restLon, location.latitude, location.longitude),
@@ -1215,7 +1194,7 @@ export default function MapView() {
         canTakeAll
       };
     });
-    
+
     // Ordenar por prioridade:
     // 1. Locais onde pode levar tudo (mais próximos primeiro)
     // 2. Locais onde não pode levar tudo (mais próximos primeiro)
@@ -1223,7 +1202,7 @@ export default function MapView() {
       ...locationsWithInfo.filter(l => l.canTakeAll).sort((a, b) => a.distance - b.distance),
       ...locationsWithInfo.filter(l => !l.canTakeAll).sort((a, b) => a.distance - b.distance)
     ];
-    
+
     return sortedLocations;
   };
 
@@ -1233,7 +1212,7 @@ export default function MapView() {
       showConfirmation(
         'Local Não Selecionado',
         'Por favor, escolha um local de entrega',
-        () => {},
+        () => { },
         'warning'
       );
       return;
@@ -1285,9 +1264,27 @@ export default function MapView() {
           quantity: quantityToReserve
         })
       });
-      
+
       if (response.ok) {
-        // Fechar modal e resetar estados
+        const delivery = await response.json();
+        const pickupCode = delivery.pickup_code;
+        const deliveryCode = delivery.delivery_code || 'Será gerado após retirada';
+        const productInfo = getProductInfo(selectedBatch.product_type);
+        const location = getProductLocation(selectedBatch.product_type);
+
+        showConfirmation(
+          '✅ Entrega Criada com Sucesso!',
+          `📋 Seus códigos:\n\n🏪 CÓDIGO DE RETIRADA: ${pickupCode}\n   Use este código na ${location} para ${getProductAction(selectedBatch.product_type)}\n\n🏠 CÓDIGO DE ENTREGA: ${deliveryCode}\n   Use este código no abrigo para confirmar a entrega\n\n📍 Próximos passos:\n1. Vá até a ${location} e informe o código de retirada\n2. ${getProductAction(selectedBatch.product_type).charAt(0).toUpperCase() + getProductAction(selectedBatch.product_type).slice(1)}\n3. Leve até o abrigo escolhido\n4. Informe o código de entrega no abrigo`,
+          () => {
+            setShowModalChooseLocation(false);
+            setSelectedBatch(null);
+            setChosenLocation(null);
+            loadData();
+          },
+          'success'
+        );
+
+
         setShowModalChooseLocation(false);
         setSelectedBatch(null);
         setChosenLocation(null);
@@ -1303,7 +1300,7 @@ export default function MapView() {
         showConfirmation(
           '❌ Erro ao Reservar',
           error.detail || 'Erro desconhecido',
-          () => {},
+          () => { },
           'error'
         );
       }
@@ -1312,7 +1309,7 @@ export default function MapView() {
       showConfirmation(
         '❌ Erro ao Reservar',
         'Tente novamente.',
-        () => {},
+        () => { },
         'error'
       );
     } finally {
@@ -1327,8 +1324,8 @@ export default function MapView() {
         onRegisterClick={openRegisterModal}
         onOperationStatusChange={(hasOperation) => {
           // Disparar evento para o App.jsx
-          window.dispatchEvent(new CustomEvent('operationStatusChange', { 
-            detail: { hasActiveOperation: hasOperation } 
+          window.dispatchEvent(new CustomEvent('operationStatusChange', {
+            detail: { hasActiveOperation: hasOperation }
           }));
         }}
       />
@@ -1344,6 +1341,40 @@ export default function MapView() {
         bottom: 0,
         zIndex: 0
       }}></div>
+
+      {/* Botões de navegação — overlay no mapa, top-right */}
+      <div style={{
+        position: 'absolute',
+        top: '72px',
+        right: '12px',
+        zIndex: 1000,
+        display: 'flex',
+        gap: '8px',
+      }}>
+
+        {user && (
+          <button
+            onClick={() => navigate(getDashboardRoute())}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 14px',
+              borderRadius: '20px',
+              border: 'none',
+              background: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#374151',
+            }}
+          >
+            <LayoutDashboard size={15} />
+            Dashboard
+          </button>
+        )}
+      </div>
 
       {/* Painel Unificado: Legenda + Filtros — bottom-left */}
       <div style={{
@@ -1376,23 +1407,23 @@ export default function MapView() {
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+            <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
           </svg>
           Mapa
           <span style={{ fontSize: '10px', color: legendOpen ? '#93c5fd' : '#9ca3af' }}>
             {legendOpen ? '▼' : '▲'}
           </span>
           {Object.values(activeFilters).some(v => !v) && (
-            <span style={{ 
-              background: '#ef4444', 
-              color: 'white', 
-              borderRadius: '50%', 
-              width: '18px', 
-              height: '18px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              fontSize: '11px', 
+            <span style={{
+              background: '#ef4444',
+              color: 'white',
+              borderRadius: '50%',
+              width: '18px',
+              height: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '11px',
               fontWeight: 'bold',
               marginLeft: '4px'
             }}>
@@ -1463,19 +1494,19 @@ export default function MapView() {
                     <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Abrigos</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ 
-                          width: '24px', 
-                          height: '24px', 
-                          borderRadius: '50%', 
-                          background: '#8b5cf6', 
-                          flexShrink: 0, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          border: '2px solid white', 
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
+                        <div style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: '#10b981',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px solid white',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                         }}>
-                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10 M12 11l-2-2 M12 11l2-2 M10 9l2-2 M14 9l-2-2"/></svg>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
                         </div>
                         <div>
                           <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Abrigo</span>
@@ -1483,19 +1514,19 @@ export default function MapView() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ 
-                          width: '24px', 
-                          height: '24px', 
-                          borderRadius: '50%', 
-                          background: '#8b5cf6', 
-                          flexShrink: 0, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          border: '2px solid white', 
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
+                        <div style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: '#ef4444',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px solid white',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                         }}>
-                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10 M12 11l-2-2 M12 11l2-2 M10 9l2-2 M14 9l-2-2"/></svg>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
                         </div>
                         <div>
                           <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Com pedido ativo</span>
@@ -1510,19 +1541,19 @@ export default function MapView() {
                     <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Restaurantes</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ 
-                          width: '24px', 
-                          height: '24px', 
-                          borderRadius: '50%', 
-                          background: '#f59e0b', 
-                          flexShrink: 0, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          border: '2px solid white', 
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
+                        <div style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: '#10b981',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px solid white',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                         }}>
-                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h2v11h2V11h2c1.1 0 2-.9 2-2V2 M16 2v20 M21 15V2 M6 6h12 M6 4h12"/></svg>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z" /></svg>
                         </div>
                         <div>
                           <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Restaurante</span>
@@ -1530,19 +1561,19 @@ export default function MapView() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ 
-                          width: '24px', 
-                          height: '24px', 
-                          borderRadius: '50%', 
-                          background: '#f59e0b', 
-                          flexShrink: 0, 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          border: '2px solid white', 
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
+                        <div style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          background: '#3b82f6',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '2px solid white',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                         }}>
-                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h2v11h2V11h2c1.1 0 2-.9 2-2V2 M16 2v20 M21 15V2 M6 6h12 M6 4h12"/></svg>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" /></svg>
                         </div>
                         <div>
                           <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>📦 Pedindo insumos</span>
@@ -1562,11 +1593,11 @@ export default function MapView() {
                         { color: '#eab308', label: 'Ocioso', desc: 'Sem atividades' },
                       ].map(({ color, label, desc }) => (
                         <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ 
-                            width: '12px', 
-                            height: '12px', 
-                            borderRadius: '50%', 
-                            background: color, 
+                          <div style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            background: color,
                             flexShrink: 0,
                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
                           }} />
@@ -1610,21 +1641,21 @@ export default function MapView() {
                         type="checkbox"
                         checked={pendingFilters[key]}
                         onChange={() => setPendingFilters(prev => ({ ...prev, [key]: !prev[key] }))}
-                        style={{ 
-                          width: '18px', 
-                          height: '18px', 
-                          accentColor: '#16a34a', 
-                          cursor: 'pointer', 
-                          flexShrink: 0 
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          accentColor: '#16a34a',
+                          cursor: 'pointer',
+                          flexShrink: 0
                         }}
                       />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                           <span style={{ fontSize: '16px' }}>{emoji}</span>
-                          <span style={{ 
-                            fontSize: '14px', 
-                            color: '#374151', 
-                            fontWeight: pendingFilters[key] ? '600' : '500' 
+                          <span style={{
+                            fontSize: '14px',
+                            color: '#374151',
+                            fontWeight: pendingFilters[key] ? '600' : '500'
                           }}>
                             {label}
                           </span>
@@ -1808,8 +1839,8 @@ export default function MapView() {
               </div>
             </div>
 
-            <div style={{ 
-              padding: '16px',
+            <div style={{
+              padding: '20px',
               flex: 1,
               overflow: 'auto',
               minHeight: 0
@@ -1822,11 +1853,11 @@ export default function MapView() {
                 const batch = batches.find(b => b.id === selectedBatch);
                 const location = chosenLocation ? locationsWithStatus.find(l => l.id === chosenLocation) : null;
                 if (!batch) return null;
-                
+
                 const shelterOrder = chosenLocation ? deliveries.find(d => d.location_id === chosenLocation) : null;
                 const shelterNeed = shelterOrder?.quantity || 25;
                 const maxToReserve = Math.min(batch.quantity_available, shelterNeed);
-                
+
                 return (
                   <div style={{
                     backgroundColor: '#f0f9ff',
@@ -1857,13 +1888,19 @@ export default function MapView() {
                         </p>
                       </div>
                     </div>
-                    
+
                     {chosenLocation && (
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
-                            Quantidade:
-                          </label>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#374151',
+                          marginBottom: '6px'
+                        }}>
+                          Quantidade a Entregar (máx: {maxToReserve})
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <input
                             type="number"
                             min="1"
@@ -1902,92 +1939,112 @@ export default function MapView() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {filteredLocations.map((location) => (
-                    <div
-                      key={location.id}
-                      onClick={() => setChosenLocation(location.id)}
-                      style={{
-                        padding: '12px',
-                        border: chosenLocation === location.id ? '2px solid #10b981' : '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        backgroundColor: chosenLocation === location.id ? '#f0fdf4' : 'white',
-                        transition: 'all 0.2s',
-                        borderLeft: location.canTakeAll ? '3px solid #10b981' : '3px solid #f59e0b',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
-                          {location.name}
-                          {location.canTakeAll && (
-                            <span style={{
-                              backgroundColor: '#10b981',
-                              color: 'white',
-                              padding: '1px 6px',
-                              borderRadius: '8px',
-                              fontSize: '9px',
-                              marginLeft: '6px',
-                              fontWeight: 'normal'
-                            }}>
-                              ✅ Ideal
-                            </span>
-                          )}
-                        </h3>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          <span style={{ 
-                            backgroundColor: location.canTakeAll ? '#10b981' : '#f59e0b', 
-                            color: 'white', 
-                            padding: '1px 6px', 
-                            borderRadius: '8px', 
-                            fontSize: '10px',
-                            fontWeight: 'bold'
-                          }}>
-                            {location.distance.toFixed(1)} km
-                          </span>
-                          <span style={{
-                            backgroundColor: '#f3f4f6',
-                            color: '#374151',
-                            padding: '1px 4px',
-                            borderRadius: '6px',
-                            fontSize: '9px',
-                            fontWeight: 'medium'
-                          }}>
-                            {location.shelterNeed}
-                          </span>
+                      <div
+                        key={location.id}
+                        onClick={() => setChosenLocation(location.id)}
+                        style={{
+                          padding: '16px',
+                          border: chosenLocation === location.id ? '2px solid #10b981' : '1px solid #d1d5db',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          backgroundColor: chosenLocation === location.id ? '#f0fdf4' : 'white',
+                          transition: 'all 0.2s',
+                          borderLeft: location.canTakeAll ? '4px solid #10b981' : '4px solid #f59e0b',
+                          boxShadow: chosenLocation === location.id ? '0 4px 6px -1px rgba(16, 185, 129, 0.1)' : '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            border: chosenLocation === location.id ? '6px solid #10b981' : '2px solid #d1d5db',
+                            flexShrink: 0,
+                            marginTop: '2px'
+                          }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', flex: 1 }}>
+                                {location.name}
+                                {location.canTakeAll && (
+                                  <span style={{
+                                    backgroundColor: '#10b981',
+                                    color: 'white',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    fontSize: '10px',
+                                    marginLeft: '8px',
+                                    fontWeight: 'normal'
+                                  }}>
+                                    ✅ Ideal
+                                  </span>
+                                )}
+                              </h3>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
+                                <span style={{
+                                  backgroundColor: location.canTakeAll ? '#10b981' : '#f59e0b',
+                                  color: 'white',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold'
+                                }}>
+                                  📍 {location.distance.toFixed(1)} km
+                                </span>
+                                <span style={{
+                                  backgroundColor: '#f3f4f6',
+                                  color: '#374151',
+                                  padding: '2px 6px',
+                                  borderRadius: '8px',
+                                  fontSize: '10px',
+                                  fontWeight: 'medium'
+                                }}>
+                                  Precisa: {location.shelterNeed}
+                                </span>
+                              </div>
+                            </div>
+                            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280', lineHeight: '1.4' }}>
+                              📍 {location.address}
+                            </p>
+                            {location.responsible && (
+                              <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#6b7280' }}>
+                                👤 {location.responsible}
+                              </p>
+                            )}
+                            {location.phone && (
+                              <p style={{ margin: '0', fontSize: '12px', color: '#6b7280' }}>
+                                📞 {location.phone}
+                              </p>
+                            )}
+                            {location.canTakeAll ? (
+                              <div style={{
+                                backgroundColor: '#f0fdf4',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                marginTop: '8px',
+                                border: '1px solid #bbf7d0'
+                              }}>
+                                <p style={{ margin: 0, fontSize: '11px', color: '#166534', fontWeight: 'medium', lineHeight: '1.3' }}>
+                                  🎯 **Perfeito!** Você pode levar todas as {location.shelterNeed} marmitas que este abrigo precisa em uma única entrega.
+                                </p>
+                              </div>
+                            ) : (
+                              <div style={{
+                                backgroundColor: '#fef3c7',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                marginTop: '8px',
+                                border: '1px solid #fde68a'
+                              }}>
+                                <p style={{ margin: 0, fontSize: '11px', color: '#92400e', fontWeight: 'medium', lineHeight: '1.3' }}>
+                                  ⚠️ Você pode levar até {location.maxToReserve} de {location.shelterNeed} marmitas. O restante precisará de outro voluntário.
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      
-                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#6b7280' }}>
-                        📍 {location.address}
-                      </p>
-                      
-                      {location.responsible && (
-                        <p style={{ margin: '0 0 2px 0', fontSize: '11px', color: '#6b7280' }}>
-                          👤 {location.responsible}
-                        </p>
-                      )}
-                      
-                      {location.phone && (
-                        <p style={{ margin: '0', fontSize: '11px', color: '#6b7280' }}>
-                          📞 {location.phone}
-                        </p>
-                      )}
-                      
-                      <div style={{
-                        backgroundColor: location.canTakeAll ? '#f0fdf4' : '#fef3c7',
-                        padding: '6px',
-                        borderRadius: '4px',
-                        marginTop: '6px',
-                        border: `1px solid ${location.canTakeAll ? '#bbf7d0' : '#fde68a'}`
-                      }}>
-                        <p style={{ margin: 0, fontSize: '10px', color: location.canTakeAll ? '#166534' : '#92400e', fontWeight: 'medium', lineHeight: '1.2' }}>
-                          {location.canTakeAll 
-                            ? `🎯 Perfeito! Você pode levar todas ${location.shelterNeed} marmitas.`
-                            : `⚠️ Você pode levar até ${location.maxToReserve} de ${location.shelterNeed} marmitas.`
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                   </div>
                 );
               })()}
@@ -2188,18 +2245,18 @@ export default function MapView() {
 
       {/* Modal de Login */}
       {showLoginModal && (
-        <LoginModal 
+        <LoginModal
           isOpen={showLoginModal}
-          onClose={closeModals} 
+          onClose={closeModals}
           onSwitchToRegister={openRegisterModal}
         />
       )}
 
       {/* Modal de Registro */}
       {showRegisterModal && (
-        <RegisterModal 
+        <RegisterModal
           isOpen={showRegisterModal}
-          onClose={closeModals} 
+          onClose={closeModals}
           onSwitchToLogin={openLoginModal}
         />
       )}
@@ -2251,9 +2308,9 @@ export default function MapView() {
         deliveries={deliveries.filter(d => d.location_id === selectedLocationForCommitment?.id && d.status === 'available')}
         onCommit={handleSimplifiedCommitment}
       />
-      
+
       {/* Widget de Estado do Usuário */}
-      <UserStateWidget position="bottom-right" size="small" />
+      <UserStateWidget />
     </div>
   );
 }

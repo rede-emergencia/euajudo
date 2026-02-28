@@ -1,7 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { colors, spacing, borderRadius, shadows, fontSize, fontWeight } from '../../styles/designSystem';
-import Button from './Button';
 
 export default function Modal({
   show,
@@ -17,102 +16,134 @@ export default function Modal({
   const getSizeStyles = () => {
     switch (size) {
       case 'sm':
-        return { width: '90%', maxWidth: '400px' };
+        return { maxWidth: '400px' };
       case 'lg':
-        return { width: '90%', maxWidth: '800px' };
+        return { maxWidth: '800px' };
       case 'full':
-        return { width: '95%', maxWidth: '100%', height: '95vh' };
-      default: // md
-        return { width: '90%', maxWidth: '600px' };
+        return { maxWidth: '100%', height: '95dvh' };
+      default:
+        return { maxWidth: '600px' };
     }
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: spacing.md,
-    }}>
-      <div style={{
-        background: colors.bg.primary,
-        borderRadius: borderRadius.xl,
-        boxShadow: shadows.xl,
-        display: 'flex',
-        flexDirection: 'column',
-        ...getSizeStyles(),
-        maxHeight: '90vh',
-        overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{
+    <>
+      <style>{`
+        @keyframes modal-in {
+          from { opacity: 0; transform: translateY(12px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal-sheet {
+          animation: modal-in 0.2s ease;
+          width: calc(100% - 32px);
+          border-radius: 16px;
+        }
+        /* Em mobile pequeno, vira bottom sheet */
+        @media (max-width: 480px) {
+          .modal-overlay-inner {
+            align-items: flex-end !important;
+            padding: 0 !important;
+          }
+          .modal-sheet {
+            width: 100% !important;
+            border-radius: 20px 20px 0 0 !important;
+            max-height: 92dvh !important;
+          }
+        }
+      `}</style>
+
+      {/* Overlay */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.45)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: spacing.lg,
-          borderBottom: `1px solid ${colors.border.light}`,
-        }}>
-          <h2 style={{
-            margin: 0,
-            fontSize: fontSize['2xl'],
-            fontWeight: fontWeight.bold,
-            color: colors.text.primary,
-          }}>
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: spacing.xs,
-              color: colors.text.secondary,
-              borderRadius: borderRadius.md,
-              transition: '0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = colors.neutral[100];
-              e.currentTarget.style.color = colors.text.primary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = colors.text.secondary;
-            }}
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div style={{
-          padding: spacing.lg,
-          overflowY: 'auto',
-          flex: 1,
-        }}>
-          {children}
-        </div>
-
-        {/* Footer */}
-        {footer && (
-          <div style={{
-            padding: spacing.lg,
-            borderTop: `1px solid ${colors.border.light}`,
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px',
+        }}
+        className="modal-overlay-inner"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <div
+          className="modal-sheet"
+          style={{
+            background: colors.bg.primary,
+            boxShadow: shadows.xl,
             display: 'flex',
-            gap: spacing.md,
-            justifyContent: 'flex-end',
+            flexDirection: 'column',
+            maxHeight: '90dvh',
+            overflow: 'hidden',
+            ...getSizeStyles(),
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            borderBottom: `1px solid ${colors.border.light}`,
+            flexShrink: 0,
           }}>
-            {footer}
+            <h2 style={{
+              margin: 0,
+              fontSize: 'clamp(16px, 4vw, 20px)',
+              fontWeight: fontWeight.bold,
+              color: colors.text.primary,
+            }}>
+              {title}
+            </h2>
+            <button
+              onClick={onClose}
+              style={{
+                background: '#f3f4f6',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px',
+                color: colors.text.secondary,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#e5e7eb'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#f3f4f6'}
+            >
+              <X size={18} />
+            </button>
           </div>
-        )}
+
+          {/* Content */}
+          <div style={{
+            padding: '20px',
+            overflowY: 'auto',
+            flex: 1,
+            WebkitOverflowScrolling: 'touch',
+          }}>
+            {children}
+          </div>
+
+          {/* Footer */}
+          {footer && (
+            <div style={{
+              padding: '14px 20px',
+              borderTop: `1px solid ${colors.border.light}`,
+              display: 'flex',
+              gap: '10px',
+              justifyContent: 'flex-end',
+              flexShrink: 0,
+              flexWrap: 'wrap',
+            }}>
+              {footer}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

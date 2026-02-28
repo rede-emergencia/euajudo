@@ -46,7 +46,7 @@ export default function Header({
     }
 
     const timeRemaining = minTimeRemaining;
-    
+
     if (timeRemaining <= 0) {
       return {
         background: colors.error[50],
@@ -77,13 +77,12 @@ export default function Header({
   const headerColors = getHeaderColor();
 
   const navigationItems = [
-    { id: 'mapa', label: 'Mapa', icon: <MapPin size={16} /> },
-    { id: 'painel', label: 'Painel', icon: null },
+    { id: 'painel', label: 'Dashboard', icon: null },
   ];
 
   const userMenuItems = [
     { id: 'profile', label: 'Perfil', icon: <User size={16} />, action: () => onNavigate('/perfil') },
-    { id: 'settings', label: 'Configurações', icon: <Settings size={16} />, action: () => {} },
+    { id: 'settings', label: 'Configurações', icon: <Settings size={16} />, action: () => { } },
     { id: 'logout', label: 'Sair', icon: <LogOut size={16} />, action: onLogout },
   ];
 
@@ -171,7 +170,7 @@ export default function Header({
               >
                 <User size={20} />
               </Button>
-              
+
               {/* Dropdown Menu */}
               {mobileMenuOpen && (
                 <div style={{

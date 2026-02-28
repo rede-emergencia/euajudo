@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../styles/designSystem';
 import { Card, TabButton, Badge } from './index';
 
@@ -11,9 +13,11 @@ export default function DashboardLayout({
   actions = null,
   stats = null
 }) {
+  const navigate = useNavigate();
+
   return (
     <div style={{
-      padding: spacing.lg,
+      padding: 'clamp(12px, 4vw, 24px)',
       maxWidth: '1200px',
       margin: '0 auto',
     }}>
@@ -21,6 +25,31 @@ export default function DashboardLayout({
       <div style={{
         marginBottom: spacing.xl,
       }}>
+        {/* Botão Voltar */}
+        <button
+          onClick={() => navigate('/mapa')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'none',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '7px 14px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#374151',
+            marginBottom: spacing.lg,
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+          onMouseLeave={e => e.currentTarget.style.background = 'none'}
+        >
+          <ArrowLeft size={16} />
+          Voltar ao Mapa
+        </button>
+
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -31,7 +60,7 @@ export default function DashboardLayout({
         }}>
           <div>
             <h1 style={{
-              fontSize: fontSize['3xl'],
+              fontSize: 'clamp(22px, 5vw, 30px)',
               fontWeight: fontWeight.bold,
               color: colors.text.primary,
               margin: 0,
@@ -40,7 +69,7 @@ export default function DashboardLayout({
               {title}
             </h1>
           </div>
-          
+
           {actions && (
             <div style={{
               display: 'flex',
@@ -142,11 +171,11 @@ export default function DashboardLayout({
 }
 
 // Helper component for empty states
-export function EmptyState({ 
-  icon, 
-  title, 
-  description, 
-  action = null 
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action = null
 }) {
   return (
     <div style={{
