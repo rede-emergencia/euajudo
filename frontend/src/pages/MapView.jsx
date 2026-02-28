@@ -20,6 +20,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 // Sistema de modal único padronizado implementado
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 // SVG paths dos ícones personalizados para o mapa
 const CUSTOM_ICONS = {
   // Abrigo - Casa com coração (acolhimento)
@@ -303,7 +305,7 @@ export default function MapView() {
       console.log('🔄 Carregando dados...');
       
       // Carregar locais de entrega (agora usando locations)
-      const responseEntrega = await fetch('http://localhost:8000/api/locations/?active_only=true');
+      const responseEntrega = await fetch(`${API_URL}/api/locations/?active_only=true`);
       console.log('📍 Response locations:', responseEntrega.status, responseEntrega.ok);
       if (responseEntrega.ok) {
         const data = await responseEntrega.json();
@@ -316,7 +318,7 @@ export default function MapView() {
       }
 
       // Mostrar pedidos de insumos disponíveis (agora usando resource requests)
-      const responseInsumos = await fetch('http://localhost:8000/api/resources/requests?status=requesting');
+      const responseInsumos = await fetch(`${API_URL}/api/resources/requests?status=requesting`);
       if (responseInsumos.ok) {
         const pedidos = await responseInsumos.json();
         setResourceRequests(pedidos);
@@ -324,14 +326,14 @@ export default function MapView() {
       }
 
       // Carregar providers (para poder mostrar provider idle no mapa)
-      const responseUsers = await fetch('http://localhost:8000/api/users/');
+      const responseUsers = await fetch(`${API_URL}/api/users/`);
       if (responseUsers.ok) {
         const users = await responseUsers.json();
         setProviders((users || []).filter(u => String(u.roles || '').includes('provider')));
       }
 
       // Carregar deliveries para shelters (pedidos de marmita)
-      const responseDeliveries = await fetch('http://localhost:8000/api/deliveries/');
+      const responseDeliveries = await fetch(`${API_URL}/api/deliveries/`);
       if (responseDeliveries.ok) {
         const pedidos = await responseDeliveries.json();
         console.log('🚚 Deliveries carregados:', pedidos.length);
@@ -350,7 +352,7 @@ export default function MapView() {
       }
 
       // Carregar lotes de marmitas disponíveis para retirada (agora usando batches)
-      const responseBatches = await fetch('http://localhost:8000/api/batches/ready');
+      const responseBatches = await fetch(`${API_URL}/api/batches/ready`);
       if (responseBatches.ok) {
         const lotes = await responseBatches.json();
         console.log('📦 Batches carregados:', lotes.length);
@@ -1131,7 +1133,7 @@ export default function MapView() {
 
           const quantityToCommit = Math.min(remainingQuantity, delivery.quantity);
           
-          const response = await fetch(`http://localhost:8000/api/deliveries/${delivery.id}/commit`, {
+          const response = await fetch(`${API_URL}/api/deliveries/${delivery.id}/commit`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1271,7 +1273,7 @@ export default function MapView() {
 
     setIsConfirming(true);
     try {
-      const response = await fetch('http://localhost:8000/api/deliveries/', {
+      const response = await fetch(`${API_URL}/api/deliveries/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

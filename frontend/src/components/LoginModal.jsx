@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Package, X } from 'lucide-react';
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +21,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
     const loadUsers = async () => {
       try {
         console.log('🔄 Carregando usuários do backend...');
-        const response = await fetch('http://localhost:8000/api/users/');
+        const response = await fetch(`${API_URL}/api/users/`);
         if (response.ok) {
           const usersData = await response.json();
           console.log('✅ Usuários carregados:', usersData.length, 'usuários');
