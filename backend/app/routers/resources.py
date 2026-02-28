@@ -18,6 +18,7 @@ from app.schemas import (
 from app.auth import get_current_active_user, require_approved
 from app.validators import ConfirmationCodeValidator
 from app.repositories import BaseRepository
+from app.services.transaction_service import get_transaction_service, TransactionError
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
 
@@ -130,84 +131,32 @@ def create_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_approved)
 ):
-    """Volunteer creates reservation to buy/deliver resources"""
+    """Volunteer creates reservation to buy/deliver resources - ROBUST TRANSACTION"""
     
     if "volunteer" not in current_user.roles:
         raise HTTPException(status_code=403, detail="Only volunteers can create reservations")
     
-    # Check request exists
-    request_repo = BaseRepository(ResourceRequest, db)
-    request = request_repo.get_by_id(reservation_data.request_id)
+    # Usar serviço de transações robusto
+    transaction_service = get_transaction_service(db)
     
-    if not request:
-        raise HTTPException(status_code=404, detail="Request not found")
-    
-    if request.status != OrderStatus.REQUESTING:
-        raise HTTPException(status_code=400, detail="Request is not available")
-    
-    # Create reservation
-    reservation_repo = BaseRepository(ResourceReservation, db)
-    new_reservation = reservation_repo.create(
-        request_id=reservation_data.request_id,
-        volunteer_id=current_user.id,
-        status=OrderStatus.RESERVED,
-        estimated_delivery=reservation_data.estimated_delivery,
-        expires_at=datetime.utcnow() + timedelta(hours=24)
-    )
-    
-    # Add items and validate quantities
-    item_repo = BaseRepository(ReservationItem, db)
-    resource_item_repo = BaseRepository(ResourceItem, db)
-    
-    for item_data in reservation_data.items:
-        # Validate that item belongs to this request
-        resource_item = resource_item_repo.get_by_id(item_data.resource_item_id)
-        if not resource_item or resource_item.request_id != reservation_data.request_id:
-            raise HTTPException(status_code=400, detail=f"Item {item_data.resource_item_id} does not belong to this request")
+    try:
+        # Converter itens para formato esperado
+        items = [{"resource_item_id": item.resource_item_id, "quantity": item.quantity} 
+                for item in reservation_data.items]
         
-        # Validate quantity available
-        quantity_available = resource_item.quantity - resource_item.quantity_reserved
-        if item_data.quantity > quantity_available:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Item '{resource_item.name}': only {quantity_available}{resource_item.unit} available, requested {item_data.quantity}{resource_item.unit}"
-            )
-        
-        # Create reservation item
-        item_repo.create(
-            reservation_id=new_reservation.id,
-            resource_item_id=item_data.resource_item_id,
-            quantity=item_data.quantity
+        reservation = transaction_service.create_reservation(
+            request_id=reservation_data.request_id,
+            volunteer_id=current_user.id,
+            items=items,
+            estimated_delivery=reservation_data.estimated_delivery
         )
         
-        # Update resource item reserved quantity
-        resource_item.quantity_reserved += item_data.quantity
-    
-    # Update request status based on reservation completeness
-    # Check if ALL items are fully reserved
-    all_items_fully_reserved = all(
-        item.quantity_reserved >= item.quantity 
-        for item in request.items
-    )
-    
-    # Check if ANY items are reserved (partial)
-    any_items_reserved = any(
-        item.quantity_reserved > 0 
-        for item in request.items
-    )
-    
-    if all_items_fully_reserved:
-        request.status = OrderStatus.RESERVED
-    elif any_items_reserved:
-        # Some items reserved, others still available
-        request.status = OrderStatus.PARTIALLY_RESERVED
-    else:
-        # No items reserved (shouldn't happen in normal flow)
-        request.status = OrderStatus.REQUESTING
-    
-    reservation_repo.commit()
-    reservation_repo.refresh(new_reservation)
-    return new_reservation
+        return reservation
+        
+    except TransactionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transaction failed: {str(e)}")
 
 @router.get("/reservations/my", response_model=List[ResourceReservationResponse])
 def list_my_reservations(
@@ -224,73 +173,23 @@ def cancel_reservation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Cancel a resource reservation - only allowed before pickup"""
-    # TODO: Implementar validação de código de confirmação real
-    # Bypass temporário: permite cancelar sem validação
+    """Cancel a resource reservation - ROBUST TRANSACTION"""
     
-    reservation = db.query(ResourceReservation).filter(ResourceReservation.id == reservation_id).first()
-    if not reservation:
-        raise HTTPException(status_code=404, detail="Reservation not found")
+    # Usar serviço de transações robusto
+    transaction_service = get_transaction_service(db)
     
-    # Check authorization
-    if reservation.volunteer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to cancel this reservation")
-    
-    # Can only cancel if not yet picked up
-    if reservation.status != OrderStatus.RESERVED:
-        raise HTTPException(
-            status_code=400, 
-            detail="Cannot cancel reservation after pickup. You must complete the delivery."
-        )
-    
-    # Return items to available quantity
-    reservation_repo = BaseRepository(ResourceReservation, db)
-    item_repo = BaseRepository(ReservationItem, db)
-    resource_item_repo = BaseRepository(ResourceItem, db)
-    
-    # Get all reservation items and return quantities
-    reservation_items = item_repo.filter_by(reservation_id=reservation_id)
-    for reservation_item in reservation_items:
-        resource_item = resource_item_repo.get_by_id(reservation_item.resource_item_id)
-        if resource_item:
-            resource_item.quantity_reserved -= reservation_item.quantity
-    
-    # Delete reservation items
-    for reservation_item in reservation_items:
-        item_repo.delete(reservation_item.id)
-    
-    # Delete reservation
-    reservation_repo.delete(reservation_id)
-    
-    # Update request status if needed
-    request_repo = BaseRepository(ResourceRequest, db)
-    request = request_repo.get_by_id(reservation.request_id)
-    if request:
-        # Check if there are other reservations
-        other_reservations = reservation_repo.filter_by(request_id=request.id)
-        
-        # Check current reservation status after cancellation
-        any_items_reserved = any(
-            item.quantity_reserved > 0 
-            for item in request.items
+    try:
+        success = transaction_service.cancel_reservation(
+            reservation_id=reservation_id,
+            volunteer_id=current_user.id
         )
         
-        all_items_fully_reserved = all(
-            item.quantity_reserved >= item.quantity 
-            for item in request.items
-        )
-        
-        if not other_reservations and not any_items_reserved:
-            # No reservations and no items reserved - back to requesting
-            request.status = OrderStatus.REQUESTING
-        elif all_items_fully_reserved:
-            # All items still fully reserved by others
-            request.status = OrderStatus.RESERVED
-        elif any_items_reserved:
-            # Some items reserved by others
-            request.status = OrderStatus.PARTIALLY_RESERVED
-    
-    # Single commit for all operations
-    db.commit()
-    
-    return {"message": "Reservation cancelled successfully"}
+        if success:
+            return {"message": "Reservation cancelled successfully"}
+        else:
+            raise HTTPException(status_code=400, detail="Failed to cancel reservation")
+            
+    except TransactionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cancel transaction failed: {str(e)}")
