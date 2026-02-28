@@ -10,6 +10,7 @@ export const OrderStatus = {
   IDLE: 'idle',
   REQUESTING: 'requesting', 
   OFFERING: 'offering',
+  PARTIALLY_RESERVED: 'partially_reserved',
   RESERVED: 'reserved',
   IN_PROGRESS: 'in_progress',
   AWAITING_PICKUP: 'awaiting_pickup',
@@ -18,9 +19,8 @@ export const OrderStatus = {
   PENDING_CONFIRMATION: 'pending_confirmation',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled'
-} as const;
+} ;
 
-export type OrderStatusType = typeof OrderStatus[keyof typeof OrderStatus];
 
 // ============================================================================
 // BATCH STATUS ENUM  
@@ -33,9 +33,8 @@ export const BatchStatus = {
   DELIVERED: 'delivered',
   CANCELLED: 'cancelled',
   EXPIRED: 'expired'
-} as const;
+} ;
 
-export type BatchStatusType = typeof BatchStatus[keyof typeof BatchStatus];
 
 // ============================================================================
 // PRODUCT TYPE ENUM
@@ -49,9 +48,8 @@ export const ProductType = {
   SCHOOL_SUPPLIES: 'school_supplies',
   BABY_ITEMS: 'baby_items',
   PET_SUPPLIES: 'pet_supplies'
-} as const;
+} ;
 
-export type ProductTypeType = typeof ProductType[keyof typeof ProductType];
 
 // ============================================================================
 // USER ROLES ENUM
@@ -61,9 +59,8 @@ export const UserRole = {
   VOLUNTEER: 'volunteer', 
   SHELTER: 'shelter',
   ADMIN: 'admin'
-} as const;
+} ;
 
-export type UserRoleType = typeof UserRole[keyof typeof UserRole];
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -72,47 +69,48 @@ export type UserRoleType = typeof UserRole[keyof typeof UserRole];
 /**
  * Verifica se um status é válido
  */
-export function isValidOrderStatus(status: string): status is OrderStatusType {
-  return Object.values(OrderStatus).includes(status as OrderStatusType);
+export function isValidOrderStatus(status) {
+  return Object.values(OrderStatus).includes(status);
 }
 
 /**
  * Verifica se um status de batch é válido
  */
-export function isValidBatchStatus(status: string): status is BatchStatusType {
-  return Object.values(BatchStatus).includes(status as BatchStatusType);
+export function isValidBatchStatus(status) {
+  return Object.values(BatchStatus).includes(status);
 }
 
 /**
  * Verifica se um tipo de produto é válido
  */
-export function isValidProductType(type: string): type is ProductTypeType {
-  return Object.values(ProductType).includes(type as ProductTypeType);
+export function isValidProductType(type) {
+  return Object.values(ProductType).includes(type);
 }
 
 /**
  * Verifica se uma role de usuário é válida
  */
-export function isValidUserRole(role: string): role is UserRoleType {
-  return Object.values(UserRole).includes(role as UserRoleType);
+export function isValidUserRole(role) {
+  return Object.values(UserRole).includes(role);
 }
 
 /**
  * Retorna o display format para um status
  */
-export function formatOrderStatus(status: OrderStatusType): string {
+export function formatOrderStatus(status) {
   const statusMap = {
-    [OrderStatus.IDLE]: 'Inativo',
-    [OrderStatus.REQUESTING]: 'Solicitando',
-    [OrderStatus.OFFERING]: 'Ofertando',
-    [OrderStatus.RESERVED]: 'Reservado',
-    [OrderStatus.IN_PROGRESS]: 'Em Andamento',
-    [OrderStatus.AWAITING_PICKUP]: 'Aguardando Retirada',
-    [OrderStatus.PICKED_UP]: 'Retirado',
-    [OrderStatus.IN_TRANSIT]: 'Em Trânsito',
-    [OrderStatus.PENDING_CONFIRMATION]: 'Pendente Confirmação',
-    [OrderStatus.COMPLETED]: 'Concluído',
-    [OrderStatus.CANCELLED]: 'Cancelado'
+    'idle': 'Inativo',
+    'requesting': 'Solicitando',
+    'offering': 'Ofertando',
+    'partially_reserved': 'Parcialmente Reservado',
+    'reserved': 'Reservado',
+    'in_progress': 'Em Andamento',
+    'awaiting_pickup': 'Aguardando Retirada',
+    'picked_up': 'Retirado',
+    'in_transit': 'Em Trânsito',
+    'pending_confirmation': 'Pendente Confirmação',
+    'completed': 'Concluído',
+    'cancelled': 'Cancelado'
   };
   
   return statusMap[status] || status;
@@ -121,7 +119,7 @@ export function formatOrderStatus(status: OrderStatusType): string {
 /**
  * Retorna o display format para um status de batch
  */
-export function formatBatchStatus(status: BatchStatusType): string {
+export function formatBatchStatus(status) {
   const statusMap = {
     [BatchStatus.PRODUCING]: 'Produzindo',
     [BatchStatus.READY]: 'Disponível',
@@ -138,7 +136,7 @@ export function formatBatchStatus(status: BatchStatusType): string {
 /**
  * Retorna o display format para um tipo de produto
  */
-export function formatProductType(type: ProductTypeType): string {
+export function formatProductType(type) {
   const typeMap = {
     [ProductType.MEAL]: 'Marmitas',
     [ProductType.INGREDIENT]: 'Insumos',
@@ -156,19 +154,20 @@ export function formatProductType(type: ProductTypeType): string {
 /**
  * Retorna a classe CSS para um status de order
  */
-export function getOrderStatusColor(status: OrderStatusType): string {
+export function getOrderStatusColor(status) {
   const colorMap = {
-    [OrderStatus.IDLE]: 'bg-gray-100 text-gray-800',
-    [OrderStatus.REQUESTING]: 'bg-blue-100 text-blue-800',
-    [OrderStatus.OFFERING]: 'bg-yellow-100 text-yellow-800',
-    [OrderStatus.RESERVED]: 'bg-purple-100 text-purple-800',
-    [OrderStatus.IN_PROGRESS]: 'bg-orange-100 text-orange-800',
-    [OrderStatus.AWAITING_PICKUP]: 'bg-indigo-100 text-indigo-800',
-    [OrderStatus.PICKED_UP]: 'bg-cyan-100 text-cyan-800',
-    [OrderStatus.IN_TRANSIT]: 'bg-teal-100 text-teal-800',
-    [OrderStatus.PENDING_CONFIRMATION]: 'bg-pink-100 text-pink-800',
-    [OrderStatus.COMPLETED]: 'bg-green-100 text-green-800',
-    [OrderStatus.CANCELLED]: 'bg-red-100 text-red-800'
+    'idle': 'bg-gray-100 text-gray-800',
+    'requesting': 'bg-red-100 text-red-800',
+    'offering': 'bg-yellow-100 text-yellow-800',
+    'partially_reserved': 'bg-yellow-100 text-yellow-800',
+    'reserved': 'bg-blue-100 text-blue-800',
+    'in_progress': 'bg-orange-100 text-orange-800',
+    'awaiting_pickup': 'bg-indigo-100 text-indigo-800',
+    'picked_up': 'bg-cyan-100 text-cyan-800',
+    'in_transit': 'bg-teal-100 text-teal-800',
+    'pending_confirmation': 'bg-pink-100 text-pink-800',
+    'completed': 'bg-green-100 text-green-800',
+    'cancelled': 'bg-red-100 text-red-800'
   };
   
   return colorMap[status] || 'bg-gray-100 text-gray-800';
@@ -177,7 +176,7 @@ export function getOrderStatusColor(status: OrderStatusType): string {
 /**
  * Retorna a classe CSS para um status de batch
  */
-export function getBatchStatusColor(status: BatchStatusType): string {
+export function getBatchStatusColor(status) {
   const colorMap = {
     [BatchStatus.PRODUCING]: 'bg-yellow-100 text-yellow-800',
     [BatchStatus.READY]: 'bg-green-100 text-green-800',

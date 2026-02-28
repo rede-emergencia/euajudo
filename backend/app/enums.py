@@ -43,7 +43,8 @@ class OrderStatus(str, Enum):
     OFFERING = "offering"                      # Item available for pickup
     
     # Commitment states
-    RESERVED = "reserved"                      # Someone committed to fulfill
+    PARTIALLY_RESERVED = "partially_reserved"  # Some items reserved, others available
+    RESERVED = "reserved"                      # All items fully reserved
     
     # Execution states
     IN_PROGRESS = "in_progress"               # Being executed

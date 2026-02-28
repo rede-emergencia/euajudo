@@ -190,10 +190,19 @@ def create_reservation(
         for item in request.items
     )
     
+    # Check if ANY items are reserved (partial)
+    any_items_reserved = any(
+        item.quantity_reserved > 0 
+        for item in request.items
+    )
+    
     if all_items_fully_reserved:
         request.status = OrderStatus.RESERVED
+    elif any_items_reserved:
+        # Some items reserved, others still available
+        request.status = OrderStatus.PARTIALLY_RESERVED
     else:
-        # Partial reservation - keep as REQUESTING so others can reserve remaining items
+        # No items reserved (shouldn't happen in normal flow)
         request.status = OrderStatus.REQUESTING
     
     reservation_repo.commit()
@@ -256,11 +265,30 @@ def cancel_reservation(
     # Update request status if needed
     request_repo = BaseRepository(ResourceRequest, db)
     request = request_repo.get_by_id(reservation.request_id)
-    if request and request.status == OrderStatus.RESERVED:
+    if request:
         # Check if there are other reservations
         other_reservations = reservation_repo.filter_by(request_id=request.id)
-        if not other_reservations:
+        
+        # Check current reservation status after cancellation
+        any_items_reserved = any(
+            item.quantity_reserved > 0 
+            for item in request.items
+        )
+        
+        all_items_fully_reserved = all(
+            item.quantity_reserved >= item.quantity 
+            for item in request.items
+        )
+        
+        if not other_reservations and not any_items_reserved:
+            # No reservations and no items reserved - back to requesting
             request.status = OrderStatus.REQUESTING
+        elif all_items_fully_reserved:
+            # All items still fully reserved by others
+            request.status = OrderStatus.RESERVED
+        elif any_items_reserved:
+            # Some items reserved by others
+            request.status = OrderStatus.PARTIALLY_RESERVED
     
     # Single commit for all operations
     db.commit()
