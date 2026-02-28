@@ -326,7 +326,7 @@ export default function ProviderDashboard() {
       id: 'publicacoes', 
       label: 'Minhas Publicações', 
       icon: <Package size={16} />, 
-      badge: myPublications.filter(p => p.status === 'available').length 
+      badge: myPublications.filter(p => p.status === 'ready').length 
     },
     { 
       id: 'solicitacoes', 
@@ -345,7 +345,7 @@ export default function ProviderDashboard() {
   const stats = [
     {
       label: 'Publicações Ativas',
-      value: myPublications.filter(p => p.status === 'available').length,
+      value: myPublications.filter(p => p.status === 'ready').length,
       icon: <Package size={24} />,
     },
     {
@@ -446,7 +446,7 @@ export default function ProviderDashboard() {
                 gap: spacing.sm,
                 flexDirection: 'column',
               }}>
-                {publication.status === 'available' && (
+                {publication.status === 'ready' && (
                   <Button
                     variant="error"
                     size="sm"
