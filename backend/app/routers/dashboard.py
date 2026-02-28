@@ -77,15 +77,15 @@ def get_dashboard_stats(
             Delivery.volunteer_id == current_user.id
         ).count()
         
-        stats['pending_deliveries'] = db.query(Delivery).filter(
+        stats['completed_deliveries'] = db.query(Delivery).filter(
             Delivery.volunteer_id == current_user.id,
-            Delivery.status.in_([DeliveryStatus.COMMITTED, DeliveryStatus.PICKED_UP])
+            Delivery.status == DeliveryStatus.DELIVERED
         ).count()
     
     # Admin stats
     if has_role(current_user, 'admin'):
         stats['pending_deliveries'] = db.query(Delivery).filter(
-            Delivery.status.in_([DeliveryStatus.COMMITTED, DeliveryStatus.PICKED_UP])
+            Delivery.status.in_([DeliveryStatus.PENDING_CONFIRMATION, DeliveryStatus.PICKED_UP])
         ).count()
     
     return stats
