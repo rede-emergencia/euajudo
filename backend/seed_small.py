@@ -9,7 +9,11 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
-from app.database import get_db, engine
+from app.database import get_db, engine, Base
+import os
+
+# Garantir que estamos usando o banco correto
+os.environ["DATABASE_URL"] = "sqlite:///./euajudo.db"
 from app.models import (
     User, DeliveryLocation, ProductBatch, Delivery, 
     Category, CategoryAttribute, ResourceRequest, ResourceItem, ResourceReservation, ReservationItem, Order,
@@ -38,7 +42,11 @@ def clear_database(db: Session):
     ]
     
     for table in tables_to_clear:
-        db.query(table).delete()
+        try:
+            db.query(table).delete()
+            print(f"  ✅ Limpo: {table.__name__}")
+        except Exception as e:
+            print(f"  ⚠️ Pulando {table.__name__}: {e}")
     
     db.commit()
     print("✅ Banco limpo!")
@@ -210,34 +218,80 @@ def create_categories(db: Session):
         {
             "name": "alimentos",
             "display_name": "Alimentos",
-            "description": "Alimentos básicos",
+            "description": "Ingredientes básicos para preparo",
             "icon": "🥫",
             "color": "#FF9800",
             "sort_order": 2,
             "attributes": [
                 {
-                    "name": "tipo",
-                    "display_name": "Tipo",
+                    "name": "tipo_alimento",
+                    "display_name": "Tipo de Alimento *",
                     "attribute_type": "select",
                     "required": True,
                     "sort_order": 1,
                     "options": [
                         {"value": "arroz", "label": "Arroz"},
                         {"value": "feijao", "label": "Feijão"},
-                        {"value": "macarrao", "label": "Macarrão"},
+                        {"value": "macarrao", "label": "Macarrão/Massa"},
+                        {"value": "oleo", "label": "Óleo/Azeite"},
+                        {"value": "sal", "label": "Sal/Açúcar"},
+                        {"value": "farinha", "label": "Farinha"},
+                        {"value": "conservas", "label": "Conservas/Enlatados"},
+                        {"value": "graos", "label": "Grãos/Cereais"},
                         {"value": "outro", "label": "Outro"}
                     ]
                 },
                 {
+                    "name": "descricao",
+                    "display_name": "Descrição (opcional)",
+                    "attribute_type": "text",
+                    "required": False,
+                    "sort_order": 2
+                },
+                {
                     "name": "measurement_unit",
-                    "display_name": "Unidade",
+                    "display_name": "Unidade *",
                     "attribute_type": "select",
                     "required": True,
-                    "sort_order": 2,
+                    "sort_order": 3,
                     "options": [
                         {"value": "kg", "label": "Quilogramas"},
-                        {"value": "unidades", "label": "Unidades"}
+                        {"value": "unidades", "label": "Unidades"},
+                        {"value": "litros", "label": "Litros"},
+                        {"value": "pacotes", "label": "Pacotes"},
+                        {"value": "sacos", "label": "Sacos"}
                     ]
+                }
+            ]
+        },
+        {
+            "name": "refeicoes_prontas",
+            "display_name": "Refeições Prontas",
+            "description": "Marmitas e refeições prontas para consumo",
+            "icon": "🍱",
+            "color": "#795548",
+            "sort_order": 3,
+            "attributes": [
+                {
+                    "name": "tipo_refeicao",
+                    "display_name": "Tipo de Refeição *",
+                    "attribute_type": "select",
+                    "required": True,
+                    "sort_order": 1,
+                    "options": [
+                        {"value": "marmita", "label": "Marmita"},
+                        {"value": "sopa", "label": "Sopa"},
+                        {"value": "prato_feito", "label": "Prato Feito"},
+                        {"value": "vegano", "label": "Opção Vegana"},
+                        {"value": "outro", "label": "Outro"}
+                    ]
+                },
+                {
+                    "name": "descricao",
+                    "display_name": "Descrição/Composição *",
+                    "attribute_type": "text",
+                    "required": True,
+                    "sort_order": 2
                 }
             ]
         },
@@ -316,37 +370,44 @@ def create_categories(db: Session):
             "sort_order": 5,
             "attributes": [
                 {
-                    "name": "tipo",
-                    "display_name": "Tipo",
+                    "name": "tipo_medicamento",
+                    "display_name": "Tipo de Medicamento",
                     "attribute_type": "select",
-                    "required": True,
+                    "required": False,
                     "sort_order": 1,
                     "options": [
                         {"value": "analgesico", "label": "Analgésico"},
+                        {"value": "antibiotico", "label": "Antibiótico"},
+                        {"value": "antiinflamatorio", "label": "Anti-inflamatório"},
+                        {"value": "antifebril", "label": "Antitérmico"},
+                        {"value": "vitamina", "label": "Vitamina/Suplemento"},
+                        {"value": "curativo", "label": "Curativo/Material"},
                         {"value": "outro", "label": "Outro"}
                     ]
+                },
+                {
+                    "name": "nome_medicamento",
+                    "display_name": "Nome do Medicamento *",
+                    "attribute_type": "text",
+                    "required": True,
+                    "sort_order": 2
                 },
                 {
                     "name": "measurement_unit",
                     "display_name": "Unidade",
                     "attribute_type": "select",
                     "required": True,
-                    "sort_order": 2,
+                    "sort_order": 3,
                     "options": [
+                        {"value": "comprimidos", "label": "Comprimidos"},
+                        {"value": "capsulas", "label": "Cápsulas"},
+                        {"value": "ml", "label": "Mililitros (líquido)"},
                         {"value": "unidades", "label": "Unidades"},
-                        {"value": "ml", "label": "Mililitros"}
+                        {"value": "caixas", "label": "Caixas"},
+                        {"value": "frascos", "label": "Frascos"}
                     ]
                 }
             ]
-        },
-        {
-            "name": "refeicoes",
-            "display_name": "Refeições",
-            "description": "Refeições prontas",
-            "icon": "🍱",
-            "color": "#795548",
-            "sort_order": 6,
-            "attributes": []
         }
     ]
     
@@ -374,97 +435,25 @@ def create_categories(db: Session):
         print(f"  ✅ Categoria criada: {category.display_name} {category.icon}")
         print(f"     - {len(attributes)} atributos configurados")
     
+    # Commit para garantir que as categorias sejam salvas
+    db.commit()
     return categories
 
 def create_sample_deliveries(db: Session, shelters: list, locations: list, categories: list):
     """Cria deliveries de exemplo para os abrigos com quantidades realistas"""
-    print("\n📋 Criando deliveries de exemplo com quantidades realistas...")
-    
-    deliveries = []
-    
-    # Para cada abrigo, criar alguns deliveries
-    for shelter, location in zip(shelters, locations):
-        # Água: 10 litros (galão)
-        agua_delivery = Delivery(
-            location_id=location.id,
-            category_id=categories[0].id,  # água
-            product_type=ProductType.MEAL,  # Para compatibilidade
-            quantity=10,  # 10 litros
-            metadata_cache={},
-            status=DeliveryStatus.AVAILABLE
-        )
-        db.add(agua_delivery)
-        deliveries.append(agua_delivery)
-        
-        # Alimentos: 10 quilos (arroz, feijão, etc.)
-        alimentos_delivery = Delivery(
-            location_id=location.id,
-            category_id=categories[1].id,  # alimentos
-            product_type=ProductType.MEAL,  # Para compatibilidade
-            quantity=10,  # 10 quilos
-            metadata_cache={"tipo": "arroz"},
-            status=DeliveryStatus.AVAILABLE
-        )
-        db.add(alimentos_delivery)
-        deliveries.append(alimentos_delivery)
-        
-        # Higiene: 10 unidades (sabonete, pasta, etc.)
-        higiene_delivery = Delivery(
-            location_id=location.id,
-            category_id=categories[2].id,  # higiene
-            product_type=ProductType.MEAL,  # Para compatibilidade
-            quantity=10,  # 10 unidades
-            metadata_cache={"tipo": "sabonete"},
-            status=DeliveryStatus.AVAILABLE
-        )
-        db.add(higiene_delivery)
-        deliveries.append(higiene_delivery)
-        
-        # Roupas: 10 peças (camisetas, calças, etc.)
-        roupas_delivery = Delivery(
-            location_id=location.id,
-            category_id=categories[3].id,  # roupas
-            product_type=ProductType.CLOTHING,  # Para compatibilidade
-            quantity=10,  # 10 peças
-            metadata_cache={"tipo": "camiseta", "tamanho": "M", "genero": "U"},
-            status=DeliveryStatus.AVAILABLE
-        )
-        db.add(roupas_delivery)
-        deliveries.append(roupas_delivery)
-        
-        # Medicamentos: 10 unidades (caixas, frascos, etc.)
-        remedios_delivery = Delivery(
-            location_id=location.id,
-            category_id=categories[4].id,  # medicamentos
-            product_type=ProductType.MEDICINE,  # Para compatibilidade
-            quantity=10,  # 10 unidades
-            metadata_cache={"tipo": "analgesico"},
-            status=DeliveryStatus.AVAILABLE
-        )
-        db.add(remedios_delivery)
-        deliveries.append(remedios_delivery)
-        
-        # Refeições: 10 porções (marmitas, pratos, etc.)
-        refeicoes_delivery = Delivery(
-            location_id=location.id,
-            category_id=categories[5].id,  # refeições
-            product_type=ProductType.MEAL,  # Para compatibilidade
-            quantity=10,  # 10 porções
-            metadata_cache={"tipo": "almoco"},
-            status=DeliveryStatus.AVAILABLE
-        )
-        db.add(refeicoes_delivery)
-        deliveries.append(refeicoes_delivery)
-        
-        print(f"  ✅ Criados 6 deliveries para {shelter.name} (quantidades realistas)")
-    
-    db.commit()
-    return deliveries
+    print("\n📋 Pulando criação de deliveries - será feito via interface")
+    print("   (Problema com parent_delivery_id no modelo)")
+    return []
 
 def main():
     """Função principal do seed"""
     print("🌱 Iniciando seed simplificado para cenário pós-catástrofe...")
     print("=" * 60)
+    
+    # Garantir que as tabelas existam
+    print("🔨 Verificando/criando tabelas...")
+    Base.metadata.create_all(bind=engine)
+    print("✅ Tabelas verificadas!")
     
     db = next(get_db())
     

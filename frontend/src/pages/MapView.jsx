@@ -1000,8 +1000,8 @@ export default function MapView() {
             .bindPopup(`
               <div style="min-width: 300px;">
                 <h3 style="margin: 0 0 8px 0; color: ${titleColor};">${statusText} - Pedido de Insumos</h3>
-                <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Cozinha:</strong> ${request.provider.name}</p>
-                <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Para produzir:</strong> ${request.quantity_meals} ${formatProductWithQuantity(request.product_type, request.quantity_meals)}</p>
+                <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Solicitante:</strong> ${request.provider?.name || '—'}</p>
+                <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Total solicitado:</strong> ${itemsWithStatus.length > 0 ? itemsWithStatus.map(i => `${i.quantity} ${i.name.split(' — ')[0]}`).join(', ') : `${request.quantity_meals} itens`}</p>
                 
                 <div style="margin: 8px 0;">
                   <h4 style="margin: 0 0 4px 0; font-size: 13px; font-weight: bold;">Ingredientes necessários:</h4>

@@ -150,8 +150,8 @@ export const dashboard = {
 };
 
 export const categories = {
-  list: (activeOnly = true) => api.get('/categories', { params: { active_only: activeOnly } }),
-  getById: (id) => api.get(`/categories/${id}`),
+  list: (activeOnly = true) => api.get('/categories/', { params: { active_only: activeOnly } }),
+  getById: (id) => api.get(`/categories/${id}/`),
 };
 
 // Legacy compatibility layer - maps old names to new generic API

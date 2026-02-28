@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Package, X, User, LogOut, Home,
   MapPin, Store, Truck, UtensilsCrossed, Pill, Droplet, Shirt, Sparkles, Filter as FilterIcon,
-  Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart
+  Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart, LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
@@ -421,6 +421,36 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
             {user ? (
               <>
 
+                {/* Botão Dashboard — escondido em mobile, visível no desktop */}
+                <button
+                  className="dashboard-desktop-only"
+                  onClick={() => navigate(getDashboardRoute())}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '8px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: '#eff6ff',
+                    color: '#2563eb',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    transition: 'background 0.2s',
+                    gap: '4px'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = '#dbeafe';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = '#eff6ff';
+                  }}
+                  title="Ir para Dashboard"
+                >
+                  <LayoutDashboard style={{ width: '18px', height: '18px' }} />
+                  <span style={{ fontSize: '13px' }}>Dashboard</span>
+                </button>
+
                 {/* Botão Ações — escondido em mobile, visível no desktop */}
                 <button
                   className="actions-desktop-only"
@@ -540,7 +570,6 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                           <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{user.nome}</p>
                           <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>{user.email}</p>
                         </div>
-                        {user && user.roles.includes('admin') && (
                         <button
                           onClick={() => {
                             navigate(getDashboardRoute() || '/');
@@ -566,7 +595,6 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                           <Home size={16} />
                           Dashboard
                         </button>
-                        )}
                         <button
                           onClick={handleLogout}
                           style={{
@@ -795,6 +823,39 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
 
             {/* Content */}
             <div style={{ padding: '24px' }}>
+
+              {/* Ir para Dashboard — visível para todos os usuários logados */}
+              {user && (
+                <button
+                  onClick={() => {
+                    navigate(getDashboardRoute());
+                    setShowActionsModal(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '12px 16px',
+                    marginBottom: '16px',
+                    border: '1.5px solid #e5e7eb',
+                    borderRadius: '12px',
+                    background: '#f9fafb',
+                    color: '#1f2937',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.color = '#2563eb'; }}
+                  onMouseOut={e => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#1f2937'; }}
+                >
+                  <LayoutDashboard size={18} />
+                  Ir para Dashboard
+                </button>
+              )}
+
               {activeOperations.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <div style={{

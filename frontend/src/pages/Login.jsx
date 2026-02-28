@@ -21,22 +21,21 @@ export default function Login() {
     const fetchUsers = async () => {
       try {
         const response = await users.getAll();
-        const usuariosData = response.data.map(user => ({
-          email: user.email,
-          nome: user.name,
-          role: getRoleDisplay(user.roles),
-          descricao: getUserDescription(user),
-          roles: user.roles
-        }));
+        const usuariosData = response.data
+          .filter(user => user.roles.includes('admin'))
+          .map(user => ({
+            email: user.email,
+            nome: user.name,
+            role: getRoleDisplay(user.roles),
+            descricao: getUserDescription(user),
+            roles: user.roles
+          }));
         setUsuarios(usuariosData);
       } catch (err) {
         console.error('Erro ao buscar usuários:', err);
-        // Fallback para usuários hardcoded em caso de erro
+        // Apenas admin como fallback
         setUsuarios([
-          { email: 'f1@j.com', nome: 'F1 - Fornecedor', role: 'fornecedor', descricao: 'Restaurante no Centro' },
-          { email: 'a1@j.com', nome: 'A1 - Abrigo', role: 'recebedor', descricao: 'Zona Norte de JF' },
-          { email: 'v1@j.com', nome: 'V1 - Voluntário', role: 'voluntario', descricao: 'Entregador/Comprador' },
-          { email: 'adm@j.com', nome: 'ADM - Admin', role: 'admin', descricao: 'Administrador' }
+          { email: 'admin@vouajudar.org', nome: 'Admin', role: 'admin', descricao: 'Administrador do Sistema' }
         ]);
       } finally {
         setLoadingUsers(false);

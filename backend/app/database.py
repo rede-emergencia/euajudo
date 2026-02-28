@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./jfood.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./euajudo.db")
 
 # Configuração específica para cada tipo de database
 if DATABASE_URL.startswith("sqlite"):
