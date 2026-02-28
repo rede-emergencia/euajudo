@@ -903,21 +903,21 @@ export default function MapView() {
         return;
       }
 
-      console.log('✅ DEBUG - Usuário é voluntário, verificando idle...');
+      console.log('✅ DEBUG - Usuário é voluntário, verificando compromissos ativos...');
 
-      // Verificar se usuário está ocioso
-      if (!isUserIdle()) {
-        console.log('❌ DEBUG - Usuário não está idle');
-        showConfirmation(
-          '⚠️ Compromisso em Andamento',
-          `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
-          () => {},
-          'warning'
-        );
-        return;
-      }
+      // REMOVIDO: Verificação de idle - queremos mostrar o aviso de limite mesmo se tiver operação ativa
+      // if (!isUserIdle()) {
+      //   console.log('❌ DEBUG - Usuário não está idle');
+      //   showConfirmation(
+      //     '⚠️ Compromisso em Andamento',
+      //     `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
+      //     () => {},
+      //     'warning'
+      //   );
+      //   return;
+      // }
 
-      console.log('✅ DEBUG - Usuário está idle, verificando compromissos ativos...');
+      console.log('✅ DEBUG - Verificando compromissos ativos...');
 
       // Verificar se já tem compromissos ativos
       const activeDeliveries = deliveries.filter(d => 
