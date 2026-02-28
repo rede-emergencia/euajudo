@@ -985,7 +985,6 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                             }}
                             onMouseOver={(e) => e.currentTarget.style.background = '#15803d'}
                             onMouseOut={(e) => e.currentTarget.style.background = '#16a34a'}
-                            onClick={() => showNotification('Vá para o dashboard para entregar os itens', 'info')}
                           >
                             📦 Entregar Itens (no Dashboard)
                           </button>
@@ -1025,7 +1024,6 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                   </button>
                 </div>
               )}
-            </div>
           </div>
         </div>
       )}
