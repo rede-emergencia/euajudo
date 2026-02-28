@@ -250,6 +250,15 @@ export default function MapView() {
         const pedidos = await responseDeliveries.json();
         console.log('🚚 Deliveries carregados:', pedidos.length);
         setDeliveries(pedidos);
+        
+        // Debug: verificar se as deliveries do João estão vindo
+        if (user) {
+          const joaoDeliveries = pedidos.filter(d => d.volunteer_id === user.id);
+          console.log(`🔍 DEBUG - Deliveries do usuário ${user.id}:`, joaoDeliveries.length);
+          joaoDeliveries.forEach(d => {
+            console.log(`  - ID: ${d.id}, Status: ${d.status}, Product: ${d.product_type}`);
+          });
+        }
       } else {
         console.error('Erro ao carregar deliveries:', responseDeliveries.status);
       }
@@ -866,6 +875,12 @@ export default function MapView() {
     };
 
     window.openSimplifiedCommitment = (locationId) => {
+      console.log('🔍 DEBUG - openSimplifiedCommitment chamado!', {
+        locationId,
+        user: user ? { id: user.id, name: user.name } : null,
+        totalDeliveries: deliveries.length
+      });
+      
       if (!user) {
         showConfirmation(
           'Login Necessário',
