@@ -47,7 +47,7 @@ export default function VolunteerDashboard() {
         // Carregar entregas que o voluntário está fazendo
         const response = await deliveries.list();
         const activeDeliveries = response.data?.filter(d => 
-          d.volunteer_id === user.id && ['reserved', 'picked_up', 'in_transit'].includes(d.status)
+          d.volunteer_id === user.id && ['pending_confirmation', 'reserved', 'picked_up', 'in_transit'].includes(d.status)
         ) || [];
         setMyDeliveries(activeDeliveries);
       } else if (activeTab === 'doacoes') {
@@ -189,6 +189,7 @@ export default function VolunteerDashboard() {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'pending_confirmation': return 'warning';
       case 'reserved': return 'warning';
       case 'picked_up': return 'primary';
       case 'in_transit': return 'primary';
@@ -200,6 +201,7 @@ export default function VolunteerDashboard() {
 
   const getStatusLabel = (status) => {
     switch (status) {
+      case 'pending_confirmation': return 'Aguardando Retirada';
       case 'reserved': return 'Comprometido';
       case 'picked_up': return 'Retirado';
       case 'in_transit': return 'Em Trânsito';
@@ -227,7 +229,7 @@ export default function VolunteerDashboard() {
   const stats = [
     {
       label: 'Entregas Ativas',
-      value: myDeliveries.filter(d => ['reserved', 'picked_up', 'in_transit'].includes(d.status)).length,
+      value: myDeliveries.filter(d => ['pending_confirmation', 'reserved', 'picked_up', 'in_transit'].includes(d.status)).length,
       icon: <Truck size={24} />,
     },
     {
@@ -313,7 +315,7 @@ export default function VolunteerDashboard() {
                 gap: spacing.sm,
                 flexDirection: 'column',
               }}>
-                {delivery.status === 'reserved' && (
+                {(delivery.status === 'pending_confirmation' || delivery.status === 'reserved') && (
                   <>
                     <Button
                       variant="success"
