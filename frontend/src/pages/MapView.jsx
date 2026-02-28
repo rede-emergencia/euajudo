@@ -169,6 +169,7 @@ function getUserBasedState(location, user, filteredDeliveries) {
   
   // Retornar estado baseado na prioridade do usuário
   if (hasUserReservation && !hasUserCompletedDelivery) {
+    console.log(`🟠 CAMINHO LARANJA - Location ${location.id}: Usuário tem reserva ativa`);
     return {
       color: STATE_COLORS.participant,  // 🟠 Laranja
       size: getStateSize(true),
@@ -181,6 +182,7 @@ function getUserBasedState(location, user, filteredDeliveries) {
       hasAvailableItems: hasAvailableItems
     };
   } else if (hasUserCompletedDelivery) {
+    console.log(`🟢 CAMINHO VERDE COMPLETADO - Location ${location.id}: Usuário completou entrega`);
     return {
       color: STATE_COLORS.available,    // 🟢 Verde
       size: getStateSize(false),
@@ -193,6 +195,7 @@ function getUserBasedState(location, user, filteredDeliveries) {
       hasAvailableItems: false
     };
   } else if (isCompletelyReserved) {
+    console.log(`🟢 CAMINHO VERDE RESERVADO - Location ${location.id}: Tudo reservado (público)`);
     return {
       color: STATE_COLORS.available,    // 🟢 Verde (público)
       size: getStateSize(false),
@@ -205,6 +208,7 @@ function getUserBasedState(location, user, filteredDeliveries) {
       hasAvailableItems: false
     };
   } else if (hasActiveOrder) {
+    console.log(`🔴 CAMINHO VERMELHO - Location ${location.id}: Pedido em aberto (público)`);
     return {
       color: STATE_COLORS.urgent,       // 🔴 Vermelho
       size: getStateSize(true),
@@ -217,6 +221,7 @@ function getUserBasedState(location, user, filteredDeliveries) {
       hasAvailableItems: hasAvailableItems
     };
   } else {
+    console.log(`🟢 CAMINHO VERDE DISPONÍVEL - Location ${location.id}: Disponível (público)`);
     return {
       color: STATE_COLORS.available,    // 🟢 Verde
       size: getStateSize(false),
@@ -684,7 +689,7 @@ export default function MapView() {
         if (!deliveriesByLocation[delivery.location_id]) {
           deliveriesByLocation[delivery.location_id] = [];
         }
-        if (['available', 'reserved', 'picked_up', 'in_transit'].includes(delivery.status)) {
+        if (['available', 'reserved', 'picked_up', 'in_transit', 'pending_confirmation'].includes(delivery.status)) {
           deliveriesByLocation[delivery.location_id].push(delivery);
         }
       });
