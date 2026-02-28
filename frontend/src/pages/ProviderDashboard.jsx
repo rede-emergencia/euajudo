@@ -40,7 +40,8 @@ export default function ProviderDashboard() {
   const [publicationForm, setPublicationForm] = useState({
     quantity: '',
     description: '',
-    pickupDeadline: ''
+    pickupDeadline: '',
+    productType: 'meal' // Valor padrão
   });
   const [requestForm, setRequestForm] = useState({
     quantity_meals: '',
@@ -143,7 +144,7 @@ export default function ProviderDashboard() {
 
     try {
       const payload = {
-        product_type: "item", // Genérico em vez de "meal"
+        product_type: publicationForm.productType,
         quantity: parseInt(publicationForm.quantity),
         description: publicationForm.description,
         donated_ingredients: true,
@@ -153,7 +154,7 @@ export default function ProviderDashboard() {
       await batches.create(payload);
       showAlert('Sucesso', '✅ Publicação criada com sucesso! Disponível para retirada por 4 horas.', 'success');
       setShowPublicationForm(false);
-      setPublicationForm({ quantity: '', description: '', pickupDeadline: '' });
+      setPublicationForm({ quantity: '', description: '', pickupDeadline: '', productType: 'meal' });
       loadData();
       triggerUserStateUpdate();
     } catch (error) {
@@ -690,6 +691,41 @@ export default function ProviderDashboard() {
         }
       >
         <form onSubmit={handleCreatePublication} style={{ display: 'flex', flexDirection: 'column', gap: spacing.lg }}>
+          <div>
+            <label style={{
+              display: 'block',
+              fontSize: fontSize.sm,
+              fontWeight: fontWeight.medium,
+              color: colors.text.primary,
+              marginBottom: spacing.xs,
+            }}>
+              Tipo de Produto *
+            </label>
+            <select
+              value={publicationForm.productType}
+              onChange={(e) => setPublicationForm({ ...publicationForm, productType: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                backgroundColor: 'white'
+              }}
+              required
+            >
+              <option value="meal">🍽️ Marmitas</option>
+              <option value="ingredient">🥕 Ingredientes</option>
+              <option value="clothing">👕 Roupas</option>
+              <option value="hygiene">🧼 Higiene</option>
+              <option value="cleaning">🧹 Limpeza</option>
+              <option value="medicine">💊 Medicamentos</option>
+              <option value="school_supplies">📚 Material Escolar</option>
+              <option value="baby_items">🍼 Itens de Bebê</option>
+              <option value="pet_supplies">🐾 Itens para Pets</option>
+            </select>
+          </div>
+
           <Input
             label="Quantidade de Itens"
             type="number"
