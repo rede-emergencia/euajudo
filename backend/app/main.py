@@ -154,6 +154,57 @@ def api_examples():
 def health_check():
     return {"status": "healthy", "version": "2.0.0"}
 
+@app.get("/api/db/status")
+def db_status():
+    """Check database status and data counts"""
+    try:
+        from app.database import SessionLocal
+        from app import models
+        
+        db = SessionLocal()
+        user_count = db.query(models.User).count()
+        location_count = db.query(models.DeliveryLocation).count()
+        batch_count = db.query(models.ProductBatch).count()
+        delivery_count = db.query(models.Delivery).count()
+        request_count = db.query(models.ResourceRequest).count()
+        db.close()
+        
+        return {
+            "database": "connected",
+            "counts": {
+                "users": user_count,
+                "locations": location_count,
+                "batches": batch_count,
+                "deliveries": delivery_count,
+                "resource_requests": request_count
+            },
+            "is_empty": user_count == 0 and location_count == 0 and batch_count == 0
+        }
+    except Exception as e:
+        return {
+            "database": "error",
+            "error": str(e),
+            "is_empty": True
+        }
+
+@app.post("/api/admin/seed")
+def run_seed():
+    """Manually run database seed"""
+    try:
+        import seed_improved
+        seed_improved.main()
+        return {"status": "success", "message": "Seed executed successfully"}
+    except Exception as e:
+        try:
+            import seed
+            seed.main()
+            return {"status": "success", "message": "Alternative seed executed successfully"}
+        except Exception as e2:
+            return {
+                "status": "error", 
+                "message": f"Primary seed failed: {str(e)}. Alternative seed failed: {str(e2)}"
+            }
+
 @app.get("/api/product-types")
 def list_product_types():
     """List supported product types"""
