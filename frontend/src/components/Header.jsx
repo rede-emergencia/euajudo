@@ -275,16 +275,29 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
       'Cancelar Operação',
       'Tem certeza que deseja cancelar esta operação? Esta ação não pode ser desfeita.'
     );
-    if (confirmed) {
-      handleCancelOperation();
-    }
-  };
+    if (!confirmed) return;
 
-  
-  
-  // Usar cores do UserStateContext
-  const getHeaderColor = () => {
-    return colors;
+    try {
+      const result = await cancelEntity(
+        userState.activeOperation.type,
+        userState.activeOperation.id,
+        {
+          onSuccess: () => {
+            // Disparar evento para atualizar UserStateContext
+            window.dispatchEvent(new CustomEvent('refreshUserState', {
+              detail: { forceUpdate: true }
+            }));
+          }
+        }
+      );
+      
+      if (result.success) {
+        setShowActionsModal(false);
+        // Evento adicional já foi disparado no onSuccess
+      }
+    } catch (error) {
+      console.error('Erro ao cancelar:', error);
+    }
   };
 
   const [isFlashing, setIsFlashing] = useState(false);

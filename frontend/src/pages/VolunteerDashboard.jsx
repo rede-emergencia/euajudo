@@ -31,7 +31,8 @@ export default function VolunteerDashboard() {
 
   // Função para disparar atualização do estado do usuário
   const triggerUserStateUpdate = () => {
-    window.dispatchEvent(new CustomEvent('userOperationUpdate', {
+    // Disparar evento que o UserStateContext escuta
+    window.dispatchEvent(new CustomEvent('refreshUserState', {
       detail: { forceUpdate: true }
     }));
   };
@@ -513,9 +514,9 @@ export default function VolunteerDashboard() {
     <>
       <Header
         onOperationStatusChange={(hasOperation) => {
-          // Disparar evento para atualizar cores da borda
-          window.dispatchEvent(new CustomEvent('operationStatusChange', { 
-            detail: { hasActiveOperation: hasOperation } 
+          // Disparar evento para atualizar UserStateContext
+          window.dispatchEvent(new CustomEvent('refreshUserState', { 
+            detail: { forceUpdate: true }
           }));
         }}
       />
