@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { users } from '@/lib/api';
-import { Package } from 'lucide-react';
+import { Package, TestTube } from 'lucide-react';
+
+const isBetaMode = import.meta.env.VITE_BETA_MODE === 'true';
 
 export default function Login() {
   const [selectedUser, setSelectedUser] = useState('');
@@ -104,8 +106,19 @@ export default function Login() {
           <div className="flex justify-center mb-4">
             <Package className="h-16 w-16 text-primary-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">JFood</h1>
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-3xl font-bold text-gray-900">EuAjudo</h1>
+            {isBetaMode && (
+              <div className="flex items-center gap-1 bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-sm font-medium">
+                <TestTube className="h-4 w-4" />
+                BETA
+              </div>
+            )}
+          </div>
           <p className="text-gray-600 mt-2">Sistema de Gestão de Marmitas</p>
+          {isBetaMode && (
+            <p className="text-xs text-orange-600 mt-1">Modo de testes com usuários pré-cadastrados</p>
+          )}
         </div>
 
         <div className="card">
