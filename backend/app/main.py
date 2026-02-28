@@ -64,6 +64,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Adicionar middleware de logging
+@app.middleware("http")
+async def log_requests(request, call_next):
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        print(f"❌ Erro na requisição {request.method} {request.url}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
+
 # Register routers
 app.include_router(auth.router)
 app.include_router(users.router)
