@@ -89,7 +89,7 @@ app.include_router(dashboard.router)
 app.include_router(cancel.router)
 
 @app.get("/")
-def root():
+def read_root():
     return {
         "message": "VouAjudar API - Sistema de Gestão Solidária",
         "version": "2.0.0",
@@ -101,6 +101,32 @@ def root():
         ],
         "docs": "/docs"
     }
+
+@app.get("/test-db")
+def test_db():
+    """Endpoint de teste para verificar conexão com banco"""
+    try:
+        from app.database import get_db
+        from sqlalchemy.orm import Session
+        import os
+        
+        # Testar conexão
+        db = next(get_db())
+        result = db.execute("SELECT COUNT(*) FROM users")
+        count = result.fetchone()[0]
+        db.close()
+        
+        return {
+            "status": "ok",
+            "message": f"Banco conectado com {count} usuários",
+            "database_url": os.getenv("DATABASE_URL", "not_set")[:50] + "..."
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "database_url": os.getenv("DATABASE_URL", "not_set")[:50] + "..."
+        }
 
 @app.get("/api/docs/examples")
 def api_examples():
