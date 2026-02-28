@@ -25,7 +25,9 @@ export default function CodeConfirmationModal({
   cancelButtonText = "Cancelar",
   successMessage = "Código confirmado com sucesso!",
   errorMessage = "Código inválido. Tente novamente.",
-  type = 'confirm' // 'confirm' = quem doa confirma | 'display' = quem recebe mostra
+  type = 'confirm', // 'confirm' = quem doa confirma | 'display' = quem recebe mostra
+  canCancel = true, // Controla se pode cancelar baseado no estado da operação
+  cancelReason = '' // Motivo pelo qual não pode cancelar (ex: "Produto já retirado")
 }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -155,17 +157,33 @@ export default function CodeConfirmationModal({
 
           {/* Buttons */}
           <div className="flex gap-3 pt-2">
-            <button
-              onClick={handleClose}
-              className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
-            >
-              {cancelButtonText}
-            </button>
+            {canCancel ? (
+              <button
+                onClick={handleClose}
+                className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+              >
+                {cancelButtonText}
+              </button>
+            ) : (
+              <div className="flex-1 px-4 py-3 bg-gray-50 text-gray-500 font-medium rounded-lg border border-gray-200 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <AlertCircle size={16} />
+                  <span>Não pode cancelar</span>
+                </div>
+                {cancelReason && (
+                  <p className="text-xs text-gray-400 mt-1">{cancelReason}</p>
+                )}
+              </div>
+            )}
             {type === 'confirm' && (
               <button
                 onClick={handleConfirm}
                 disabled={!code || code.length < 4}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all"
+                className={`px-4 py-3 font-medium rounded-lg transition-all ${
+                  canCancel 
+                    ? 'flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white'
+                    : 'w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white'
+                }`}
               >
                 {confirmButtonText}
               </button>

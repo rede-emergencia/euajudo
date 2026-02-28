@@ -260,6 +260,56 @@ export default function ProviderDashboard() {
     });
   };
 
+  const openCancelModal = (delivery) => {
+    // Verificar se pode cancelar baseado no estado do delivery
+    const canCancel = delivery.status === 'reserved' || delivery.status === 'pending_confirmation';
+    const cancelReason = !canCancel 
+      ? 'Entrega já em andamento - produto retirado' 
+      : '';
+
+    setCodeModal({
+      show: true,
+      type: 'confirm',
+      title: 'Cancelar Entrega',
+      description: canCancel 
+        ? 'Tem certeza que deseja cancelar esta entrega? Esta ação não pode ser desfeita.'
+        : 'Esta entrega não pode mais ser cancelada.',
+      code: '',
+      canCancel: canCancel,
+      cancelReason: cancelReason,
+      itemDetails: {
+        'Delivery': `#${delivery.id}`,
+        'Quantidade': `${delivery.quantity} ${delivery.product_type || 'itens'}`,
+        'Voluntário': delivery.volunteer?.nome || `ID: ${delivery.volunteer_id}`,
+        'Destino': delivery.location?.name || 'Local não especificado',
+        'Status': delivery.status
+      },
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/deliveries/${delivery.id}/cancel`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            showAlert('Sucesso', '✅ Entrega cancelada com sucesso!', 'success');
+            loadData();
+            triggerUserStateUpdate();
+          } else {
+            const error = await response.json();
+            showAlert('Erro', '❌ Erro ao cancelar entrega: ' + (error.detail || 'Tente novamente'), 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao cancelar entrega:', error);
+          showAlert('Erro', '❌ Erro ao cancelar entrega', 'error');
+        }
+      }
+    });
+  };
+
   const closeCodeModal = () => {
     setCodeModal(prev => ({ ...prev, show: false }));
   };
@@ -574,6 +624,14 @@ export default function ProviderDashboard() {
                 >
                   ✅ Validar Retirada
                 </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => openCancelModal(delivery)}
+                  icon={<X size={16} />}
+                >
+                  ❌ Cancelar Entrega
+                </Button>
               </div>
             </Card>
           ))}
@@ -829,6 +887,8 @@ export default function ProviderDashboard() {
         description={codeModal.description}
         expectedCode={codeModal.code}
         itemDetails={codeModal.itemDetails}
+        canCancel={codeModal.canCancel}
+        cancelReason={codeModal.cancelReason}
       />
     </>
   );
