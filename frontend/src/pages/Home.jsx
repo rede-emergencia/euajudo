@@ -11,12 +11,6 @@ const ROLES = [
     description: 'Produzo ou forneço itens para doação',
   },
   {
-    role: 'volunteer',
-    icon: Truck,
-    label: 'Sou Transporte',
-    description: 'Faço o transporte e entrega de doações',
-  },
-  {
     role: 'shelter',
     icon: MapPin,
     label: 'Sou ponto de Recolhimento',

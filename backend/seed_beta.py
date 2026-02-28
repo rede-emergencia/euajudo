@@ -229,9 +229,7 @@ def main():
     try:
         clear_database()
         create_users(db)
-        create_locations(db)
-        create_sample_batches(db)
-        # Omitindo requests para simplificar
+        # Omitindo locations e batches para simplificar
         
         print("🎉 Seed BETA concluído com sucesso!")
         print("\n📱 Usuários disponíveis para login:")

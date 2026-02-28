@@ -18,17 +18,25 @@ import { useUserState } from '../contexts/UserStateContext';
 import { getProductInfo, getProductText, getProductLocation, getProductAction } from '../lib/productUtils';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+// Sistema de modal único padronizado implementado
 
-// SVG paths dos ícones Lucide para uso no mapa (mesmos da legenda)
-const LUCIDE_ICONS = {
-  home: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10', // Home
-  store: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10', // Store (similar)
-  truck: 'M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', // Truck
-  utensils: 'M3 2v7c0 1.1.9 2 2 2h2v11h2V11h2c1.1 0 2-.9 2-2V2 M16 2v20 M21 15V2', // UtensilsCrossed
-  pill: 'M10.5 20.5 3 13l6.5-6.5a7 7 0 1 1 1 1l-6.5 6.5 6.5 6.5a7 7 0 1 1-1-1z', // Pill
-  droplet: 'M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z', // Droplet
-  shirt: 'M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z', // Shirt
-  sparkles: 'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z M20 3v4 M22 5h-4 M4 17v4 M6 19H2' // Sparkles
+// SVG paths dos ícones personalizados para o mapa
+const CUSTOM_ICONS = {
+  // Abrigo - Casa com coração (acolhimento)
+  shelter: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10 M12 11l-2-2 M12 11l2-2 M10 9l2-2 M14 9l-2-2', // Casa com coração
+  
+  // Restaurante - Prato/utensílios (alimentação)
+  restaurant: 'M3 2v7c0 1.1.9 2 2 2h2v11h2V11h2c1.1 0 2-.9 2-2V2 M16 2v20 M21 15V2 M6 6h12 M6 4h12', // Restaurante/utensílios
+  
+  // Ícones Lucide para legenda (mantidos para compatibilidade)
+  home: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10',
+  store: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10',
+  truck: 'M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z M18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  utensils: 'M3 2v7c0 1.1.9 2 2 2h2v11h2V11h2c1.1 0 2-.9 2-2V2 M16 2v20 M21 15V2',
+  pill: 'M10.5 20.5 3 13l6.5-6.5a7 7 0 1 1 1 1l-6.5 6.5 6.5 6.5a7 7 0 1 1-1-1z',
+  droplet: 'M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z',
+  shirt: 'M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z',
+  sparkles: 'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z M20 3v4 M22 5h-4 M4 17v4 M6 19H2'
 };
 
 // Cores baseadas no estado (mesmas da legenda)
@@ -37,6 +45,13 @@ const STATE_COLORS = {
   urgent: '#ef4444',       // Vermelho - Urgente / Com pedido ativo
   inTransit: '#3b82f6',    // Azul - Em trânsito
   inactive: '#9ca3af'      // Cinza - Inativo
+};
+
+// Cores específicas para tipos de localização
+const LOCATION_COLORS = {
+  shelter: '#8b5cf6',      // Roxo - Abrigos (acolhimento)
+  restaurant: '#f59e0b',   // Âmbar - Restaurantes (alimentação)
+  provider: '#f59e0b',     // Âmbar - Fornecedores (legado)
 };
 
 // Cores por tipo de recurso (mesmas da legenda)
@@ -48,9 +63,9 @@ const RESOURCE_COLORS = {
   cleaning: '#14b8a6'      // Teal - Limpeza
 };
 
-// Função para criar ícones Lucide no mapa (consistente com a legenda)
-function makeLucideIcon(iconKey, color, size = 30) {
-  const svgPath = LUCIDE_ICONS[iconKey] || LUCIDE_ICONS.home;
+// Função para criar ícones personalizados no mapa
+function makeCustomIcon(iconKey, color, size = 30) {
+  const svgPath = CUSTOM_ICONS[iconKey] || CUSTOM_ICONS.home;
   
   return L.divIcon({
     html: `<div style="
@@ -74,6 +89,75 @@ function makeLucideIcon(iconKey, color, size = 30) {
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
+}
+
+// Função para criar ícones Lucide no mapa (consistente com a legenda)
+function makeLucideIcon(iconKey, color, size = 30) {
+  const svgPath = CUSTOM_ICONS[iconKey] || CUSTOM_ICONS.home;
+  
+  return L.divIcon({
+    html: `<div style="
+      background: ${color}; 
+      width: ${size}px; 
+      height: ${size}px; 
+      border-radius: 50%; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      border: 2px solid white; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      z-index: 1000;
+      position: relative;
+    ">
+      <svg width="${size * 0.5}" height="${size * 0.5}" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+        <path d="${svgPath}"/>
+      </svg>
+    </div>`,
+    className: 'custom-div-icon',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+// Função auxiliar para determinar ícone e cor baseados no tipo de localização
+function getLocationIconAndColor(location, hasActiveOrder, isInTransit) {
+  const baseColor = getStateColor(hasActiveOrder, isInTransit);
+  const size = getStateSize(hasActiveOrder);
+  
+  // Determinar tipo e ícone baseado no tipo de usuário
+  if (location.user?.roles?.includes('shelter')) {
+    return {
+      icon: makeCustomIcon('shelter', LOCATION_COLORS.shelter, size),
+      color: LOCATION_COLORS.shelter,
+      type: 'shelter'
+    };
+  }
+  
+  if (location.user?.roles?.includes('provider')) {
+    // Verificar se é restaurante pelo establishment_type
+    const establishmentType = location.user?.establishment_type?.toLowerCase() || '';
+    if (establishmentType.includes('restaurante') || establishmentType.includes('cozinha')) {
+      return {
+        icon: makeCustomIcon('restaurant', LOCATION_COLORS.restaurant, size),
+        color: LOCATION_COLORS.restaurant,
+        type: 'restaurant'
+      };
+    }
+    
+    // Outros tipos de fornecedores
+    return {
+      icon: makeCustomIcon('store', LOCATION_COLORS.provider, size),
+      color: LOCATION_COLORS.provider,
+      type: 'provider'
+    };
+  }
+  
+  // Padrão
+  return {
+    icon: makeCustomIcon('home', baseColor, size),
+    color: baseColor,
+    type: 'default'
+  };
 }
 
 // Função auxiliar para determinar cor baseada no estado
@@ -104,6 +188,8 @@ export default function MapView() {
   const [showModalChooseLocation, setShowModalChooseLocation] = useState(false);
   const [chosenLocation, setChosenLocation] = useState(null);
   const [quantityToReserve, setQuantityToReserve] = useState(1);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [commitmentStep, setCommitmentStep] = useState('select'); // 'select' ou 'confirm'
   const [showModalReserveIngredient, setShowModalReserveIngredient] = useState(false);
   const [selectedIngredientRequest, setSelectedIngredientRequest] = useState(null);
   const [mapInstance, setMapInstance] = useState(null);
@@ -494,7 +580,7 @@ export default function MapView() {
       
       let shelterMarkers = 0;
       
-      // Mostrar todos os abrigos com cores baseadas no estado
+      // Mostrar todos os abrigos com ícones personalizados
       locationsWithStatus.forEach(location => {
         if (location.latitude && location.longitude) {
           const activeDeliveries = deliveriesByLocation[location.id] || [];
@@ -503,10 +589,9 @@ export default function MapView() {
           
           const hasActiveOrder = filteredDeliveries.length > 0;
           
-          // Usar ícone Home com cor baseada no estado (consistente com legenda)
-          const color = getStateColor(hasActiveOrder, false);
-          const size = getStateSize(hasActiveOrder);
-          const icon = makeLucideIcon('home', color, size);
+          // Usar ícone personalizado para abrigos
+          const iconData = getLocationIconAndColor(location, hasActiveOrder, false);
+          const icon = iconData.icon;
           
           const titleColor = hasActiveOrder ? '#ef4444' : '#10b981';
           const statusIcon = hasActiveOrder ? '🔴' : '📍';
@@ -629,8 +714,10 @@ export default function MapView() {
           const productType = batch.product_type || 'meal';
           const productInfo = productIcons[productType] || productIcons['meal'];
           
-          // Usar ícone Store com cor verde (disponível) - consistente com legenda
-          const icon = makeLucideIcon('store', STATE_COLORS.available, 30);
+          // Usar ícone personalizado baseado no tipo de estabelecimento
+          const locationData = { user: batch.provider };
+          const iconData = getLocationIconAndColor(locationData, false, false);
+          const icon = iconData.icon;
           const marker = L.marker(coords, { icon })
             .addTo(map);
           
@@ -668,9 +755,10 @@ export default function MapView() {
           const hasItemsAvailable = itemsWithStatus.some(item => !item.isCompletelyReserved);
           const isCompletelyReserved = !hasItemsAvailable;
           
-          // Usar ícone Store com cor baseada no estado
-          const color = isCompletelyReserved ? STATE_COLORS.inactive : STATE_COLORS.urgent;
-          const icon = makeLucideIcon('store', color, 30);
+          // Usar ícone personalizado baseado no tipo de estabelecimento
+          const locationData = { user: request.provider };
+          const iconData = getLocationIconAndColor(locationData, !isCompletelyReserved, false);
+          const icon = iconData.icon;
           const titleColor = isCompletelyReserved ? '#eab308' : '#3b82f6';
           const statusText = isCompletelyReserved ? '⏳ Reservado' : '🛒 Disponível';
           
@@ -752,8 +840,10 @@ export default function MapView() {
           const productType = batch.product_type || 'meal';
           const productInfo = productIcons[productType] || productIcons['meal'];
           
-          // Usar ícone Store com cor verde (disponível) - consistente com legenda
-          const icon = makeLucideIcon('store', STATE_COLORS.available, 30);
+          // Usar ícone personalizado baseado no tipo de estabelecimento
+          const locationData = { user: batch.provider };
+          const iconData = getLocationIconAndColor(locationData, false, false);
+          const icon = iconData.icon;
           const marker = L.marker(coords, { icon })
             .addTo(map)
             .bindPopup(`
@@ -1135,7 +1225,8 @@ export default function MapView() {
     return sortedLocations;
   };
 
-  const confirmReservation = async () => {
+  // Função para avançar para o passo de confirmação
+  const handleFirstStepCommitment = () => {
     if (!chosenLocation) {
       showConfirmation(
         'Local Não Selecionado',
@@ -1151,6 +1242,23 @@ export default function MapView() {
       showConfirmation(
         '⚠️ Compromisso em Andamento',
         `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
+        () => {},
+        'warning'
+      );
+      return;
+    }
+
+    // Mudar para o passo de confirmação
+    setCommitmentStep('confirm');
+  };
+
+  // Função para segundo passo - cria a entrega após confirmação
+  const handleSecondStepConfirmation = async () => {
+    // Verificação de segurança: garantir que usuário ainda está ocioso
+    if (!isUserIdle()) {
+      showConfirmation(
+        '⚠️ Compromisso em Andamento',
+        `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
         () => {
           setShowModalChooseLocation(false);
           setSelectedBatch(null);
@@ -1161,6 +1269,7 @@ export default function MapView() {
       return;
     }
 
+    setIsConfirming(true);
     try {
       const response = await fetch('http://localhost:8000/api/deliveries/', {
         method: 'POST',
@@ -1176,29 +1285,17 @@ export default function MapView() {
       });
       
       if (response.ok) {
-        const delivery = await response.json();
-        const pickupCode = delivery.pickup_code;
-        const deliveryCode = delivery.delivery_code || 'Será gerado após retirada';
-        const productInfo = getProductInfo(selectedBatch.product_type);
-        const location = getProductLocation(selectedBatch.product_type);
-        
-        showConfirmation(
-          '✅ Entrega Criada com Sucesso!',
-          `📋 Seus códigos:\n\n🏪 CÓDIGO DE RETIRADA: ${pickupCode}\n   Use este código na ${location} para ${getProductAction(selectedBatch.product_type)}\n\n🏠 CÓDIGO DE ENTREGA: ${deliveryCode}\n   Use este código no abrigo para confirmar a entrega\n\n📍 Próximos passos:\n1. Vá até a ${location} e informe o código de retirada\n2. ${getProductAction(selectedBatch.product_type).charAt(0).toUpperCase() + getProductAction(selectedBatch.product_type).slice(1)}\n3. Leve até o abrigo escolhido\n4. Informe o código de entrega no abrigo`,
-          () => {
-            setShowModalChooseLocation(false);
-            setSelectedBatch(null);
-            setChosenLocation(null);
-            loadData();
-          },
-          'success'
-        );
-        
+        // Fechar modal e resetar estados
         setShowModalChooseLocation(false);
         setSelectedBatch(null);
         setChosenLocation(null);
         setQuantityToReserve(1);
-        loadData();
+        setCommitmentStep('select');
+        
+        // Atualizar dados e contexto
+        await loadData();
+        await refreshState();
+        triggerUserStateUpdate();
       } else {
         const error = await response.json();
         showConfirmation(
@@ -1216,6 +1313,8 @@ export default function MapView() {
         () => {},
         'error'
       );
+    } finally {
+      setIsConfirming(false);
     }
   };
 
@@ -1366,7 +1465,7 @@ export default function MapView() {
                           width: '24px', 
                           height: '24px', 
                           borderRadius: '50%', 
-                          background: '#10b981', 
+                          background: '#8b5cf6', 
                           flexShrink: 0, 
                           display: 'flex', 
                           alignItems: 'center', 
@@ -1374,11 +1473,11 @@ export default function MapView() {
                           border: '2px solid white', 
                           boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
                         }}>
-                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10 M12 11l-2-2 M12 11l2-2 M10 9l2-2 M14 9l-2-2"/></svg>
                         </div>
                         <div>
-                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Disponível</span>
-                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Sem pedido ativo no momento</p>
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Abrigo</span>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Casa com coração (acolhimento)</p>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1386,7 +1485,7 @@ export default function MapView() {
                           width: '24px', 
                           height: '24px', 
                           borderRadius: '50%', 
-                          background: '#ef4444', 
+                          background: '#8b5cf6', 
                           flexShrink: 0, 
                           display: 'flex', 
                           alignItems: 'center', 
@@ -1394,26 +1493,26 @@ export default function MapView() {
                           border: '2px solid white', 
                           boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
                         }}>
-                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10 M12 11l-2-2 M12 11l2-2 M10 9l2-2 M14 9l-2-2"/></svg>
                         </div>
                         <div>
-                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Precisando de ajuda</span>
-                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Com pedido ativo</p>
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Com pedido ativo</span>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Precisando de ajuda</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Fornecedores */}
+                  {/* Restaurantes */}
                   <div style={{ marginBottom: '16px' }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fornecedores</p>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Restaurantes</p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ 
                           width: '24px', 
                           height: '24px', 
                           borderRadius: '50%', 
-                          background: '#10b981', 
+                          background: '#f59e0b', 
                           flexShrink: 0, 
                           display: 'flex', 
                           alignItems: 'center', 
@@ -1421,11 +1520,11 @@ export default function MapView() {
                           border: '2px solid white', 
                           boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
                         }}>
-                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h2v11h2V11h2c1.1 0 2-.9 2-2V2 M16 2v20 M21 15V2 M6 6h12 M6 4h12"/></svg>
                         </div>
                         <div>
-                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>🍽️ Cozinha</span>
-                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Com marmitas prontas</p>
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Restaurante</span>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Prato/utensílios (alimentação)</p>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1433,7 +1532,7 @@ export default function MapView() {
                           width: '24px', 
                           height: '24px', 
                           borderRadius: '50%', 
-                          background: '#3b82f6', 
+                          background: '#f59e0b', 
                           flexShrink: 0, 
                           display: 'flex', 
                           alignItems: 'center', 
@@ -1441,10 +1540,10 @@ export default function MapView() {
                           border: '2px solid white', 
                           boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
                         }}>
-                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h2v11h2V11h2c1.1 0 2-.9 2-2V2 M16 2v20 M21 15V2 M6 6h12 M6 4h12"/></svg>
                         </div>
                         <div>
-                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>📦 Pedidos de Insumos</span>
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>📦 Pedindo insumos</span>
                           <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Precisando de ingredientes</p>
                         </div>
                       </div>
@@ -1615,26 +1714,29 @@ export default function MapView() {
             position: 'relative'
           }}>
             <div style={{
-              padding: '20px',
+              padding: '16px',
               borderBottom: '1px solid #e5e7eb',
               flexShrink: 0
             }}>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>
-                📍 Locais com Pedidos em Aberto
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
+                {commitmentStep === 'select' ? '📍 Pedidos em Aberto' : '🤝 Confirmar Compromisso'}
               </h2>
-              <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                Apenas abrigos necessitando marmitas (ordenados por distância)
+              <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
+                {commitmentStep === 'select' ? 'Abrigos precisando de marmitas' : 'Revise os detalhes antes de confirmar'}
               </p>
             </div>
 
             <div style={{ 
-              padding: '20px',
+              padding: '16px',
               flex: 1,
               overflow: 'auto',
               minHeight: 0
             }}>
-              {/* Info do Lote e Quantidade */}
-              {selectedBatch && (() => {
+              {commitmentStep === 'select' ? (
+                <>
+                  {/* Passo 1: Seleção de local e quantidade */}
+                  {/* Info Compacta do Lote */}
+                  {selectedBatch && (() => {
                 const batch = batches.find(b => b.id === selectedBatch);
                 const location = chosenLocation ? locationsWithStatus.find(l => l.id === chosenLocation) : null;
                 if (!batch) return null;
@@ -1646,49 +1748,40 @@ export default function MapView() {
                 return (
                   <div style={{
                     backgroundColor: '#f0f9ff',
-                    padding: '16px',
-                    borderRadius: '8px',
-                    marginBottom: '16px',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    marginBottom: '12px',
                     border: '1px solid #bae6fd'
                   }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold', color: '#0369a1' }}>
-                      📦 Informações da Reserva
-                    </h4>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                      <div>
-                        <p style={{ margin: '0', fontSize: '12px', color: '#6b7280' }}>Restaurante tem</p>
-                        <p style={{ margin: '0', fontSize: '18px', fontWeight: 'bold', color: '#0284c7' }}>
-                          {batch.quantity_available} marmitas
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ margin: '0', fontSize: '11px', color: '#6b7280' }}>Restaurante</p>
+                        <p style={{ margin: '0', fontSize: '16px', fontWeight: 'bold', color: '#0284c7' }}>
+                          {batch.quantity_available}
                         </p>
                       </div>
                       {location && (
-                        <div>
-                          <p style={{ margin: '0', fontSize: '12px', color: '#6b7280' }}>Abrigo precisa</p>
-                          <p style={{ margin: '0', fontSize: '18px', fontWeight: 'bold', color: '#dc2626' }}>
-                            {shelterNeed} marmitas
+                        <div style={{ textAlign: 'center' }}>
+                          <p style={{ margin: '0', fontSize: '11px', color: '#6b7280' }}>Abrigo</p>
+                          <p style={{ margin: '0', fontSize: '16px', fontWeight: 'bold', color: '#dc2626' }}>
+                            {shelterNeed}
                           </p>
                         </div>
                       )}
-                      <div>
-                        <p style={{ margin: '0', fontSize: '12px', color: '#6b7280' }}>Você pode levar</p>
-                        <p style={{ margin: '0', fontSize: '18px', fontWeight: 'bold', color: '#059669' }}>
-                          até {maxToReserve}
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ margin: '0', fontSize: '11px', color: '#6b7280' }}>Você leva</p>
+                        <p style={{ margin: '0', fontSize: '16px', fontWeight: 'bold', color: '#059669' }}>
+                          {maxToReserve}
                         </p>
                       </div>
                     </div>
                     
                     {chosenLocation && (
                       <div>
-                        <label style={{ 
-                          display: 'block', 
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          color: '#374151',
-                          marginBottom: '6px'
-                        }}>
-                          Quantidade a Entregar (máx: {maxToReserve})
-                        </label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
+                            Quantidade:
+                          </label>
                           <input
                             type="number"
                             min="1"
@@ -1699,22 +1792,19 @@ export default function MapView() {
                               setQuantityToReserve(Math.min(Math.max(val, 1), maxToReserve));
                             }}
                             style={{
-                              width: '100px',
-                              padding: '10px 12px',
+                              width: '60px',
+                              padding: '6px 8px',
                               border: '2px solid #3b82f6',
-                              borderRadius: '8px',
-                              fontSize: '18px',
+                              borderRadius: '6px',
+                              fontSize: '14px',
                               fontWeight: 'bold',
                               textAlign: 'center'
                             }}
                           />
-                          <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                            de {maxToReserve} disponíveis
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                            / {maxToReserve}
                           </span>
                         </div>
-                        <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#6b7280' }}>
-                          💡 Dica: Motoboy pode levar poucas, carro pode levar mais
-                        </p>
                       </div>
                     )}
                   </div>
@@ -1724,168 +1814,259 @@ export default function MapView() {
               {(() => {
                 const filteredLocations = getLocationsForDelivery();
                 return filteredLocations.length === 0 ? (
-                  <p style={{ textAlign: 'center', color: '#6b7280', padding: '40px 0' }}>
-                    Nenhum local com pedidos em aberto disponível no momento
+                  <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px 0', fontSize: '13px' }}>
+                    Nenhum pedido disponível
                   </p>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {filteredLocations.map((location) => (
                     <div
                       key={location.id}
                       onClick={() => setChosenLocation(location.id)}
                       style={{
-                        padding: '16px',
+                        padding: '12px',
                         border: chosenLocation === location.id ? '2px solid #10b981' : '1px solid #d1d5db',
-                        borderRadius: '12px',
+                        borderRadius: '8px',
                         cursor: 'pointer',
                         backgroundColor: chosenLocation === location.id ? '#f0fdf4' : 'white',
                         transition: 'all 0.2s',
-                        borderLeft: location.canTakeAll ? '4px solid #10b981' : '4px solid #f59e0b',
-                        boxShadow: chosenLocation === location.id ? '0 4px 6px -1px rgba(16, 185, 129, 0.1)' : '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                        borderLeft: location.canTakeAll ? '3px solid #10b981' : '3px solid #f59e0b',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
-                        <div style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          border: chosenLocation === location.id ? '6px solid #10b981' : '2px solid #d1d5db',
-                          flexShrink: 0,
-                          marginTop: '2px'
-                        }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
-                            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', flex: 1 }}>
-                              {location.name}
-                              {location.canTakeAll && (
-                                <span style={{
-                                  backgroundColor: '#10b981',
-                                  color: 'white',
-                                  padding: '2px 8px',
-                                  borderRadius: '10px',
-                                  fontSize: '10px',
-                                  marginLeft: '8px',
-                                  fontWeight: 'normal'
-                                }}>
-                                  ✅ Ideal
-                                </span>
-                              )}
-                            </h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
-                              <span style={{ 
-                                backgroundColor: location.canTakeAll ? '#10b981' : '#f59e0b', 
-                                color: 'white', 
-                                padding: '2px 8px', 
-                                borderRadius: '12px', 
-                                fontSize: '11px',
-                                fontWeight: 'bold'
-                              }}>
-                                📍 {location.distance.toFixed(1)} km
-                              </span>
-                              <span style={{
-                                backgroundColor: '#f3f4f6',
-                                color: '#374151',
-                                padding: '2px 6px',
-                                borderRadius: '8px',
-                                fontSize: '10px',
-                                fontWeight: 'medium'
-                              }}>
-                                Precisa: {location.shelterNeed}
-                              </span>
-                            </div>
-                          </div>
-                          <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280', lineHeight: '1.4' }}>
-                            📍 {location.address}
-                          </p>
-                          {location.responsible && (
-                            <p style={{ margin: '0 0 2px 0', fontSize: '12px', color: '#6b7280' }}>
-                              👤 {location.responsible}
-                            </p>
-                          )}
-                          {location.phone && (
-                            <p style={{ margin: '0', fontSize: '12px', color: '#6b7280' }}>
-                              📞 {location.phone}
-                            </p>
-                          )}
-                          {location.canTakeAll ? (
-                            <div style={{
-                              backgroundColor: '#f0fdf4',
-                              padding: '8px',
-                              borderRadius: '6px',
-                              marginTop: '8px',
-                              border: '1px solid #bbf7d0'
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
+                          {location.name}
+                          {location.canTakeAll && (
+                            <span style={{
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              padding: '1px 6px',
+                              borderRadius: '8px',
+                              fontSize: '9px',
+                              marginLeft: '6px',
+                              fontWeight: 'normal'
                             }}>
-                              <p style={{ margin: 0, fontSize: '11px', color: '#166534', fontWeight: 'medium', lineHeight: '1.3' }}>
-                                🎯 **Perfeito!** Você pode levar todas as {location.shelterNeed} marmitas que este abrigo precisa em uma única entrega.
-                              </p>
-                            </div>
-                          ) : (
-                            <div style={{
-                              backgroundColor: '#fef3c7',
-                              padding: '8px',
-                              borderRadius: '6px',
-                              marginTop: '8px',
-                              border: '1px solid #fde68a'
-                            }}>
-                              <p style={{ margin: 0, fontSize: '11px', color: '#92400e', fontWeight: 'medium', lineHeight: '1.3' }}>
-                                ⚠️ Você pode levar até {location.maxToReserve} de {location.shelterNeed} marmitas. O restante precisará de outro voluntário.
-                              </p>
-                            </div>
+                              ✅ Ideal
+                            </span>
                           )}
+                        </h3>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <span style={{ 
+                            backgroundColor: location.canTakeAll ? '#10b981' : '#f59e0b', 
+                            color: 'white', 
+                            padding: '1px 6px', 
+                            borderRadius: '8px', 
+                            fontSize: '10px',
+                            fontWeight: 'bold'
+                          }}>
+                            {location.distance.toFixed(1)} km
+                          </span>
+                          <span style={{
+                            backgroundColor: '#f3f4f6',
+                            color: '#374151',
+                            padding: '1px 4px',
+                            borderRadius: '6px',
+                            fontSize: '9px',
+                            fontWeight: 'medium'
+                          }}>
+                            {location.shelterNeed}
+                          </span>
                         </div>
+                      </div>
+                      
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#6b7280' }}>
+                        📍 {location.address}
+                      </p>
+                      
+                      {location.responsible && (
+                        <p style={{ margin: '0 0 2px 0', fontSize: '11px', color: '#6b7280' }}>
+                          👤 {location.responsible}
+                        </p>
+                      )}
+                      
+                      {location.phone && (
+                        <p style={{ margin: '0', fontSize: '11px', color: '#6b7280' }}>
+                          📞 {location.phone}
+                        </p>
+                      )}
+                      
+                      <div style={{
+                        backgroundColor: location.canTakeAll ? '#f0fdf4' : '#fef3c7',
+                        padding: '6px',
+                        borderRadius: '4px',
+                        marginTop: '6px',
+                        border: `1px solid ${location.canTakeAll ? '#bbf7d0' : '#fde68a'}`
+                      }}>
+                        <p style={{ margin: 0, fontSize: '10px', color: location.canTakeAll ? '#166534' : '#92400e', fontWeight: 'medium', lineHeight: '1.2' }}>
+                          {location.canTakeAll 
+                            ? `🎯 Perfeito! Você pode levar todas ${location.shelterNeed} marmitas.`
+                            : `⚠️ Você pode levar até ${location.maxToReserve} de ${location.shelterNeed} marmitas.`
+                          }
+                        </p>
                       </div>
                     </div>
                   ))}
                   </div>
                 );
               })()}
+                </>
+              ) : (
+                <>
+                  {/* Passo 2: Confirmação do compromisso */}
+                  {selectedBatch && chosenLocation && (() => {
+                    const batch = batches.find(b => b.id === selectedBatch);
+                    const location = locationsWithStatus.find(l => l.id === chosenLocation);
+                    const productInfo = getProductInfo(batch.product_type);
+                    const pickupLocation = getProductLocation(batch.product_type);
+                    
+                    return (
+                      <div style={{ padding: '16px' }}>
+                        <div style={{
+                          backgroundColor: '#f0f9ff',
+                          padding: '16px',
+                          borderRadius: '8px',
+                          marginBottom: '16px',
+                          border: '1px solid #bae6fd'
+                        }}>
+                          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold', color: '#0369a1' }}>
+                            📦 Detalhes do Compromisso
+                          </h3>
+                          
+                          <div style={{ marginBottom: '12px' }}>
+                            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280' }}>Produto</p>
+                            <p style={{ margin: '0', fontSize: '15px', fontWeight: 'bold', color: '#0284c7' }}>
+                              {productInfo.name}
+                            </p>
+                          </div>
+                          
+                          <div style={{ marginBottom: '12px' }}>
+                            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280' }}>Local de Entrega</p>
+                            <p style={{ margin: '0', fontSize: '15px', fontWeight: 'bold', color: '#374151' }}>
+                              {location.name}
+                            </p>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
+                              📍 {location.address}
+                            </p>
+                          </div>
+                          
+                          <div style={{ marginBottom: '12px' }}>
+                            <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#6b7280' }}>Quantidade</p>
+                            <p style={{ margin: '0', fontSize: '15px', fontWeight: 'bold', color: '#059669' }}>
+                              {quantityToReserve} unidades
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div style={{
+                          backgroundColor: '#fef3c7',
+                          padding: '16px',
+                          borderRadius: '8px',
+                          border: '1px solid #fde68a'
+                        }}>
+                          <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 'bold', color: '#92400e' }}>
+                            🚚 Próximos Passos
+                          </h4>
+                          <ol style={{ margin: '0', paddingLeft: '20px', fontSize: '13px', color: '#78350f', lineHeight: '1.6' }}>
+                            <li>Vá até <strong>{pickupLocation}</strong></li>
+                            <li>Apresente o código de retirada</li>
+                            <li>{getProductAction(batch.product_type).charAt(0).toUpperCase() + getProductAction(batch.product_type).slice(1)}</li>
+                            <li>Entregue no abrigo</li>
+                          </ol>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
             </div>
 
             <div style={{
-              padding: '20px',
+              padding: '16px',
               borderTop: '1px solid #e5e7eb',
               display: 'flex',
-              gap: '12px',
+              gap: '10px',
               flexShrink: 0
             }}>
-              <button
-                onClick={() => {
-                  setShowModalChooseLocation(false);
-                  setSelectedBatch(null);
-                  setChosenLocation(null);
-                  setQuantityToReserve(1);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  backgroundColor: 'white',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: 'medium',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmReservation}
-                disabled={!chosenLocation}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: chosenLocation ? '#10b981' : '#d1d5db',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: 'medium',
-                  cursor: chosenLocation ? 'pointer' : 'not-allowed'
-                }}
-              >
-                Confirmar Reserva
-              </button>
+              {commitmentStep === 'select' ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowModalChooseLocation(false);
+                      setSelectedBatch(null);
+                      setChosenLocation(null);
+                      setQuantityToReserve(1);
+                      setCommitmentStep('select'); // Reset para o passo inicial
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid #d1d5db',
+                      backgroundColor: 'white',
+                      color: '#374151',
+                      fontSize: '14px',
+                      fontWeight: 'medium',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleFirstStepCommitment}
+                    disabled={!chosenLocation || isConfirming}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: (!chosenLocation || isConfirming) ? '#9ca3af' : '#10b981',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: (!chosenLocation || isConfirming) ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isConfirming ? '⏳ Processando...' : '🤝 Me Comprometo'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setCommitmentStep('select')}
+                    disabled={isConfirming}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid #d1d5db',
+                      backgroundColor: 'white',
+                      color: '#374151',
+                      fontSize: '14px',
+                      fontWeight: 'medium',
+                      cursor: isConfirming ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    ← Voltar
+                  </button>
+                  <button
+                    onClick={handleSecondStepConfirmation}
+                    disabled={isConfirming}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: isConfirming ? '#9ca3af' : '#10b981',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: isConfirming ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isConfirming ? '⏳ Confirmando...' : '✅ Confirmar Compromisso'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1901,6 +2082,7 @@ export default function MapView() {
           }}
           onSuccess={() => {
             loadData(); // Recarregar dados para atualizar o mapa
+            refreshState(); // Atualizar estado do usuário
             triggerUserStateUpdate(); // Atualizar cores da borda/header
           }}
         />
@@ -1934,6 +2116,7 @@ export default function MapView() {
           }}
           onSuccess={() => {
             loadData(); // Recarregar dados para atualizar o mapa
+            refreshState(); // Atualizar estado do usuário
             triggerUserStateUpdate(); // Atualizar cores da borda/header
           }}
         />
