@@ -1720,12 +1720,92 @@ export default function MapView() {
               borderBottom: '1px solid #e5e7eb',
               flexShrink: 0
             }}>
+              {/* Indicador de Passos */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '12px',
+                gap: '8px'
+              }}>
+                {/* Passo 1 */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flex: 1
+                }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: commitmentStep === 'select' ? '#10b981' : '#e5e7eb',
+                    color: commitmentStep === 'select' ? 'white' : '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    {commitmentStep === 'confirm' ? '✓' : '1'}
+                  </div>
+                  <div style={{
+                    flex: 1,
+                    height: '2px',
+                    backgroundColor: commitmentStep === 'confirm' ? '#10b981' : '#e5e7eb',
+                    margin: '0 4px'
+                  }} />
+                </div>
+                
+                {/* Passo 2 */}
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  backgroundColor: commitmentStep === 'confirm' ? '#10b981' : '#e5e7eb',
+                  color: commitmentStep === 'confirm' ? 'white' : '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}>
+                  2
+                </div>
+              </div>
+              
+              {/* Títulos e Descrições */}
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
                 {commitmentStep === 'select' ? '📍 Pedidos em Aberto' : '🤝 Confirmar Compromisso'}
               </h2>
               <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
                 {commitmentStep === 'select' ? 'Abrigos precisando de marmitas' : 'Revise os detalhes antes de confirmar'}
               </p>
+              
+              {/* Descrição do Fluxo */}
+              <div style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                backgroundColor: '#f0f9ff',
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: '#0369a1',
+                border: '1px solid #bae6fd'
+              }}>
+                {commitmentStep === 'select' ? (
+                  <div>
+                    <strong>🚚 Fluxo de Entrega:</strong> 
+                    <div style={{ marginTop: '4px' }}>
+                      1️⃣ Selecionar abrigo → 2️⃣ Confirmar compromisso → 3️⃣ Retirar no restaurante → 4️⃣ Entregar no abrigo
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <strong>⚠️ Compromisso Irreversível:</strong> 
+                    <div style={{ marginTop: '4px' }}>
+                      Ao confirmar, você cria uma entrega ativa. Só pode cancelar contatando o suporte.
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{ 
@@ -2001,31 +2081,39 @@ export default function MapView() {
                     }}
                     style={{
                       flex: 1,
-                      padding: '10px',
-                      borderRadius: '6px',
-                      border: '1px solid #d1d5db',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '2px solid #ef4444',
                       backgroundColor: 'white',
-                      color: '#374151',
+                      color: '#ef4444',
                       fontSize: '14px',
-                      fontWeight: 'medium',
-                      cursor: 'pointer'
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.backgroundColor = '#fef2f2';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = 'white';
                     }}
                   >
-                    Cancelar
+                    ❌ Cancelar
                   </button>
                   <button
                     onClick={handleFirstStepCommitment}
                     disabled={!chosenLocation || isConfirming}
                     style={{
-                      flex: 1,
-                      padding: '10px',
-                      borderRadius: '6px',
+                      flex: 2,
+                      padding: '12px',
+                      borderRadius: '8px',
                       border: 'none',
                       backgroundColor: (!chosenLocation || isConfirming) ? '#9ca3af' : '#10b981',
                       color: 'white',
                       fontSize: '14px',
                       fontWeight: '600',
-                      cursor: (!chosenLocation || isConfirming) ? 'not-allowed' : 'pointer'
+                      cursor: (!chosenLocation || isConfirming) ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
                     }}
                   >
                     {isConfirming ? '⏳ Processando...' : '🤝 Me Comprometo'}
@@ -2038,14 +2126,21 @@ export default function MapView() {
                     disabled={isConfirming}
                     style={{
                       flex: 1,
-                      padding: '10px',
-                      borderRadius: '6px',
-                      border: '1px solid #d1d5db',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '2px solid #6b7280',
                       backgroundColor: 'white',
-                      color: '#374151',
+                      color: '#6b7280',
                       fontSize: '14px',
-                      fontWeight: 'medium',
-                      cursor: isConfirming ? 'not-allowed' : 'pointer'
+                      fontWeight: '600',
+                      cursor: isConfirming ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isConfirming) e.target.style.backgroundColor = '#f9fafb';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.backgroundColor = 'white';
                     }}
                   >
                     ← Voltar
@@ -2054,18 +2149,19 @@ export default function MapView() {
                     onClick={handleSecondStepConfirmation}
                     disabled={isConfirming}
                     style={{
-                      flex: 1,
-                      padding: '10px',
-                      borderRadius: '6px',
+                      flex: 2,
+                      padding: '12px',
+                      borderRadius: '8px',
                       border: 'none',
-                      backgroundColor: isConfirming ? '#9ca3af' : '#10b981',
+                      backgroundColor: isConfirming ? '#9ca3af' : '#dc2626',
                       color: 'white',
                       fontSize: '14px',
                       fontWeight: '600',
-                      cursor: isConfirming ? 'not-allowed' : 'pointer'
+                      cursor: isConfirming ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
                     }}
                   >
-                    {isConfirming ? '⏳ Confirmando...' : '✅ Confirmar Compromisso'}
+                    {isConfirming ? '⏳ Confirmando...' : '⚠️ Criar Entrega (Irreversível)'}
                   </button>
                 </>
               )}
