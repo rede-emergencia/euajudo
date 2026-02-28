@@ -5,46 +5,46 @@ import { test as base } from '@playwright/test';
  */
 export const TEST_USERS = {
   provider1: {
-    email: 'cozinha.solidaria@jfood.com',
+    email: 'cozinha.solidaria@euajudo.com',
     password: '123',
     role: 'provider',
     name: 'Cozinha Solidária Central'
   },
   provider2: {
-    email: 'farmacia.esperanca@jfood.com',
+    email: 'farmacia.esperanca@euajudo.com',
     password: '123',
     role: 'provider',
     name: 'Farmácia Esperança'
   },
   volunteer1: {
-    email: 'joao.voluntario@jfood.com',
+    email: 'joao.voluntario@euajudo.com',
     password: '123',
     role: 'volunteer',
     name: 'João Voluntário'
   },
   volunteer2: {
-    email: 'maria.voluntaria@jfood.com',
+    email: 'maria.voluntaria@euajudo.com',
     password: '123',
     role: 'volunteer',
     name: 'Maria Voluntária'
   },
   volunteer3: {
-    email: 'pedro.entregador@jfood.com',
+    email: 'pedro.entregador@euajudo.com',
     password: '123',
     role: 'volunteer',
     name: 'Pedro Entregador'
   },
   shelter1: {
-    email: 'abrigo.sao.francisco@jfood.com',
+    email: 'abrigo.sao.francisco@euajudo.com',
     password: '123',
     role: 'shelter',
     name: 'Abrigo São Francisco'
   },
   admin: {
-    email: 'admin@jfood.com',
+    email: 'admin@euajudo.com',
     password: '123',
     role: 'admin',
-    name: 'Administrador JFood'
+    name: 'Administrador EuAjudo'
   }
 };
 

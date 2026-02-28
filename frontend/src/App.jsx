@@ -152,11 +152,9 @@ function App() {
             overflow: 'hidden'
           }}>
             <Routes>
-            <Route 
-              path="/" 
-              element={<Home onOperationStatusChange={setIsInOperation} />} 
-            />
-            <Route path="/mapa" element={<MapView />} />
+            <Route path="/" element={<MapView />} />
+            <Route path="/home" element={<Home onOperationStatusChange={setIsInOperation} />} />
+            <Route path="/mapa" element={<Navigate to="/" replace />} />
             <Route 
               path="/minhas-entregas" 
               element={

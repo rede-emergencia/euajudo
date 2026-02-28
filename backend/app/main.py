@@ -47,8 +47,8 @@ app = FastAPI(
     """,
     version="2.0.0",
     contact={
-        "name": "JFood API Support",
-        "email": "dev@jfood.com"
+        "name": "EuAjudo API Support",
+        "email": "dev@euajudo.com"
     },
     license_info={
         "name": "MIT",
@@ -79,7 +79,7 @@ app.include_router(cancel.router)
 @app.get("/")
 def root():
     return {
-        "message": "JFood API - Generic Order Management System",
+        "message": "EuAjudo API - Sistema de Gestão Solidária",
         "version": "2.0.0",
         "features": [
             "Generic product batches (meals, ingredients, etc.)",

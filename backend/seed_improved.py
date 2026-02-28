@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed melhorado JFOOD - Juiz de Fora
+Seed melhorado EUAJUDO - Juiz de Fora
 Cenários completos para testes:
 - Abrigos: um pedindo item único, outro pedindo múltiplos itens
 - Fornecedores: em diferentes estados (procurando insumos, idle, com marmitas prontas)
@@ -30,7 +30,7 @@ def create_users(db):
     users_data = [
         # FORNECEDORES (diferentes estados)
         {
-            'email': 'cozinha.solidaria@jfood.com',
+            'email': 'cozinha.solidaria@euajudo.com',
             'name': 'Cozinha Solidária Central',
             'phone': '32988887777',
             'roles': 'provider',
@@ -44,7 +44,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'farmacia.esperanca@jfood.com',
+            'email': 'farmacia.esperanca@euajudo.com',
             'name': 'Farmácia Esperança',
             'phone': '32955554444',
             'roles': 'provider',
@@ -58,7 +58,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'restaurante.bom.sabor@jfood.com',
+            'email': 'restaurante.bom.sabor@euajudo.com',
             'name': 'Restaurante Bom Sabor',
             'phone': '32977776666',
             'roles': 'provider',
@@ -72,7 +72,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'doacao.roupas@jfood.com',
+            'email': 'doacao.roupas@euajudo.com',
             'name': 'Doação de Roupas Unidas',
             'phone': '32966665555',
             'roles': 'provider',
@@ -88,7 +88,7 @@ def create_users(db):
         
         # VOLUNTÁRIOS
         {
-            'email': 'joao.voluntario@jfood.com',
+            'email': 'joao.voluntario@euajudo.com',
             'name': 'João Voluntário',
             'phone': '32999998888',
             'roles': 'volunteer',
@@ -100,7 +100,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'maria.voluntaria@jfood.com',
+            'email': 'maria.voluntaria@euajudo.com',
             'name': 'Maria Voluntária',
             'phone': '32988887776',
             'roles': 'volunteer',
@@ -112,7 +112,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'pedro.entregador@jfood.com',
+            'email': 'pedro.entregador@euajudo.com',
             'name': 'Pedro Entregador',
             'phone': '32977776655',
             'roles': 'volunteer',
@@ -126,7 +126,7 @@ def create_users(db):
         
         # ADMIN
         {
-            'email': 'admin@jfood.com',
+            'email': 'admin@euajudo.com',
             'name': 'Administrador Sistema',
             'phone': '32900000000',
             'roles': 'admin',
@@ -140,7 +140,7 @@ def create_users(db):
         
         # ABRIGOS
         {
-            'email': 'abrigo.sao.francisco@jfood.com',
+            'email': 'abrigo.sao.francisco@euajudo.com',
             'name': 'Abrigo São Francisco de Assis',
             'phone': '32933332222',
             'roles': 'shelter',
@@ -152,7 +152,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'abrigo.carmo@jfood.com',
+            'email': 'abrigo.carmo@euajudo.com',
             'name': 'Abrigo Nossa Senhora do Carmo',
             'phone': '32922221111',
             'roles': 'shelter',
@@ -164,7 +164,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'abrigo.bom.pastor@jfood.com',
+            'email': 'abrigo.bom.pastor@euajudo.com',
             'name': 'Abrigo Bom Pastor',
             'phone': '32911110000',
             'roles': 'shelter',
@@ -507,20 +507,20 @@ def main():
         
         print(f"\n🔑 LOGIN (senha: 123 para todos):")
         print(f"   🏪 Fornecedores:")
-        print(f"      • cozinha.solidaria@jfood.com (marmitas prontas)")
-        print(f"      • farmacia.esperanca@jfood.com (medicamentos prontos)")
-        print(f"      • restaurante.bom.sabor@jfood.com (produzindo)")
-        print(f"      • doacao.roupas@jfood.com (roupas prontas)")
+        print(f"      • cozinha.solidaria@euajudo.com (marmitas prontas)")
+        print(f"      • farmacia.esperanca@euajudo.com (medicamentos prontos)")
+        print(f"      • restaurante.bom.sabor@euajudo.com (produzindo)")
+        print(f"      • doacao.roupas@euajudo.com (roupas prontas)")
         print(f"   🙋 Voluntários:")
-        print(f"      • joao.voluntario@jfood.com")
-        print(f"      • maria.voluntaria@jfood.com")
-        print(f"      • pedro.entregador@jfood.com")
+        print(f"      • joao.voluntario@euajudo.com")
+        print(f"      • maria.voluntaria@euajudo.com")
+        print(f"      • pedro.entregador@euajudo.com")
         print(f"   🏠 Abrigos:")
-        print(f"      • abrigo.sao.francisco@jfood.com (só medicamentos)")
-        print(f"      • abrigo.carmo@jfood.com (múltiplos itens)")
-        print(f"      • abrigo.bom.pastor@jfood.com (só roupas)")
+        print(f"      • abrigo.sao.francisco@euajudo.com (só medicamentos)")
+        print(f"      • abrigo.carmo@euajudo.com (múltiplos itens)")
+        print(f"      • abrigo.bom.pastor@euajudo.com (só roupas)")
         print(f"   👤 Admin:")
-        print(f"      • admin@jfood.com")
+        print(f"      • admin@euajudo.com")
         
         print("\n" + "="*70)
         

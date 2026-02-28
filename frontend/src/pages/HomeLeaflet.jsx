@@ -104,7 +104,7 @@ export default function HomeLeaflet() {
             <div className="flex items-center space-x-3">
               <Package className="h-8 w-8 text-primary-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">JFood</h1>
+                <h1 className="text-2xl font-bold text-gray-900">EuAjudo</h1>
                 <p className="text-sm text-gray-600">Marmitas Solidárias - Juiz de Fora</p>
               </div>
             </div>

@@ -69,7 +69,7 @@ export default function Register() {
           <div className="flex justify-center mb-4">
             <Package className="h-16 w-16 text-primary-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">JFood</h1>
+          <h1 className="text-3xl font-bold text-gray-900">EuAjudo</h1>
           <p className="text-gray-600 mt-2">Cadastre-se para ajudar</p>
         </div>
 

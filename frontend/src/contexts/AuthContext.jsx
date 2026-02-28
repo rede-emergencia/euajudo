@@ -38,24 +38,37 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    const response = await authApi.login(email, password);
-    const { access_token } = response.data;
-    localStorage.setItem('token', access_token);
-    
-    const userResponse = await authApi.getMe();
-    
-    // Converter roles de string para array se necessário
-    const userData = {
-      ...userResponse.data,
-      roles: typeof userResponse.data.roles === 'string' 
-        ? userResponse.data.roles.split(',').map(r => r.trim())
-        : userResponse.data.roles
-    };
-    
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    
-    return userData;
+    try {
+      console.log('🔐 Tentando login:', email);
+      const response = await authApi.login(email, password);
+      console.log('✅ Login response:', response);
+      
+      const { access_token } = response.data;
+      localStorage.setItem('token', access_token);
+      
+      const userResponse = await authApi.getMe();
+      console.log('👤 User data:', userResponse.data);
+      
+      // Converter roles de string para array se necessário
+      const userData = {
+        ...userResponse.data,
+        roles: typeof userResponse.data.roles === 'string' 
+          ? userResponse.data.roles.split(',').map(r => r.trim())
+          : userResponse.data.roles
+      };
+      
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      return userData;
+    } catch (error) {
+      console.error('❌ Erro no login:', error);
+      // Limpar dados em caso de erro
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      throw error;
+    }
   };
 
   const register = async (data) => {

@@ -94,7 +94,7 @@ export default function HomeSimple() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Package style={{ width: '32px', height: '32px', color: '#2563eb' }} />
             <div>
-              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>JFood</h1>
+              <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold' }}>EuAjudo</h1>
               <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>Marmitas Solidárias - Juiz de Fora</p>
             </div>
           </div>

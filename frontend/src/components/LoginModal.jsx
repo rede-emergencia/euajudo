@@ -119,7 +119,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Package style={{ width: '32px', height: '32px', color: '#2563eb' }} />
             <div>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Entrar no JFood</h2>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Entrar no EuAjudo</h2>
               <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
                 Sistema de Marmitas Solidárias
               </p>

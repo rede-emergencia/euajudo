@@ -26,7 +26,7 @@ def create_users(db):
     # FORNECEDORES
     users_data = [
         {
-            'email': 'cozinha.solidaria@jfood.com',
+            'email': 'cozinha.solidaria@euajudo.com',
             'name': 'Cozinha Solidária Central',
             'phone': '32988887777',
             'roles': 'provider',
@@ -40,7 +40,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'farmacia.esperanca@jfood.com',
+            'email': 'farmacia.esperanca@euajudo.com',
             'name': 'Farmácia Esperança',
             'phone': '32955554444',
             'roles': 'provider',
@@ -55,7 +55,7 @@ def create_users(db):
         },
         # VOLUNTÁRIOS
         {
-            'email': 'joao.voluntario@jfood.com',
+            'email': 'joao.voluntario@euajudo.com',
             'name': 'João Voluntário',
             'phone': '32999998888',
             'roles': 'volunteer',
@@ -67,7 +67,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'maria.voluntaria@jfood.com',
+            'email': 'maria.voluntaria@euajudo.com',
             'name': 'Maria Voluntária',
             'phone': '32988887766',
             'roles': 'volunteer',
@@ -80,7 +80,7 @@ def create_users(db):
         },
         # ADMIN
         {
-            'email': 'admin@jfood.com',
+            'email': 'admin@euajudo.com',
             'name': 'Administrador Sistema',
             'phone': '32999999999',
             'roles': 'admin',
@@ -296,7 +296,7 @@ def create_batches(db, users):
 
 def main():
     """Main seed function"""
-    print("🌱 JFOOD SEED - Versão Simplificada")
+    print("🌱 EUAJUDO SEED - Versão Simplificada")
     print("   Apenas Medicamentos e Marmitas\n")
     
     # Clear database

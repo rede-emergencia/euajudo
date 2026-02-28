@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed melhorado JFood - Juiz de Fora
+Seed melhorado EuAjudo - Juiz de Fora
 - Coordenadas espaçadas em pelo menos 100m
 - Abrigos: um pedindo item único, outro pedindo múltiplos itens
 - Fornecedores: em diferentes estados (procurando insumos, idle, com marmitas prontas)
@@ -29,7 +29,7 @@ def create_users(db):
     users_data = [
         # FORNECEDORES (espaçados 100m+)
         {
-            'email': 'cozinha.solidaria@jfood.com',
+            'email': 'cozinha.solidaria@euajudo.com',
             'name': 'Cozinha Solidária Central',
             'phone': '32988887777',
             'roles': 'provider',
@@ -43,7 +43,7 @@ def create_users(db):
             'active': True
         },
                 {
-            'email': 'farmacia.esperanca@jfood.com',
+            'email': 'farmacia.esperanca@euajudo.com',
             'name': 'Farmácia Esperança',
             'phone': '32955554444',
             'roles': 'provider',
@@ -58,7 +58,7 @@ def create_users(db):
         },
         # VOLUNTÁRIOS
         {
-            'email': 'joao.voluntario@jfood.com',
+            'email': 'joao.voluntario@euajudo.com',
             'name': 'João Voluntário',
             'phone': '32999998888',
             'roles': 'volunteer',
@@ -70,7 +70,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'maria.voluntaria@jfood.com',
+            'email': 'maria.voluntaria@euajudo.com',
             'name': 'Maria Voluntária',
             'phone': '32988887766',
             'roles': 'volunteer',
@@ -82,7 +82,7 @@ def create_users(db):
             'active': True
         },
         {
-            'email': 'pedro.entregador@jfood.com',
+            'email': 'pedro.entregador@euajudo.com',
             'name': 'Pedro Entregador',
             'phone': '32977776655',
             'roles': 'volunteer',
@@ -95,8 +95,8 @@ def create_users(db):
         },
         # ADMIN
         {
-            'email': 'admin@jfood.com',
-            'name': 'Administrador JFood',
+            'email': 'admin@euajudo.com',
+            'name': 'Administrador EuAjudo',
             'phone': '32999999999',
             'roles': 'admin',
             'hashed_password': password_hash,
@@ -108,7 +108,7 @@ def create_users(db):
         },
         # SHELTER (Abrigo como usuário)
         {
-            'email': 'abrigo.sao.francisco@jfood.com',
+            'email': 'abrigo.sao.francisco@euajudo.com',
             'name': 'Abrigo São Francisco',
             'phone': '3236881234',
             'roles': 'shelter',
@@ -387,7 +387,7 @@ def create_resource_requests(db, providers):
 
 def main():
     """Main seed function"""
-    print("🌱 JFOOD SEED - Juiz de Fora")
+    print("🌱 EUAJUDO SEED - Juiz de Fora")
     print("   Coordenadas espaçadas em pelo menos 100m\n")
     
     clear_database()

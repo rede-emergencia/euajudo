@@ -74,22 +74,22 @@ def quick_login(user_type: str = Form(...), db: Session = Depends(get_db)):
     # Usuários hardcoded para testes
     quick_users = {
         "provider": {
-            "email": "cozinha.solidaria@jfood.com",
+            "email": "cozinha.solidaria@euajudo.com",
             "name": "Cozinha Solidária Central",
             "roles": "provider"
         },
         "volunteer": {
-            "email": "joao.voluntario@jfood.com", 
+            "email": "joao.voluntario@euajudo.com", 
             "name": "João Voluntário",
             "roles": "volunteer"
         },
         "shelter": {
-            "email": "abrigo.sao.francisco@jfood.com",
+            "email": "abrigo.sao.francisco@euajudo.com",
             "name": "Abrigo São Francisco de Assis", 
             "roles": "shelter"
         },
         "admin": {
-            "email": "admin@jfood.com",
+            "email": "admin@euajudo.com",
             "name": "Administrador Sistema",
             "roles": "admin"
         }

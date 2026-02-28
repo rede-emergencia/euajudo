@@ -10,7 +10,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_DEFAULT_REGION=us-east-1
       - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=postgresql://jfood:jfood123@postgres:5432/jfood
+      - DATABASE_URL=postgresql://euajudo:euajudo123@postgres:5432/euajudo
     depends_on:
       - redis
       - postgres
