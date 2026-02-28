@@ -48,7 +48,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pedidos de Insumo</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_pedidos_insumo}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_ingredient_requests || 0}</p>
                 </div>
                 <ShoppingCart className="h-12 w-12 text-primary-600" />
               </div>
@@ -58,8 +58,8 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Lotes de Marmitas</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_lotes}</p>
-                  <p className="text-xs text-green-600 mt-1">{stats.lotes_prontos} prontos</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_batches || 0}</p>
+                  <p className="text-xs text-green-600 mt-1">{stats.batches_ready || 0} prontos</p>
                 </div>
                 <Package className="h-12 w-12 text-green-600" />
               </div>
@@ -73,8 +73,8 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Minhas Reservas</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_reservas}</p>
-                  <p className="text-xs text-blue-600 mt-1">{stats.reservas_ativas} ativas</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_reservations || 0}</p>
+                  <p className="text-xs text-blue-600 mt-1">{stats.active_reservations || 0} ativas</p>
                 </div>
                 <ShoppingCart className="h-12 w-12 text-blue-600" />
               </div>
@@ -84,7 +84,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pedidos Disponíveis</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.pedidos_disponiveis}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.available_requests || 0}</p>
                 </div>
                 <TrendingUp className="h-12 w-12 text-orange-600" />
               </div>
@@ -92,14 +92,14 @@ export default function Dashboard() {
           </>
         )}
 
-        {hasRole('voluntario_entregador') && (
+        {hasRole('volunteer') && (
           <>
             <div className="card">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Minhas Entregas</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_entregas}</p>
-                  <p className="text-xs text-purple-600 mt-1">{stats.entregas_pendentes} pendentes</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_deliveries || 0}</p>
+                  <p className="text-xs text-purple-600 mt-1">{stats.pending_deliveries || 0} pendentes</p>
                 </div>
                 <Truck className="h-12 w-12 text-purple-600" />
               </div>
@@ -112,7 +112,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Entregas Pendentes</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.entregas_pendentes}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.pending_deliveries || 0}</p>
               </div>
               <MapPin className="h-12 w-12 text-red-600" />
             </div>
@@ -157,13 +157,13 @@ export default function Dashboard() {
           </Link>
         )}
 
-        {hasRole('voluntario_entregador') && (
-          <Link to="/entregas-marmita" className="card hover:shadow-lg transition-shadow">
+        {hasRole('volunteer') && (
+          <Link to="/mapa" className="card hover:shadow-lg transition-shadow">
             <div className="flex items-center space-x-4">
               <Truck className="h-10 w-10 text-purple-600" />
               <div>
                 <h3 className="font-semibold text-gray-900">Entregas</h3>
-                <p className="text-sm text-gray-600">Entregue marmitas</p>
+                <p className="text-sm text-gray-600">Visualize e comprometa-se com entregas</p>
               </div>
             </div>
           </Link>

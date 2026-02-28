@@ -31,6 +31,65 @@ def get_user_primary_role(user: User) -> str:
     
     return roles[0] if roles else 'volunteer'
 
+@router.get("/stats")
+def get_dashboard_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get dashboard statistics for current user
+    """
+    stats = {}
+    
+    # Provider stats
+    if has_role(current_user, 'provider') or has_role(current_user, 'produtor'):
+        stats['total_ingredient_requests'] = db.query(ResourceRequest).filter(
+            ResourceRequest.provider_id == current_user.id
+        ).count()
+        
+        stats['total_batches'] = db.query(ProductBatch).filter(
+            ProductBatch.provider_id == current_user.id
+        ).count()
+        
+        stats['batches_ready'] = db.query(ProductBatch).filter(
+            ProductBatch.provider_id == current_user.id,
+            ProductBatch.status == BatchStatus.READY
+        ).count()
+    
+    # Volunteer buyer stats
+    if has_role(current_user, 'volunteer_comprador'):
+        stats['total_reservations'] = db.query(ResourceReservation).filter(
+            ResourceReservation.volunteer_id == current_user.id
+        ).count()
+        
+        stats['active_reservations'] = db.query(ResourceReservation).filter(
+            ResourceReservation.volunteer_id == current_user.id,
+            ResourceReservation.status.in_(['RESERVED', 'PARTIALLY_RESERVED'])
+        ).count()
+        
+        stats['available_requests'] = db.query(ResourceRequest).filter(
+            ResourceRequest.status == OrderStatus.REQUESTING
+        ).count()
+    
+    # Volunteer delivery stats
+    if has_role(current_user, 'volunteer_entregador') or has_role(current_user, 'volunteer'):
+        stats['total_deliveries'] = db.query(Delivery).filter(
+            Delivery.volunteer_id == current_user.id
+        ).count()
+        
+        stats['pending_deliveries'] = db.query(Delivery).filter(
+            Delivery.volunteer_id == current_user.id,
+            Delivery.status.in_([DeliveryStatus.COMMITTED, DeliveryStatus.PICKED_UP])
+        ).count()
+    
+    # Admin stats
+    if has_role(current_user, 'admin'):
+        stats['pending_deliveries'] = db.query(Delivery).filter(
+            Delivery.status.in_([DeliveryStatus.COMMITTED, DeliveryStatus.PICKED_UP])
+        ).count()
+    
+    return stats
+
 @router.get("/config")
 def get_dashboard_configuration(
     current_user: User = Depends(get_current_user)
