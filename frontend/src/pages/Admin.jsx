@@ -1,18 +1,27 @@
 import { useEffect, useState } from 'react';
 import { users } from '../lib/api';
-import { Check, Database, ChevronDown, ChevronUp, UserCheck, UserX, ToggleLeft, ToggleRight, Plus, User, Home, MapPin } from 'lucide-react';
+import { 
+  Check, Database, ChevronDown, ChevronUp, UserCheck, UserX, ToggleLeft, ToggleRight, 
+  Plus, User, Home, MapPin, BarChart, Package, Users, Building, ArrowLeft,
+  UserCog, UserPlus, Shield, ShieldCheck, ShieldAlert, ClipboardList, 
+  MapPinned, ListChecks, LayoutDashboard, Settings, LogOut, X
+} from 'lucide-react';
 import axios from 'axios';
 import { handlePhoneChange } from '../utils/phoneMask';
 import LocationPicker from '../components/LocationPicker';
+import { UserRole } from '../shared/enums';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
   const [expandedItems, setExpandedItems] = useState({});
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createStep, setCreateStep] = useState(1); // 1 = localização, 2 = dados do abrigo
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [createSuccess, setCreateSuccess] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: '',
     email: '',
@@ -24,7 +33,6 @@ export default function Admin() {
     longitude: null
   });
   const [creatingShelter, setCreatingShelter] = useState(false);
-  const [createSuccess, setCreateSuccess] = useState(false);
   const [showEditLocationModal, setShowEditLocationModal] = useState(false);
   const [editingShelterId, setEditingShelterId] = useState(null);
   const [editLocationForm, setEditLocationForm] = useState({
@@ -34,22 +42,72 @@ export default function Admin() {
   });
   const [updatingLocation, setUpdatingLocation] = useState(false);
 
+  // Novas abas organizadas profissionalmente
   const tabs = [
-    { id: 'users', label: 'Usuários', endpoint: '/api/admin/users' },
-    { id: 'volunteers', label: 'Voluntários', endpoint: '/api/admin/volunteers' },
-    { id: 'volunteers-pending', label: 'Voluntários Pendentes', endpoint: '/api/admin/volunteers/pending' },
-    { id: 'shelters', label: 'Abrigos', endpoint: '/api/admin/shelters' },
-    { id: 'shelters-pending', label: 'Abrigos Pendentes', endpoint: '/api/admin/shelters/pending' },
-    { id: 'locations', label: 'Locais de Entrega', endpoint: '/api/admin/locations' },
-    { id: 'locations-pending', label: 'Locais Pendentes', endpoint: '/api/admin/locations/pending' },
-    { id: 'pedidos-insumo', label: 'Pedidos de Insumo', endpoint: '/api/admin/pedidos-insumo' },
-    { id: 'itens-insumo', label: 'Itens de Insumo', endpoint: '/api/admin/itens-insumo' },
-    { id: 'reservas-insumo', label: 'Reservas de Insumo', endpoint: '/api/admin/reservas-insumo' },
-    { id: 'reservas-itens', label: 'Reservas de Itens', endpoint: '/api/admin/reservas-itens' },
-    { id: 'lotes-marmita', label: 'Ofertas', endpoint: '/api/admin/lotes-marmita', showCount: true },
-    { id: 'entregas-marmita', label: 'Entregas de Marmita', endpoint: '/api/admin/entregas-marmita' },
-    { id: 'reservas-marmita', label: 'Reservas de Marmita', endpoint: '/api/admin/reservas-marmita' },
-    { id: 'pedidos-marmita', label: 'Pedidos de Marmita', endpoint: '/api/admin/pedidos-marmita' },
+    { 
+      id: 'dashboard', 
+      label: 'Dashboard', 
+      icon: LayoutDashboard,
+      endpoint: '/api/admin/dashboard',
+      type: 'overview',
+      tooltip: 'Visão geral do sistema'
+    },
+    { 
+      id: 'users', 
+      label: 'Usuários', 
+      icon: Users,
+      endpoint: '/api/admin/users',
+      type: 'list',
+      tooltip: 'Gerenciar todos os usuários'
+    },
+    { 
+      id: 'users-pending', 
+      label: 'Pendentes', 
+      icon: UserPlus,
+      endpoint: '/api/admin/users/pending',
+      type: 'pending',
+      tooltip: 'Usuários aguardando aprovação'
+    },
+    { 
+      id: 'shelters', 
+      label: 'Abrigos', 
+      icon: MapPinned,
+      endpoint: '/api/admin/shelters',
+      type: 'list',
+      tooltip: 'Gerenciar abrigos ativos'
+    },
+    { 
+      id: 'shelters-pending', 
+      label: 'Abrigos Pendentes', 
+      icon: ShieldAlert,
+      endpoint: '/api/admin/shelters/pending',
+      type: 'pending',
+      tooltip: 'Abrigos aguardando aprovação'
+    },
+    { 
+      id: 'categories', 
+      label: 'Categorias', 
+      icon: ClipboardList,
+      endpoint: '/api/admin/categories',
+      type: 'list',
+      tooltip: 'Gerenciar categorias de itens'
+    },
+    { 
+      id: 'batches', 
+      label: 'Produção', 
+      icon: Package,
+      endpoint: '/api/admin/batches',
+      type: 'list',
+      tooltip: 'Lotes e produção'
+    },
+    { 
+      id: 'deliveries', 
+      label: 'Entregas', 
+      icon: MapPin,
+      endpoint: '/api/admin/deliveries',
+      type: 'list',
+      tooltip: 'Gerenciar entregas'
+    }
   ];
 
   useEffect(() => {
@@ -102,15 +160,48 @@ export default function Admin() {
 
       // Atualizar todas as abas que podem conter este usuário
       updateTabData('users');
-      updateTabData('volunteers');
-      updateTabData('volunteers-pending');
-      updateTabData('shelters');
-      updateTabData('shelters-pending');
+      updateTabData('users-pending');
       
       alert(`Usuário ${!currentStatus ? 'aprovado' : 'desaprovado'} com sucesso!`);
     } catch (error) {
       console.error('Erro ao alterar aprovação:', error);
       alert('Erro ao alterar aprovação do usuário.');
+    }
+  };
+
+  const toggleShelterApproval = async (locationId, currentStatus) => {
+    console.log(`🔍 toggleShelterApproval chamado - Location ID: ${locationId}, Status atual: ${currentStatus}`);
+    try {
+      const token = localStorage.getItem('token');
+      const endpoint = currentStatus ? '/reject' : '/approve';
+      const url = `${API_URL}/api/admin/shelters/${locationId}${endpoint}`;
+      
+      console.log(`📡 Chamando endpoint: ${url}`);
+      
+      const response = await axios.post(url, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      console.log(`✅ Resposta:`, response.data);
+
+      // Atualizar dados locais para abas de abrigos
+      const updateShelterTabData = (tabKey) => {
+        if (data[tabKey]) {
+          const updatedData = data[tabKey].map(shelter => 
+            shelter.id === locationId ? { ...shelter, approved: !currentStatus } : shelter
+          );
+          setData(prev => ({ ...prev, [tabKey]: updatedData }));
+        }
+      };
+
+      updateShelterTabData('shelters');
+      updateShelterTabData('shelters-pending');
+      
+      alert(`Abrigo ${!currentStatus ? 'aprovado' : 'rejeitado'} com sucesso!`);
+    } catch (error) {
+      console.error('❌ Erro ao alterar aprovação do abrigo:', error);
+      console.error('Detalhes:', error.response?.data);
+      alert('Erro ao alterar aprovação do abrigo: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -177,13 +268,19 @@ export default function Admin() {
   };
 
   const toggleLocationActive = async (locationId, currentStatus) => {
+    console.log(`🔍 toggleLocationActive chamado - ID: ${locationId}, Status atual: ${currentStatus}`);
     try {
       const token = localStorage.getItem('token');
       const endpoint = currentStatus ? '/deactivate' : '/activate';
+      const url = `${API_URL}/api/admin/locations/${locationId}${endpoint}`;
       
-      await axios.post(`${API_URL}/api/admin/locations/${locationId}${endpoint}`, {}, {
+      console.log(`📡 Chamando endpoint: ${url}`);
+      
+      const response = await axios.post(url, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
+      console.log(`✅ Resposta:`, response.data);
 
       // Atualizar dados locais para todas as abas de locations
       const updateLocationTabData = (tabKey) => {
@@ -195,13 +292,14 @@ export default function Admin() {
         }
       };
 
-      updateLocationTabData('locations');
-      updateLocationTabData('locations-pending');
+      updateLocationTabData('shelters');
+      updateLocationTabData('shelters-pending');
       
       alert(`Local ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`);
     } catch (error) {
-      console.error('Erro ao alterar status do local:', error);
-      alert('Erro ao alterar status do local.');
+      console.error('❌ Erro ao alterar status do local:', error);
+      console.error('Detalhes:', error.response?.data);
+      alert('Erro ao alterar status do local: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -284,33 +382,26 @@ export default function Admin() {
         phone: createForm.phone,
         address: createForm.address,
         password: createForm.password,
-        roles: 'shelter',
+        roles: UserRole.SHELTER,
         latitude: createForm.latitude,
-        longitude: createForm.longitude
+        longitude: createForm.longitude,
+        // Campos para criar DeliveryLocation
+        location_address: createForm.address,
+        location_name: createForm.name,
+        contact_person: createForm.name,
+        location_phone: createForm.phone,
+        city_id: 'juiz-de-fora'
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       alert('Abrigo criado com sucesso! Aguarde aprovação.');
       setCreateSuccess(true);
-      setTimeout(() => setCreateSuccess(false), 3000); // Remove mensagem após 3 segundos
+      setTimeout(() => setCreateSuccess(false), 3000);
       setShowCreateModal(false);
-      setCreateForm({
-        name: '',
-        email: '',
-        phone: '',
-        address: '',
-        password: '',
-        confirmPassword: '',
-        latitude: null,
-        longitude: null
-      });
-      
-      // Recarregar dados das abas relevantes via Ajax
-      await Promise.all([
-        loadData('shelters'),
-        loadData('shelters-pending')
-      ]);
+      resetCreateForm();
+      loadData('shelters-pending');
+      loadData('shelters');
       
     } catch (error) {
       console.error('Erro ao criar abrigo:', error);
@@ -318,6 +409,36 @@ export default function Admin() {
     } finally {
       setCreatingShelter(false);
     }
+  };
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      password: '',
+      confirmPassword: '',
+      latitude: null,
+      longitude: null
+    });
+    setCreateStep(1);
+    setSelectedLocation(null);
+  };
+
+  const handleLocationSelected = (location) => {
+    setSelectedLocation(location);
+    setCreateForm({
+      ...createForm,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      address: location.address || ''
+    });
+    setCreateStep(2); // Avançar automaticamente para o passo 2
+  };
+
+  const handleBackToLocation = () => {
+    setCreateStep(1);
   };
 
   const renderValue = (value) => {
@@ -415,7 +536,11 @@ export default function Admin() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleUserApproval(item.id, item.approved);
+                    if (isShelterTab) {
+                      toggleShelterApproval(item.id, item.approved);
+                    } else {
+                      toggleUserApproval(item.id, item.approved);
+                    }
                   }}
                   className={`p-2 rounded-lg transition-colors ${
                     item.approved 
@@ -492,6 +617,15 @@ export default function Admin() {
         
         {isExpanded && (
           <div className="p-4 bg-white">
+            {/* Email destacado para abrigos */}
+            {isShelterTab && item.user?.email && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-blue-800">📧 Email:</span>
+                  <span className="text-sm text-blue-900 font-semibold">{item.user.email}</span>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {Object.entries(item).map(([key, value]) => (
                 <div key={key} className="flex flex-col">
@@ -541,14 +675,16 @@ export default function Admin() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              title={tab.tooltip}
               className={`
-                whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm
+                whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm flex items-center gap-2
                 ${activeTab === tab.id
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }
               `}
             >
+              <tab.icon className="h-4 w-4" />
               {tab.label}
               {data[tab.id] && data[tab.id].length > 0 && (
                 <span className={`ml-2 py-0.5 px-2 rounded-full text-xs font-bold ${
@@ -576,158 +712,16 @@ export default function Admin() {
             {data[activeTab].map((item, index) => renderItem(item, index))}
           </div>
         ) : (
-          <p className="text-gray-600 text-center py-12">Nenhum registro encontrado</p>
+          <div className="text-center py-12 text-gray-500">
+            <p>Nenhum item encontrado.</p>
+          </div>
         )}
       </div>
 
-      {/* Modal de Criar Abrigo */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-8">
-          <div className="bg-white rounded-lg p-6 w-full max-w-3xl my-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Criar Novo Abrigo</h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <ChevronDown className="h-6 w-6" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateShelter} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome do Abrigo *
-                </label>
-                <input
-                  type="text"
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ex: Casa da Esperança"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  value={createForm.email}
-                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="abrigo@exemplo.com"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Telefone
-                </label>
-                <input
-                  type="tel"
-                  value={createForm.phone}
-                  onChange={(e) => handlePhoneChange(e, (value) => setCreateForm({ ...createForm, phone: value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="(32) 98888-7777"
-                  maxLength="15"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Endereço
-                </label>
-                <input
-                  type="text"
-                  value={createForm.address}
-                  onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Rua Principal, 123 - Centro"
-                />
-              </div>
-
-              {/* LocationPicker para selecionar coordenadas no mapa */}
-              <div className="border-t border-gray-200 pt-4">
-                <LocationPicker
-                  latitude={createForm.latitude}
-                  longitude={createForm.longitude}
-                  address={createForm.address}
-                  onLocationChange={(lat, lng) => {
-                    setCreateForm({ ...createForm, latitude: lat, longitude: lng });
-                  }}
-                  onAddressChange={(addr) => {
-                    setCreateForm({ ...createForm, address: addr });
-                  }}
-                />
-              </div>
-
-              <div className="border-t border-gray-200 pt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Senha *
-                </label>
-                <input
-                  type="password"
-                  value={createForm.password}
-                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Mínimo 6 caracteres"
-                  required
-                  minLength="6"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmar Senha *
-                </label>
-                <input
-                  type="password"
-                  value={createForm.confirmPassword}
-                  onChange={(e) => setCreateForm({ ...createForm, confirmPassword: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Digite a senha novamente"
-                  required
-                  minLength="6"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  disabled={creatingShelter}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingShelter}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {creatingShelter ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Criando...
-                    </>
-                  ) : (
-                    'Criar Abrigo'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Modal de Editar Localização */}
       {showEditLocationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-8">
-          <div className="bg-white rounded-lg p-6 w-full max-w-3xl my-8">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-4 px-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[95vh] overflow-y-auto my-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Editar Localização do Abrigo</h2>
               <button
@@ -776,6 +770,219 @@ export default function Admin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Criar Abrigo - Fluxo em 2 Passos */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-4 px-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[95vh] overflow-y-auto my-4">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                {createStep === 2 && (
+                  <button
+                    type="button"
+                    onClick={handleBackToLocation}
+                    className="text-gray-600 hover:text-gray-800 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                )}
+                <h2 className="text-xl font-bold text-gray-900">
+                  {createStep === 1 ? '📍 Passo 1: Selecionar Localização' : '📝 Passo 2: Dados do Abrigo'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(false);
+                  resetCreateForm();
+                }}
+                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Cancelar criação"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            {/* Progress Indicator */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
+                <div className={`flex items-center gap-2 ${createStep === 1 ? 'text-blue-600' : 'text-green-600'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${createStep === 1 ? 'bg-blue-600' : 'bg-green-600'}`}>
+                    {createStep === 1 ? '1' : '✓'}
+                  </div>
+                  <span className="font-medium">Localização</span>
+                </div>
+                <div className={`flex-1 h-1 mx-2 ${createStep === 1 ? 'bg-gray-200' : 'bg-green-600'}`}></div>
+                <div className={`flex items-center gap-2 ${createStep === 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${createStep === 2 ? 'bg-blue-600' : 'bg-gray-400'}`}>
+                    2
+                  </div>
+                  <span className="font-medium">Dados</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 1: Seleção de Localização */}
+            {createStep === 1 && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    📍 Selecionar Localização do Abrigo
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Clique no mapa ou busque um endereço para selecionar a localização
+                  </p>
+                </div>
+
+                <LocationPicker
+                  latitude={createForm.latitude}
+                  longitude={createForm.longitude}
+                  address={createForm.address}
+                  onLocationChange={(lat, lng) => {
+                    setCreateForm({ ...createForm, latitude: lat, longitude: lng });
+                  }}
+                  onAddressChange={(addr) => {
+                    setCreateForm({ ...createForm, address: addr });
+                  }}
+                  onLocationSelect={(location) => {
+                    handleLocationSelected(location);
+                  }}
+                />
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    💡 <strong>Dica:</strong> Clique no mapa para marcar a localização exata ou use a busca para encontrar um endereço. Após selecionar, você avançará automaticamente para o próximo passo.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Formulário de Dados */}
+            {createStep === 2 && (
+              <form onSubmit={handleCreateShelter} className="space-y-4">
+                {/* Resumo da Localização */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-sm text-blue-800">
+                    <MapPin className="h-4 w-4" />
+                    <span className="font-medium">Localização selecionada:</span>
+                  </div>
+                  <div className="mt-1 text-sm text-blue-700">
+                    <p>📍 {selectedLocation.address || 'Endereço não informado'}</p>
+                    <p>🌐 {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}</p>
+                  </div>
+                </div>
+
+                {/* Campos do formulário */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Abrigo *
+                  </label>
+                  <input
+                    type="text"
+                    value={createForm.name}
+                    onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ex: Casa da Esperança"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="abrigo@exemplo.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefone
+                  </label>
+                  <input
+                    type="tel"
+                    value={createForm.phone}
+                    onChange={(e) => handlePhoneChange(e, (value) => setCreateForm({ ...createForm, phone: value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="(32) 98888-7777"
+                    maxLength="15"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Senha *
+                  </label>
+                  <input
+                    type="password"
+                    value={createForm.password}
+                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Senha de acesso"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Confirmar Senha *
+                  </label>
+                  <input
+                    type="password"
+                    value={createForm.confirmPassword}
+                    onChange={(e) => setCreateForm({ ...createForm, confirmPassword: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Confirme a senha"
+                    required
+                  />
+                </div>
+
+                {/* Botões */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      resetCreateForm();
+                    }}
+                    disabled={creatingShelter}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingShelter}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {creatingShelter ? 'Criando...' : 'Criar Abrigo'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Mensagem de sucesso */}
+            {createSuccess && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-800">
+                  <Check className="h-5 w-5" />
+                  <span className="font-medium">Abrigo criado com sucesso!</span>
+                </div>
+                <p className="text-sm text-green-700 mt-1">
+                  O abrigo aparecerá na lista de aprovação após ser criado.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

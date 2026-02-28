@@ -12,6 +12,7 @@ from app.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     get_current_active_user
 )
+from app.enums import UserRole
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -23,7 +24,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
     # Auto-approve admin and volunteer users
     # Vou Ajudar: Apenas providers e shelters precisam de aprovação
-    approved = user.roles in ['admin', 'volunteer']
+    approved = user.roles in [UserRole.ADMIN.value, UserRole.VOLUNTEER.value]
 
     new_user = User(
         email=user.email,
@@ -47,7 +48,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     # For shelter role: automatically create a linked DeliveryLocation
-    if "shelter" in user.roles and user.location_address:
+    if UserRole.SHELTER.value in user.roles and user.location_address:
         location = DeliveryLocation(
             name=user.location_name or user.name,
             address=user.location_address,
@@ -87,12 +88,12 @@ def quick_login(user_type: str = Form(...), db: Session = Depends(get_db)):
         "shelter": {
             "email": "abrigo.sao.francisco@euajudo.com",
             "name": "Abrigo São Francisco de Assis", 
-            "roles": "shelter"
+            "roles": UserRole.SHELTER.value
         },
         "admin": {
-            "email": "admin@euajudo.com",
+            "email": "admin@vouajudar.org",
             "name": "Administrador Sistema",
-            "roles": "admin"
+            "roles": UserRole.ADMIN.value
         }
     }
     

@@ -8,7 +8,8 @@ export default function LocationPicker({
   longitude, 
   address,
   onLocationChange,
-  onAddressChange 
+  onAddressChange,
+  onLocationSelect 
 }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -62,6 +63,15 @@ export default function LocationPicker({
       }
 
       onLocationChange(lat, lng);
+      
+      // Chamar onLocationSelect se existir
+      if (onLocationSelect) {
+        onLocationSelect({
+          latitude: lat,
+          longitude: lng,
+          address: searchQuery || `Localização: ${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        });
+      }
     });
 
     mapInstanceRef.current = map;
@@ -124,8 +134,10 @@ export default function LocationPicker({
     const timer = setTimeout(() => {
       if (searchQuery.length >= 3) {
         searchAddress(searchQuery);
-      } else {
+      } else if (searchQuery.length === 0) {
+        // Só limpar se estiver vazio, não se estiver digitando
         setSearchResults([]);
+        setShowResults(false);
       }
     }, 500);
 
@@ -140,6 +152,15 @@ export default function LocationPicker({
     onAddressChange(result.display_name);
     setSearchQuery(result.display_name);
     setShowResults(false);
+
+    // Chamar onLocationSelect se existir
+    if (onLocationSelect) {
+      onLocationSelect({
+        latitude: lat,
+        longitude: lng,
+        address: result.display_name
+      });
+    }
 
     if (mapInstanceRef.current) {
       mapInstanceRef.current.setView([lat, lng], 16);
@@ -178,6 +199,7 @@ export default function LocationPicker({
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => {
                 setSearchQuery('');
                 setSearchResults([]);
@@ -196,6 +218,7 @@ export default function LocationPicker({
             {searchResults.map((result, index) => (
               <button
                 key={index}
+                type="button"
                 onClick={() => selectLocation(result)}
                 className="w-full text-left px-4 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
               >

@@ -2,8 +2,10 @@
 VouAjudar API - Generic Event-Driven Order System
 Version 2.0 - Refactored with generic models
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from app.database import engine, Base
 from app.routers import (
     auth,
@@ -12,10 +14,11 @@ from app.routers import (
     deliveries,
     resources,
     locations,
-    admin,
     product_config,
     dashboard,
-    cancel
+    cancel,
+    categories,
+    admin_unified as admin
 )
 
 # Create tables
@@ -56,6 +59,20 @@ app = FastAPI(
     }
 )
 
+# Exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f"❌ VALIDATION ERROR: {exc.errors()}")
+    print(f"❌ BODY RECEIVED: {exc.body}")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error",
+            "errors": exc.errors(),
+            "body": exc.body
+        }
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -83,10 +100,11 @@ app.include_router(batches.router)
 app.include_router(deliveries.router)
 app.include_router(resources.router)
 app.include_router(locations.router)
-app.include_router(admin.router)
+app.include_router(admin.router)  # Admin V2 Unificado
 app.include_router(product_config.router)
 app.include_router(dashboard.router)
 app.include_router(cancel.router)
+app.include_router(categories.router)
 
 @app.get("/")
 def read_root():

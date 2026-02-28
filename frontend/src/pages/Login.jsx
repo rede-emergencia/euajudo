@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { users } from '@/lib/api';
 import { Package, TestTube } from 'lucide-react';
+import { UserRole } from '../shared/enums';
 
 const isBetaMode = import.meta.env.VITE_BETA_MODE === 'true';
 
@@ -83,11 +84,11 @@ export default function Login() {
       // Redirecionar baseado no perfil (usando roles do banco)
       if (userData.roles.includes('admin')) {
         navigate('/dashboard/admin');
-      } else if (userData.roles.includes('provider')) {
+      } else if (userData.roles.includes(UserRole.PROVIDER)) {
         navigate('/dashboard/fornecedor');
-      } else if (userData.roles.includes('volunteer')) {
+      } else if (userData.roles.includes(UserRole.VOLUNTEER)) {
         navigate('/dashboard/voluntario');
-      } else if (userData.roles.includes('shelter')) {
+      } else if (userData.roles.includes(UserRole.SHELTER)) {
         navigate('/dashboard/abrigo');
       } else {
         navigate('/');

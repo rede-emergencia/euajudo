@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timedelta
 from app.database import get_db
-from app.models import User, ProductBatch, Delivery, DeliveryLocation
-from app.enums import DeliveryStatus, BatchStatus
-from app.schemas import DeliveryCreate, DeliveryResponse
+from app.models import User, ProductBatch, Delivery, DeliveryLocation, Category
+from app.enums import DeliveryStatus, BatchStatus, ProductType
+from app.schemas import DeliveryCreate, DirectDeliveryCreate, DeliveryResponse
 from app.auth import get_current_active_user, require_approved
 from app.validators import ConfirmationCodeValidator, StatusTransitionValidator
 
@@ -88,6 +88,51 @@ def create_delivery(
     
     db.commit()
     db.refresh(new_delivery)
+    return new_delivery
+
+@router.post("/direct", response_model=DeliveryResponse, status_code=201)
+def create_direct_delivery(
+    delivery: DirectDeliveryCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Shelter creates direct delivery request (no batch)"""
+    
+    # Buscar a DeliveryLocation associada ao usuário
+    location = db.query(DeliveryLocation).filter(
+        DeliveryLocation.user_id == current_user.id
+    ).first()
+    
+    if not location:
+        print(f"❌ ERROR: No DeliveryLocation found for user_id={current_user.id}")
+        raise HTTPException(status_code=404, detail="No delivery location found for this user")
+    
+    print(f"🔍 DEBUG: Usando location_id={location.id} para user_id={current_user.id}")
+    
+    # Verify category exists
+    category = db.query(Category).filter(Category.id == delivery.category_id).first()
+    if not category:
+        print(f"❌ ERROR: Category not found. category_id={delivery.category_id}")
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    print(f"✅ SUCCESS: Creating delivery for category {category.display_name}")
+    
+    # Create direct delivery (no batch_id)
+    new_delivery = Delivery(
+        batch_id=None,  # Direct delivery
+        location_id=location.id,  # Usar o ID da location encontrada
+        category_id=delivery.category_id,
+        product_type=ProductType.MEAL,  # Default for compatibility
+        quantity=delivery.quantity,
+        status=DeliveryStatus.AVAILABLE,
+        metadata_cache=delivery.metadata_cache or {},
+        expires_at=datetime.utcnow() + timedelta(hours=24)  # 24h expiry
+    )
+    
+    db.add(new_delivery)
+    db.commit()
+    db.refresh(new_delivery)
+    print(f"✅ SUCCESS: Delivery created with id={new_delivery.id}")
     return new_delivery
 
 @router.post("/{delivery_id}/confirm-pickup", response_model=DeliveryResponse)

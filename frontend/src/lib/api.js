@@ -149,6 +149,11 @@ export const dashboard = {
   getStats: () => api.get('/api/dashboard/stats'),
 };
 
+export const categories = {
+  list: (activeOnly = true) => api.get('/categories', { params: { active_only: activeOnly } }),
+  getById: (id) => api.get(`/categories/${id}`),
+};
+
 // Legacy compatibility layer - maps old names to new generic API
 export const pedidosInsumo = resourceRequests;
 export const reservasInsumo = resourceReservations;

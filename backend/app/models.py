@@ -15,6 +15,85 @@ from app.enums import (
     UserRole,
     OrderEvent
 )
+import json
+
+# ============================================================================
+# CATEGORY & METADATA MODELS (New expandable system)
+# ============================================================================
+
+class Category(Base):
+    """
+    Product categories with hierarchical support.
+    Examples: Água, Comida, Roupas, Roupas Criança, Roupas Adulto
+    """
+    __tablename__ = "categories"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False, index=True)  # "agua", "roupa", "roupa_crianca"
+    display_name = Column(String, nullable=False)  # "Água", "Roupas", "Roupas de Criança"
+    description = Column(Text)
+    icon = Column(String)  # emoji ou nome do ícone
+    color = Column(String)  # cor hex para UI
+    parent_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    sort_order = Column(Integer, default=0)
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Mapeamento para ProductType legado (para compatibilidade)
+    legacy_product_type = Column(String, nullable=True)  # "meal", "clothing", etc.
+    
+    # Relacionamentos
+    parent = relationship("Category", remote_side=[id], backref="children")
+    attributes = relationship("CategoryAttribute", back_populates="category", cascade="all, delete-orphan")
+    batches = relationship("ProductBatch", back_populates="category")
+    deliveries = relationship("Delivery", back_populates="category")
+
+class CategoryAttribute(Base):
+    """
+    Dynamic attributes for categories.
+    Examples: tamanho (P/M/G), gênero (M/F/U), tipo (camiseta/calça)
+    """
+    __tablename__ = "category_attributes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    name = Column(String, nullable=False)  # "tamanho", "genero", "tipo"
+    display_name = Column(String, nullable=False)  # "Tamanho", "Gênero", "Tipo"
+    attribute_type = Column(String, nullable=False, default="select")  # "select", "text", "number", "boolean"
+    required = Column(Boolean, default=False)
+    sort_order = Column(Integer, default=0)
+    
+    # Opções para tipo select (JSON array)
+    options = Column(JSON)  # [{"value": "P", "label": "Pequeno"}, ...]
+    
+    # Validação
+    min_value = Column(Float, nullable=True)  # para tipo number
+    max_value = Column(Float, nullable=True)  # para tipo number
+    max_length = Column(Integer, nullable=True)  # para tipo text
+    
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    category = relationship("Category", back_populates="attributes")
+    metadata_values = relationship("ProductMetadata", back_populates="attribute")
+
+class ProductMetadata(Base):
+    """
+    Metadata values for product batches.
+    Links products to their specific attributes.
+    """
+    __tablename__ = "product_metadata"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey("product_batches.id"), nullable=False)
+    attribute_id = Column(Integer, ForeignKey("category_attributes.id"), nullable=False)
+    value = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relacionamentos
+    batch = relationship("ProductBatch", back_populates="metadata_values")
+    attribute = relationship("CategoryAttribute", back_populates="metadata_values")
 
 # ============================================================================
 # USER & LOCATION MODELS
@@ -89,10 +168,14 @@ class ProductBatch(Base):
     provider_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Product info
-    product_type = Column(Enum(ProductType), nullable=False)
+    product_type = Column(Enum(ProductType), nullable=False)  # Mantido para compatibilidade
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)  # Novo sistema
     quantity = Column(Integer, nullable=False)
     quantity_available = Column(Integer, nullable=False)
     description = Column(Text)
+    
+    # Metadata cache (JSON) para queries rápidas sem joins
+    metadata_cache = Column(JSON, nullable=True)  # {"tamanho": "P", "genero": "U"}
     
     # Status & metadata
     status = Column(Enum(BatchStatus), default=BatchStatus.PRODUCING)
@@ -107,6 +190,8 @@ class ProductBatch(Base):
     # Relationships
     provider = relationship("User", back_populates="batches", foreign_keys=[provider_id])
     deliveries = relationship("Delivery", back_populates="batch")
+    category = relationship("Category", back_populates="batches")
+    metadata_values = relationship("ProductMetadata", back_populates="batch", cascade="all, delete-orphan")
 
 # ============================================================================
 # DELIVERY MODEL (Generic for any product)
@@ -126,9 +211,13 @@ class Delivery(Base):
     parent_delivery_id = Column(Integer, ForeignKey("deliveries.id"), nullable=True)  # Reference to original delivery if this was split
     
     # Delivery info
-    product_type = Column(Enum(ProductType), nullable=False)
+    product_type = Column(Enum(ProductType), nullable=False)  # Mantido para compatibilidade
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)  # Novo sistema
     quantity = Column(Integer, nullable=False)
     status = Column(Enum(DeliveryStatus), default=DeliveryStatus.AVAILABLE)
+    
+    # Metadata cache (JSON) para queries rápidas
+    metadata_cache = Column(JSON, nullable=True)  # {"tamanho": "P", "genero": "U"}
     
     # Confirmation codes
     pickup_code = Column(String)      # Provider generates, volunteer confirms pickup
@@ -149,6 +238,7 @@ class Delivery(Base):
     batch = relationship("ProductBatch", back_populates="deliveries")
     location = relationship("DeliveryLocation", back_populates="deliveries")
     volunteer = relationship("User", back_populates="deliveries", foreign_keys=[volunteer_id])
+    category = relationship("Category", back_populates="deliveries")
 
 # ============================================================================
 # INGREDIENT REQUEST & RESERVATION (Specific to ingredient donations)

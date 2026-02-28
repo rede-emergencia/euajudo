@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime, timedelta
 from app.database import get_db
+from app.auth import require_approved
 from app.models import User, ResourceRequest, ResourceItem, ResourceReservation, ReservationItem
-from app.enums import OrderStatus
+from app.enums import OrderStatus, UserRole
 from app.schemas import (
     ResourceRequestCreate,
     ResourceRequestResponse,
@@ -47,7 +48,7 @@ def create_request(
 ):
     """Provider or Shelter creates resource request"""
     
-    if "provider" not in current_user.roles and "shelter" not in current_user.roles:
+    if UserRole.PROVIDER.value not in current_user.roles and UserRole.SHELTER.value not in current_user.roles:
         raise HTTPException(status_code=403, detail="Only providers or shelters can create resource requests")
     
     # Use repository

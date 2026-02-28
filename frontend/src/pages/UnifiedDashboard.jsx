@@ -5,16 +5,22 @@ import Header from '../components/Header';
 import {
   batches, deliveries, resourceRequests, resourceReservations
 } from '../lib/api';
+import { UserRole } from '../shared/enums';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const ROLE_LABEL = { provider: 'Fornecedor', volunteer: 'Voluntário', shelter: 'Abrigo', admin: 'Admin' };
+const ROLE_LABEL = { 
+  [UserRole.PROVIDER]: 'Fornecedor', 
+  [UserRole.VOLUNTEER]: 'Voluntário', 
+  [UserRole.SHELTER]: 'Abrigo', 
+  [UserRole.ADMIN]: 'Admin' 
+};
 
 function getRolePrimary(roles = []) {
-  for (const r of ['admin', 'provider', 'volunteer', 'shelter']) {
+  for (const r of [UserRole.ADMIN, UserRole.PROVIDER, UserRole.VOLUNTEER, UserRole.SHELTER]) {
     if (roles.includes(r)) return r;
   }
-  return 'volunteer';
+  return UserRole.VOLUNTEER;
 }
 
 function getUserRole(user) {
@@ -366,7 +372,7 @@ function ShelterSection({ navigate }) {
         }
       </div>
 
-      <QuickActions role="shelter" navigate={navigate} />
+      <QuickActions role={UserRole.SHELTER} navigate={navigate} />
     </>
   );
 }
@@ -490,9 +496,9 @@ export default function UnifiedDashboard() {
             <EmptyState message="Faça login para ver seu dashboard." />
           ) : role === 'provider' ? (
             <ProviderSection navigate={navigate} />
-          ) : role === 'volunteer' ? (
+          ) : role === UserRole.VOLUNTEER ? (
             <VolunteerSection navigate={navigate} />
-          ) : role === 'shelter' ? (
+          ) : role === UserRole.SHELTER ? (
             <ShelterSection navigate={navigate} />
           ) : (
             <EmptyState message="Seu perfil não tem um dashboard específico." />

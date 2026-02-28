@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCancel } from '../hooks/useCancel';
 import { deliveries, resourceReservations } from '../lib/api';
 import CodeConfirmationModal from './CodeConfirmationModal';
+import { UserRole } from '../shared/enums';
 
 // Adicionar CSS para animação
 const style = document.createElement('style');
@@ -131,10 +132,10 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
   };
 
   const getDashboardRoute = () => {
-    if (user?.roles?.includes('admin')) return '/dashboard/admin';
-    if (user?.roles?.includes('provider')) return '/dashboard/fornecedor';
-    if (user?.roles?.includes('shelter')) return '/dashboard/abrigo';
-    if (user?.roles?.includes('volunteer')) return '/dashboard/voluntario';
+    if (user?.roles?.includes(UserRole.ADMIN)) return '/dashboard/admin';
+    if (user?.roles?.includes(UserRole.PROVIDER)) return '/dashboard/fornecedor';
+    if (user?.roles?.includes(UserRole.SHELTER)) return '/dashboard/abrigo';
+    if (user?.roles?.includes(UserRole.VOLUNTEER)) return '/dashboard/voluntario';
     return '/dashboard';
   };
 

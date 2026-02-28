@@ -13,6 +13,7 @@ import Admin from './pages/Admin';
 import PerfilFornecedor from './pages/PerfilFornecedor';
 import Perfil from './pages/Perfil';
 import MinhasEntregas from './pages/MinhasEntregas';
+import { UserRole } from './shared/enums';
 
 // Adicionar estilos globais para garantir que a borda seja visível
 const globalStyles = `
@@ -229,7 +230,7 @@ function App() {
           <Route
             path="/dashboard/abrigo"
             element={
-              <ProtectedRoute requireRole="shelter">
+              <ProtectedRoute requireRole={UserRole.SHELTER}>
                 <ShelterDashboard />
               </ProtectedRoute>
             }

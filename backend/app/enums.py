@@ -90,7 +90,7 @@ class DeliveryStatus(str, Enum):
 class UserRole(str, Enum):
     """User roles in the system"""
     PROVIDER = "provider"          # Provides products (restaurant, donor)
-    RECEIVER = "receiver"          # Receives products (shelter, beneficiary)
+    SHELTER = "shelter"            # Receives products (shelter, beneficiary)
     VOLUNTEER = "volunteer"        # Facilitates transactions
     ADMIN = "admin"               # System administrator
 

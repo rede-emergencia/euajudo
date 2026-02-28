@@ -5,6 +5,7 @@ Defines widget types and dashboard layouts for different user roles
 from typing import Dict, List, Optional, Any
 from enum import Enum
 from dataclasses import dataclass, field
+from app.enums import UserRole
 
 class WidgetType(str, Enum):
     """Types of dashboard widgets"""
@@ -180,7 +181,7 @@ PROVIDER_DASHBOARD = DashboardLayout(
 )
 
 SHELTER_DASHBOARD = DashboardLayout(
-    role="shelter",
+    role=UserRole.SHELTER.value,
     title="Dashboard Abrigo",
     description="Acompanhe seus pedidos e entregas",
     widgets=[
@@ -250,9 +251,9 @@ VOLUNTEER_DASHBOARD = DashboardLayout(
 
 # Registry of all dashboards
 DASHBOARD_REGISTRY: Dict[str, DashboardLayout] = {
-    "provider": PROVIDER_DASHBOARD,
-    "shelter": SHELTER_DASHBOARD,
-    "volunteer": VOLUNTEER_DASHBOARD,
+    UserRole.PROVIDER.value: PROVIDER_DASHBOARD,
+    UserRole.SHELTER.value: SHELTER_DASHBOARD,
+    UserRole.VOLUNTEER.value: VOLUNTEER_DASHBOARD,
 }
 
 def get_dashboard_config(role: str) -> Optional[DashboardLayout]:

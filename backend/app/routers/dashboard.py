@@ -12,7 +12,7 @@ from app.auth import get_current_user
 from app.models import User, ProductBatch, Delivery, ResourceRequest, ResourceReservation
 from app.schemas import UserResponse
 from app.dashboard_config import get_dashboard_config, get_widget_config, WidgetDataSource
-from app.enums import BatchStatus, DeliveryStatus, OrderStatus
+from app.enums import BatchStatus, DeliveryStatus, OrderStatus, UserRole
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -23,7 +23,7 @@ def has_role(user: User, role: str) -> bool:
 def get_user_primary_role(user: User) -> str:
     """Get user's primary role for dashboard"""
     roles = user.roles.split(',')
-    role_priority = ['admin', 'provider', 'shelter', 'volunteer']
+    role_priority = [UserRole.ADMIN.value, UserRole.PROVIDER.value, UserRole.SHELTER.value, UserRole.VOLUNTEER.value]
     
     for role in role_priority:
         if role in roles:

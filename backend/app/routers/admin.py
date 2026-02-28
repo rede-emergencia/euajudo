@@ -10,6 +10,7 @@ from app.auth import require_admin
 from app.models import User, DeliveryLocation
 from app.schemas import UserResponse, DeliveryLocationResponse
 from app.repositories import BaseRepository
+from app.enums import UserRole
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -150,7 +151,7 @@ def list_shelters(
     current_user: User = Depends(require_admin)
 ):
     """List all shelters (users with receiver role)"""
-    shelters = db.query(User).filter(User.roles.like("%shelter%")).all()
+    shelters = db.query(User).filter(User.roles.like(f"%{UserRole.SHELTER.value}%")).all()
     return shelters
 
 @router.get("/shelters/pending", response_model=List[UserResponse])
@@ -159,7 +160,7 @@ def list_pending_shelters(
     current_user: User = Depends(require_admin)
 ):
     """List shelters pending approval"""
-    shelters = db.query(User).filter(User.roles.like("%shelter%"), User.approved == False, User.active == True).all()
+    shelters = db.query(User).filter(User.roles.like(f"%{UserRole.SHELTER.value}%"), User.approved == False, User.active == True).all()
     return shelters
 
 @router.get("/shelters/active", response_model=List[UserResponse])
@@ -168,7 +169,7 @@ def list_active_shelters(
     current_user: User = Depends(require_admin)
 ):
     """List active shelters"""
-    shelters = db.query(User).filter(User.roles.like("%shelter%"), User.approved == True, User.active == True).all()
+    shelters = db.query(User).filter(User.roles.like(f"%{UserRole.SHELTER.value}%"), User.approved == True, User.active == True).all()
     return shelters
 
 @router.put("/shelters/{shelter_id}/location", response_model=UserResponse)
@@ -186,7 +187,7 @@ def update_shelter_location(
     if not shelter:
         raise HTTPException(status_code=404, detail="Shelter not found")
     
-    if "shelter" not in shelter.roles:
+    if UserRole.SHELTER.value not in shelter.roles:
         raise HTTPException(status_code=400, detail="User is not a shelter")
     
     updated = repo.update(shelter, latitude=latitude, longitude=longitude)
