@@ -1,7 +1,7 @@
 # EuAjudo Makefile
 # Facilita setup, desenvolvimento e deploy do projeto
 
-.PHONY: help setup seed seed-status backend frontend dev kill clean test lint format
+.PHONY: help setup seed seed-status backend frontend dev kill clean test lint format reset-db create-admin seed-safe seed-small
 
 # Cores para output
 RED := \033[0;31m
@@ -30,10 +30,11 @@ help: ## Exibe ajuda com todos os comandos disponíveis
 	@echo "$(YELLOW)Comandos disponíveis:$(NC)"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "$(BLUE)Exemplos de uso:$(NC)"
+	@echo "$(CYAN)Exemplos de uso:$(NC)"
 	@echo "  make setup          # Configura ambiente completo"
-	@echo "  make seed           # Popula banco de dados"
-	@echo "  make seed-status    # Verifica status do banco"
+	@echo "  make reset-db       # Limpa banco completamente"
+	@echo "  make seed-small     # Seed minimalista (2 pontos de coleta)"
+	@echo "  make seed-safe      # Popula banco sem duplicar"
 	@echo "  make dev            # Inicia frontend e backend em background"
 	@echo "  make kill           # Para todos os serviços"
 
@@ -85,28 +86,9 @@ setup: ## Configura ambiente completo (Python + Node + dependências)
 	
 	@echo "$(GREEN)🎉 Ambiente configurado com sucesso!$(NC)"
 	@echo "$(CYAN)Próximos passos:$(NC)"
-	@echo "  make seed    # Para popular banco de dados"
-	@echo "  make dev     # Para iniciar desenvolvimento"
-
-seed: ## Popula banco de dados com dados de teste
-	@echo "$(YELLOW)🌱 Populando banco de dados...$(NC)"
-	cd $(BACKEND_DIR) && \
-	source venv/bin/activate && \
-	$(PYTHON) seed_improved.py && \
-	echo "$(GREEN)✅ Dados de teste inseridos$(NC)"
-	@echo ""
-	@echo "$(CYAN)Credenciais de teste (senha: 123):$(NC)"
-	@echo "  🏪 Fornecedores:"
-	@echo "     • cozinha.solidaria@euajudo.com"
-	@echo "     • farmacia.esperanca@euajudo.com"
-	@echo "     • restaurante.bom.sabor@euajudo.com"
-	@echo "  🙋 Voluntários:"
-	@echo "     • joao.voluntario@euajudo.com"
-	@echo "     • maria.voluntaria@euajudo.com"
-	@echo "  🏠 Abrigos:"
-	@echo "     • abrigo.carmo@euajudo.com"
-	@echo "  👤 Admin:"
-	@echo "     • admin@euajudo.com"
+	@echo "  make reset-db && make create-admin    # Para criar banco limpo com admin"
+	@echo "  make seed-safe                        # Para popular com dados de teste"
+	@echo "  make dev                             # Para iniciar desenvolvimento"
 
 seed-status: ## Verifica status do banco de dados
 	@echo "$(YELLOW)📊 Verificando status do banco de dados...$(NC)"
@@ -334,12 +316,39 @@ deploy-build: ## Build para produção
 	echo "$(GREEN)✅ Frontend build concluído$(NC)"
 
 # Comandos de banco de dados
-db-reset: ## Reset completo do banco de dados
+reset-db: ## Reset completo do banco de dados (limpa tudo)
 	@echo "$(YELLOW)🗑️ Resetando banco de dados...$(NC)"
 	cd $(BACKEND_DIR) && \
 	source venv/bin/activate && \
-	$(PYTHON) init_db.py && \
-	echo "$(GREEN)✅ Banco resetado$(NC)"
+	$(PYTHON) reset_db.py && \
+	echo "$(GREEN)✅ Banco resetado - está vazio$(NC)"
+
+create-admin: ## Cria apenas usuário administrador
+	@echo "$(YELLOW)👤 Criando usuário administrador...$(NC)"
+	cd $(BACKEND_DIR) && \
+	source venv/bin/activate && \
+	$(PYTHON) create_admin.py
+
+seed-safe: ## Popula banco com dados de teste (não duplica existentes)
+	@echo "$(YELLOW)🌱 Populando banco com dados seguros...$(NC)"
+	cd $(BACKEND_DIR) && \
+	source venv/bin/activate && \
+	$(PYTHON) seed_safe.py && \
+	echo "$(GREEN)✅ Seed seguro concluído$(NC)"
+
+seed-small: ## Seed minimalista: admin + 2 pontos de coleta com pedidos
+	@echo "$(YELLOW)🌱 Criando seed minimalista...$(NC)"
+	@echo "$(CYAN)Configuração:$(NC)"
+	@echo "  • 1 Admin"
+	@echo "  • 2 Voluntários"
+	@echo "  • 2 Pontos de Coleta (com pedidos de marmitas e camisetas)"
+	@echo ""
+	cd $(BACKEND_DIR) && \
+	source venv/bin/activate && \
+	$(PYTHON) seed_small.py && \
+	echo "" && \
+	echo "$(GREEN)✅ Seed minimalista concluído!$(NC)" && \
+	echo "$(CYAN)Acesse http://localhost:3003/map para ver os pontos no mapa$(NC)"
 
 db-backup: ## Backup do banco de dados SQLite
 	@echo "$(YELLOW)💾 Fazendo backup do banco...$(NC)"

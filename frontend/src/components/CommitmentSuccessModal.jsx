@@ -1,5 +1,6 @@
 import { X, CheckCircle, Copy, MapPin } from 'lucide-react';
 import { useState } from 'react';
+import { formatProductWithQuantity } from '../shared/enums';
 
 export default function CommitmentSuccessModal({ 
   isOpen, 
@@ -61,7 +62,7 @@ export default function CommitmentSuccessModal({
             <div className="border-t border-gray-200 pt-3">
               <p className="text-sm text-gray-600">Quantidade</p>
               <p className="font-semibold text-gray-900">
-                {delivery.quantity} {delivery.product_type === 'meal' ? 'marmitas' : 'itens'}
+                {delivery.quantity} {formatProductWithQuantity(delivery.product_type, delivery.quantity)}
               </p>
             </div>
           </div>

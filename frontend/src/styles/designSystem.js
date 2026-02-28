@@ -1,4 +1,4 @@
-// Design System - EuAjudo
+// Design System - Vou Ajudar
 // Sistema de design unificado para toda a aplicação
 
 export const colors = {

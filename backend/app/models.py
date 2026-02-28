@@ -123,6 +123,7 @@ class Delivery(Base):
     batch_id = Column(Integer, ForeignKey("product_batches.id"), nullable=True)  # Optional - None for direct commitments
     location_id = Column(Integer, ForeignKey("delivery_locations.id"), nullable=False)
     volunteer_id = Column(Integer, ForeignKey("users.id"))
+    parent_delivery_id = Column(Integer, ForeignKey("deliveries.id"), nullable=True)  # Reference to original delivery if this was split
     
     # Delivery info
     product_type = Column(Enum(ProductType), nullable=False)

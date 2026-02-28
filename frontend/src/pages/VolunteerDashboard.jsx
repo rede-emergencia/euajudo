@@ -166,11 +166,16 @@ function Empty({ icon: Icon, title, sub, onAction }) {
       <p style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: '700', color: '#1f2937' }}>{title}</p>
       <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#9ca3af', lineHeight: 1.5 }}>{sub}</p>
       <button
-        onClick={() => navigate('/mapa')}
+        onClick={() => navigate('/')}
         style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          padding: '11px 22px', borderRadius: '12px',
-          background: '#111', color: '#fff', border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '12px 20px',
+          backgroundColor: '#2563eb',
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
           fontSize: '14px', fontWeight: '700', cursor: 'pointer',
         }}
       >
@@ -296,7 +301,7 @@ export default function VolunteerDashboard() {
 
           {/* Back */}
           <button
-            onClick={() => navigate('/mapa')}
+            onClick={() => navigate('/')}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               background: 'none', border: 'none', padding: '0 0 16px',

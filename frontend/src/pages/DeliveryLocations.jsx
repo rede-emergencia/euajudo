@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { locaisEntrega } from '@/lib/api';
 import { Plus, X, MapPin, Edit } from 'lucide-react';
+import { handlePhoneChange } from '../utils/phoneMask';
 
 export default function LocaisEntrega() {
   const [locais, setLocais] = useState([]);
@@ -208,8 +209,10 @@ export default function LocaisEntrega() {
                     <input
                       type="tel"
                       value={formData.telefone}
-                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                      onChange={(e) => handlePhoneChange(e, (value) => setFormData({ ...formData, telefone: value }))}
                       className="input"
+                      placeholder="(00) 00000-0000"
+                      maxLength="15"
                     />
                   </div>
 

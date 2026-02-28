@@ -83,6 +83,16 @@ class UserBase(BaseModel):
         description="Operating / available hours",
         example="08:00-18:00"
     )
+    latitude: Optional[float] = Field(
+        None,
+        description="Latitude coordinate for map location",
+        example=-21.7642
+    )
+    longitude: Optional[float] = Field(
+        None,
+        description="Longitude coordinate for map location",
+        example=-43.3502
+    )
 
 class UserCreate(UserBase):
     # Shelter-specific fields (creates DeliveryLocation automatically)
@@ -222,6 +232,7 @@ class DeliveryResponse(BaseModel):
     batch_id: Optional[int] = None
     location_id: int
     volunteer_id: Optional[int] = None
+    parent_delivery_id: Optional[int] = None
     product_type: ProductType
     quantity: int
     status: DeliveryStatus

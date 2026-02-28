@@ -134,7 +134,7 @@ export function formatBatchStatus(status) {
 }
 
 /**
- * Retorna o display format para um tipo de produto
+ * Retorna o display format para um tipo de produto (plural)
  */
 export function formatProductType(type) {
   const typeMap = {
@@ -149,6 +149,34 @@ export function formatProductType(type) {
   };
   
   return typeMap[type] || type;
+}
+
+/**
+ * Retorna o display format para um tipo de produto no singular
+ */
+export function formatProductTypeSingular(type) {
+  const typeMap = {
+    [ProductType.MEAL]: 'marmita',
+    [ProductType.INGREDIENT]: 'insumo',
+    [ProductType.CLOTHING]: 'roupa',
+    [ProductType.HYGIENE]: 'item de higiene',
+    [ProductType.CLEANING]: 'item de limpeza',
+    [ProductType.SCHOOL_SUPPLIES]: 'material escolar',
+    [ProductType.BABY_ITEMS]: 'item de bebê',
+    [ProductType.PET_SUPPLIES]: 'item para pet'
+  };
+  
+  return typeMap[type] || type;
+}
+
+/**
+ * Retorna o nome formatado do produto com quantidade (singular/plural automático)
+ */
+export function formatProductWithQuantity(type, quantity) {
+  if (quantity === 1) {
+    return formatProductTypeSingular(type);
+  }
+  return formatProductType(type).toLowerCase();
 }
 
 /**

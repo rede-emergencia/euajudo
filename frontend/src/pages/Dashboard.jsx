@@ -85,7 +85,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </Link>
-            <Link to="/mapa" className="card hover:shadow-lg transition-shadow">
+            <Link to="/" className="card hover:shadow-lg transition-shadow">
               <div className="flex items-center space-x-4">
                 <Truck className="h-10 w-10 text-blue-600" />
                 <div>

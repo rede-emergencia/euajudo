@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Package } from 'lucide-react';
+import { handlePhoneChange } from '../utils/phoneMask';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -69,8 +70,8 @@ export default function Register() {
           <div className="flex justify-center mb-4">
             <Package className="h-16 w-16 text-primary-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">EuAjudo</h1>
-          <p className="text-gray-600 mt-2">Cadastre-se para ajudar</p>
+          <h1 className="text-3xl font-bold text-gray-900">Vou Ajudar</h1>
+          <p className="text-gray-600 mt-2">Cadastre-se como voluntário ou ponto de coleta</p>
         </div>
 
         <div className="card">
@@ -106,8 +107,10 @@ export default function Register() {
                 <input
                   type="tel"
                   value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                  onChange={(e) => handlePhoneChange(e, (value) => setFormData({ ...formData, telefone: value }))}
                   className="input"
+                  placeholder="(00) 00000-0000"
+                  maxLength="15"
                 />
               </div>
 

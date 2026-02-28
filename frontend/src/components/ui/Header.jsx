@@ -108,7 +108,7 @@ export default function Header({
       }}>
         {/* Logo */}
         <div
-          onClick={() => onNavigate('/mapa')}
+          onClick={() => onNavigate('/')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -135,7 +135,7 @@ export default function Header({
             <TabButton
               key={item.id}
               active={activeTab === item.id}
-              onClick={() => onNavigate(item.id === 'mapa' ? '/mapa' : '/dashboard')}
+              onClick={() => onNavigate(item.id === 'mapa' ? '/' : '/dashboard')}
               icon={item.icon}
             >
               {item.label}
@@ -264,7 +264,7 @@ export default function Header({
                 key={item.id}
                 active={activeTab === item.id}
                 onClick={() => {
-                  onNavigate(item.id === 'mapa' ? '/mapa' : '/dashboard');
+                  onNavigate(item.id === 'mapa' ? '/' : '/dashboard');
                   setMobileMenuOpen(false);
                 }}
                 icon={item.icon}

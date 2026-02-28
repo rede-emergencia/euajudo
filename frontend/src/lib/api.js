@@ -149,14 +149,5 @@ export const lotesMarmita = batches;
 export const locaisProducao = locations;
 export const reservasMarmita = deliveries;
 export const entregasMarmita = deliveries;
-export const pedidosInsumoPublic = {
-  list: (cityId = null, status = 'REQUESTING') => {
-    let url = '/api/resources/requests';
-    const params = {};
-    if (cityId) params.city_id = cityId;
-    if (status) params.status = status;
-    return api.get(url, { params });
-  },
-};
 
 export default api;

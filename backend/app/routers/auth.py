@@ -21,10 +21,9 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Providers require admin approval; volunteers and shelters are auto-approved
-    approved = True
-    if "provider" in user.roles:
-        approved = False
+    # Auto-approve admin and volunteer users
+    # Vou Ajudar: Apenas providers e shelters precisam de aprovação
+    approved = user.roles in ['admin', 'volunteer']
 
     new_user = User(
         email=user.email,
@@ -38,6 +37,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         production_capacity=user.production_capacity,
         delivery_capacity=user.delivery_capacity,
         operating_hours=user.operating_hours,
+        latitude=user.latitude,
+        longitude=user.longitude,
         approved=approved
     )
 

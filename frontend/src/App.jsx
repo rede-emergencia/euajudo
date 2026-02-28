@@ -4,7 +4,6 @@ import { AuthProvider } from './contexts/AuthContext';
 import { UserStateProvider } from './contexts/UserStateContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import Home from './pages/Home';
 import MapView from './pages/MapView';
 import ProviderDashboard from './pages/ProviderDashboard';
 import VolunteerDashboard from './pages/VolunteerDashboard';
@@ -153,8 +152,6 @@ function App() {
           }}>
             <Routes>
             <Route path="/" element={<MapView />} />
-            <Route path="/home" element={<Home onOperationStatusChange={setIsInOperation} />} />
-            <Route path="/mapa" element={<Navigate to="/" replace />} />
             <Route 
               path="/minhas-entregas" 
               element={

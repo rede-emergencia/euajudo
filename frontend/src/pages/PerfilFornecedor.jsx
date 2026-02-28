@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { users } from '../lib/api';
-import { MapPin, Save, X, Phone, Store, Clock, Package, Utensils, Pill, Shirt, Droplet } from 'lucide-react';
+import { MapPin, Phone, Mail, Package, Clock, Edit2, Save, X } from 'lucide-react';
+import { handlePhoneChange } from '../utils/phoneMask';
 
 export default function PerfilFornecedor() {
   const { user, updateUser } = useAuth();
@@ -209,8 +209,10 @@ export default function PerfilFornecedor() {
                 <input
                   type="tel"
                   value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                  onChange={(e) => handlePhoneChange(e, (value) => setFormData({ ...formData, telefone: value }))}
                   disabled={!editing}
+                  placeholder="(00) 00000-0000"
+                  maxLength="15"
                   style={{
                     width: '100%',
                     padding: '8px 12px',

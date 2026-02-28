@@ -38,6 +38,14 @@
     @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
   }
   
+  .btn-emergency {
+    @apply bg-emergency-600 text-white hover:bg-emergency-700 focus:ring-emergency-500;
+  }
+  
+  .btn-success {
+    @apply bg-success-600 text-white hover:bg-success-700 focus:ring-success-500;
+  }
+  
   .btn-secondary {
     @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
   }

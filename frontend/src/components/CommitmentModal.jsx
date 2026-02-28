@@ -71,7 +71,10 @@ export default function CommitmentModal({
   const getProductInfo = (productType) => {
     const info = {
       meal: { icon: Package, name: 'Marmitas', color: 'text-orange-600' },
-      medicine: { icon: Pill, name: 'Medicamentos', color: 'text-green-600' }
+      clothing: { icon: Package, name: 'Roupas', color: 'text-purple-600' },
+      medicine: { icon: Pill, name: 'Medicamentos', color: 'text-green-600' },
+      hygiene: { icon: Package, name: 'Itens de Higiene', color: 'text-blue-600' },
+      cleaning: { icon: Package, name: 'Produtos de Limpeza', color: 'text-yellow-600' }
     };
     return info[productType] || info.meal;
   };
@@ -114,7 +117,7 @@ export default function CommitmentModal({
                       <Icon className={getProductInfo(productType).color} size={16} />
                       <span className="font-medium text-sm">{getProductInfo(productType).name}</span>
                     </div>
-                    <span className="text-xs text-gray-600 font-medium">{maxQty} disp</span>
+                    <span className="text-xs text-gray-600 font-medium">{maxQty} {getProductInfo(productType).name.toLowerCase()}</span>
                   </div>
                   <input
                     type="number"

@@ -214,7 +214,7 @@ export default function VolunteerDashboard() {
             title="Nenhuma entrega ativa"
             description="Você não está fazendo nenhuma entrega no momento. Vá para o mapa para se voluntariar!"
             action={
-              <Button onClick={() => window.location.href = '/mapa'}>
+              <Button onClick={() => window.location.href = '/'}>
                 Ver Mapa de Entregas
               </Button>
             }
@@ -343,7 +343,7 @@ export default function VolunteerDashboard() {
             title="Nenhuma doação ativa"
             description="Você não está fazendo nenhuma doação/compra no momento. Vá para o mapa para ajudar!"
             action={
-              <Button onClick={() => window.location.href = '/mapa'}>
+              <Button onClick={() => window.location.href = '/'}>
                 Ver Mapa de Doações
               </Button>
             }

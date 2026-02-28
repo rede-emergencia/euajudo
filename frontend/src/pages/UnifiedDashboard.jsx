@@ -375,15 +375,15 @@ function QuickActions({ role, navigate }) {
   const actions = {
     provider: [
       { label: 'Publicar oferta', emoji: '📦', route: '/dashboard/fornecedor' },
-      { label: 'Ver mapa', emoji: '🗺️', route: '/' },
+      { label: 'Ver mapa', emoji: '🗺️', route: '/map' },
     ],
     volunteer: [
-      { label: 'Ver entregas disponíveis', emoji: '🗺️', route: '/' },
+      { label: 'Ver entregas disponíveis', emoji: '🗺️', route: '/map' },
       { label: 'Minhas entregas', emoji: '🚚', route: '/dashboard/voluntario' },
     ],
     shelter: [
       { label: 'Fazer pedido', emoji: '📋', route: '/dashboard/abrigo' },
-      { label: 'Ver mapa', emoji: '🗺️', route: '/' },
+      { label: 'Ver mapa', emoji: '🗺️', route: '/map' },
     ],
   };
 

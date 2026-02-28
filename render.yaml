@@ -25,7 +25,7 @@ services:
       - key: DEBUG
         value: false
       - key: CORS_ORIGINS
-        value: https://euajudo-frontend.onrender.com,https://euajudo-api.onrender.com
+        value: https://euajudo-frontend.onrender.com,https://euajudo-api.onrender.com,https://vouajudar.org,https://api.vouajudar.org
     domains:
       - euajudo-api.onrender.com
 
@@ -39,7 +39,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://euajudo-api.onrender.com
+        value: https://api.vouajudar.org
     domains:
       - euajudo-frontend.onrender.com
 

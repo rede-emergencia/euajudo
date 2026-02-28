@@ -19,7 +19,7 @@ export default function Layout({ children }) {
             <div className="flex items-center space-x-8">
               <Link to="/" className="flex items-center space-x-2">
                 <Package className="h-8 w-8 text-primary-600" />
-                <span className="text-xl font-bold text-gray-900">EuAjudo</span>
+                <span className="text-xl font-bold text-gray-900">Vou Ajudar</span>
               </Link>
               
               {user && (

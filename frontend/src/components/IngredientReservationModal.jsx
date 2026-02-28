@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { resourceReservations } from '../lib/api';
 import IngredientReservationSuccessModal from './IngredientReservationSuccessModal';
+import { formatProductWithQuantity } from '../shared/enums';
 
 /**
  * Modal for volunteers to reserve specific ingredients and quantities
@@ -168,7 +169,7 @@ export default function IngredientReservationModal({
               🛒 {request.provider?.name}
             </h2>
             <p style={{ margin: '2px 0 0 0', color: '#6b7280', fontSize: '13px' }}>
-              Para {request.quantity_meals} marmitas
+              Para {request.quantity_meals} {formatProductWithQuantity(request.product_type, request.quantity_meals)}
             </p>
           </div>
           <button

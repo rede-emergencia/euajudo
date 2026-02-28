@@ -107,7 +107,7 @@ export default function Login() {
             <Package className="h-16 w-16 text-primary-600" />
           </div>
           <div className="flex items-center justify-center gap-2">
-            <h1 className="text-3xl font-bold text-gray-900">EuAjudo</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Vou Ajudar</h1>
             {isBetaMode && (
               <div className="flex items-center gap-1 bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-sm font-medium">
                 <TestTube className="h-4 w-4" />

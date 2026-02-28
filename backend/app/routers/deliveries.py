@@ -233,6 +233,8 @@ def commit_to_delivery(
     # Get quantity to commit (partial or full)
     quantity_to_commit = request.get("quantity", delivery.quantity)
     
+    print(f"🔍 DEBUG: Delivery ID={delivery.id}, original_quantity={delivery.quantity}, requested_quantity={quantity_to_commit}")
+    
     if quantity_to_commit <= 0 or quantity_to_commit > delivery.quantity:
         raise HTTPException(
             status_code=400,
@@ -246,49 +248,42 @@ def commit_to_delivery(
         if not batch:
             raise HTTPException(status_code=404, detail="Batch not found")
     
-    # If partial commitment, split the delivery
-    if quantity_to_commit < delivery.quantity:
-        # Reduce batch available quantity TEMPORARILY (until confirmation) - only if batch exists
-        if batch:
-            batch.quantity_available -= quantity_to_commit
-        
-        # Create new delivery for the committed portion
-        committed_delivery = Delivery(
-            batch_id=delivery.batch_id,
-            location_id=delivery.location_id,
-            volunteer_id=current_user.id,
-            product_type=delivery.product_type,
-            quantity=quantity_to_commit,
-            status=DeliveryStatus.PENDING_CONFIRMATION,  # Mudado para PENDING_CONFIRMATION
-            accepted_at=datetime.utcnow(),
-            expires_at=datetime.utcnow() + timedelta(hours=24),
-            pickup_code=ConfirmationCodeValidator.generate_code(),
-            delivery_code=ConfirmationCodeValidator.generate_code()
-        )
-        
-        # Reduce original delivery quantity
-        delivery.quantity -= quantity_to_commit
-        
-        db.add(committed_delivery)
-        db.commit()
-        db.refresh(committed_delivery)
-        return committed_delivery
-    else:
-        # Full commitment - assign volunteer to existing delivery
-        # Reduce batch available quantity TEMPORARILY (until confirmation) - only if batch exists
-        if batch:
-            batch.quantity_available -= quantity_to_commit
-        
-        delivery.volunteer_id = current_user.id
-        delivery.status = DeliveryStatus.PENDING_CONFIRMATION  # Mudado para PENDING_CONFIRMATION
-        delivery.accepted_at = datetime.utcnow()
-        delivery.expires_at = datetime.utcnow() + timedelta(hours=24)
-        delivery.pickup_code = ConfirmationCodeValidator.generate_code()
-        delivery.delivery_code = ConfirmationCodeValidator.generate_code()
-        
-        db.commit()
-        db.refresh(delivery)
-        return delivery
+    # Always create split delivery for proper tracking and cancellation
+    # This ensures we can restore quantities correctly when cancelled
+    print(f"🔍 DEBUG: Creating split delivery - original: {delivery.quantity}, committed: {quantity_to_commit}")
+    
+    # Reduce batch available quantity TEMPORARILY (until confirmation) - only if batch exists
+    if batch:
+        batch.quantity_available -= quantity_to_commit
+    
+    # Create new delivery for the committed portion
+    committed_delivery = Delivery(
+        batch_id=delivery.batch_id,
+        location_id=delivery.location_id,
+        volunteer_id=current_user.id,
+        parent_delivery_id=delivery.id,  # Track the original delivery
+        product_type=delivery.product_type,
+        quantity=quantity_to_commit,
+        status=DeliveryStatus.PENDING_CONFIRMATION,
+        accepted_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(hours=24),
+        pickup_code=ConfirmationCodeValidator.generate_code(),
+        delivery_code=ConfirmationCodeValidator.generate_code()
+    )
+    
+    # Reduce original delivery quantity
+    delivery.quantity -= quantity_to_commit
+    
+    # Keep original delivery even with 0 quantity to allow restoration
+    # This ensures we can restore the quantity when cancelled
+    if delivery.quantity == 0:
+        print(f"� Original delivery {delivery.id} has 0 quantity, keeping for restoration")
+        # Don't delete - keep it for potential restoration
+    
+    db.add(committed_delivery)
+    db.commit()
+    db.refresh(committed_delivery)
+    return committed_delivery
 
 @router.post("/{delivery_id}/validate-pickup", response_model=DeliveryResponse)
 def validate_pickup(
@@ -373,6 +368,8 @@ def cancel_delivery(
     if not delivery:
         raise HTTPException(status_code=404, detail="Delivery not found")
     
+    print(f"🔍 DEBUG CANCEL: Delivery ID={delivery_id}, quantity={delivery.quantity}, parent_id={delivery.parent_delivery_id}, batch_id={delivery.batch_id}")
+    
     # Check authorization
     if delivery.volunteer_id != current_user.id:
         # Allow providers to cancel their own batch deliveries
@@ -390,15 +387,26 @@ def cancel_delivery(
             detail="Cannot cancel delivery after pickup. You must complete the delivery."
         )
     
-    # Return quantity to batch (if has batch)
+    # Return quantity based on delivery type
     quantity_returned = 0
+    
     if delivery.batch_id:
+        # Has batch - return to batch.quantity_available
         batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
         if batch:
             batch.quantity_available += delivery.quantity
             quantity_returned = delivery.quantity
+    elif delivery.parent_delivery_id:
+        # This is a split delivery - return quantity to parent delivery
+        parent_delivery = db.query(Delivery).filter(Delivery.id == delivery.parent_delivery_id).first()
+        if parent_delivery:
+            parent_delivery.quantity += delivery.quantity
+            quantity_returned = delivery.quantity
+        else:
+            # Parent not found (shouldn't happen) - just delete
+            quantity_returned = delivery.quantity
     else:
-        # For direct deliveries (no batch), just delete - quantity was virtual
+        # Direct delivery without parent - just delete
         quantity_returned = delivery.quantity
     
     db.delete(delivery)

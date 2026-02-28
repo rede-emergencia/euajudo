@@ -11,6 +11,24 @@ const UserStateContext = createContext(null);
  * Garante que cada usuário só pode ter UMA ação ativa por vez
  * Sincroniza estados com backend e atualiza UI em tempo real
  */
+// Função para traduzir nomes dos produtos para português
+const getProductNameInPortuguese = (productType) => {
+  switch (productType) {
+    case 'meal':
+      return 'marmitas';
+    case 'clothing':
+      return 'roupas';
+    case 'medicine':
+      return 'medicamentos';
+    case 'water':
+      return 'água';
+    case 'food':
+      return 'alimentos';
+    default:
+      return productType || 'itens';
+  }
+};
+
 export function UserStateProvider({ children }) {
   const { user } = useAuth();
   
@@ -173,8 +191,8 @@ export function UserStateProvider({ children }) {
             type: 'delivery',
             id: delivery.id,
             status: delivery.status,
-            title: delivery.status === 'pending_confirmation' || delivery.status === 'reserved' ? 'Retirada em Andamento' : 'Entrega em Andamento',
-            description: `${delivery.quantity} ${delivery.product_type || 'itens'} para ${delivery.location?.name}`,
+            title: delivery.status === 'pending_confirmation' || delivery.status === 'reserved' ? 'Entrega em Andamento' : 'Entrega em Andamento',
+            description: `${delivery.quantity} ${getProductNameInPortuguese(delivery.product_type)} para ${delivery.location?.name}`,
             createdAt: delivery.created_at,
             pickup_code: delivery.pickup_code,
             delivery_code: delivery.delivery_code,

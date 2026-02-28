@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useWidget } from '../../hooks/useDashboard';
 import { dashboardApi } from '../../lib/dashboardApi';
-import { display, colorClass } from '../../shared/enums';
+import { display, colorClass, formatProductWithQuantity } from '../../shared/enums';
 
 export default function ListWidget({ widget, onActionComplete }) {
   const { data, loading, error, reload } = useWidget(widget.id);
@@ -48,7 +48,7 @@ export default function ListWidget({ widget, onActionComplete }) {
                 {item.product_type === 'meal' ? '🍱' : '📦'}
               </span>
               <span className="font-bold text-lg">
-                {item.quantity} {item.product_type === 'meal' ? 'marmitas' : 'itens'}
+                {item.quantity} {formatProductWithQuantity(item.product_type, item.quantity)}
               </span>
             </div>
           )}

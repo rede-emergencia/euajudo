@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { X, User } from 'lucide-react';
+import { X, User, ChevronDown } from 'lucide-react';
+import { formatPhone } from '../utils/phoneMask';
 
 const ROLE_INFO = {
   volunteer: {
@@ -74,7 +75,7 @@ function Divider({ label }) {
 }
 
 // ─── Base fields shared by all roles ───────────────────────────────────────
-function BaseFields({ formData, onChange }) {
+function BaseFields({ formData, onChange, setFormData }) {
   return (
     <>
       <InputField label="Nome Completo" required>
@@ -84,7 +85,20 @@ function BaseFields({ formData, onChange }) {
         <Input type="email" name="email" value={formData.email} onChange={onChange} required />
       </InputField>
       <InputField label="Telefone" required>
-        <Input type="tel" name="phone" value={formData.phone} onChange={onChange} placeholder="(00) 00000-0000" required />
+        <Input 
+          type="tel" 
+          name="phone" 
+          value={formData.phone} 
+          onChange={(e) => {
+            console.log('Telefone onChange - valor original:', e.target.value);
+            const formatted = formatPhone(e.target.value);
+            console.log('Telefone formatado:', formatted);
+            setFormData(prev => ({ ...prev, phone: formatted }));
+          }} 
+          placeholder="(00) 00000-0000" 
+          maxLength="15"
+          required 
+        />
       </InputField>
       <InputField label="Senha" required>
         <Input type="password" name="password" value={formData.password} onChange={onChange} minLength="6" required />
@@ -114,15 +128,10 @@ export default function RegisterModal({ isOpen, onClose }) {
   const handleChange = (e) => {
     let value = e.target.value;
     
-    // Máscara para telefone
-    if (e.target.name === 'phone') {
-      value = value
-        .replace(/\D/g, '')
-        .replace(/^(\d{2})(\d)/g, '($1) $2')
-        .replace(/(\d)(\d{4})$/, '$1-$2');
+    // Para campos que não são telefone, usa o onChange normal
+    if (e.target.name !== 'phone') {
+      setFormData({ ...formData, [e.target.name]: value });
     }
-    
-    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handleSubmit = async (e) => {
@@ -130,13 +139,45 @@ export default function RegisterModal({ isOpen, onClose }) {
     setError('');
     setLoading(true);
 
+    // Validar campos
+    if (!formData.name || !formData.email || !formData.password || !formData.phone) {
+      setError('Por favor, preencha todos os campos obrigatórios.');
+      setLoading(false);
+      return;
+    }
+
+    // Validar telefone - deve ter pelo menos 10 dígitos (sem formatação)
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10) {
+      setError('Telefone incompleto. Digite pelo menos 10 dígitos incluindo DDD.');
+      setLoading(false);
+      return;
+    }
+
+    // Validar formato do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Email inválido. Digite um endereço de email válido.');
+      setLoading(false);
+      return;
+    }
+
+    // Validar senha - mínimo 6 caracteres
+    if (formData.password.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.');
+      setLoading(false);
+      return;
+    }
+
     const payload = {
-      name: formData.name,
-      email: formData.email,
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
       password: formData.password,
       phone: formData.phone,
       roles: 'volunteer',
     };
+
+    console.log('📤 Payload enviado no cadastro:', payload);
 
     try {
       await register(payload);
@@ -161,7 +202,35 @@ export default function RegisterModal({ isOpen, onClose }) {
       }
     } catch (err) {
       console.error('❌ Erro no cadastro:', err);
-      const errorMessage = err.response?.data?.detail || 'Erro ao criar conta. Tente novamente.';
+      
+      // Extrair mensagem de erro corretamente
+      let errorMessage = 'Erro ao criar conta. Tente novamente.';
+      
+      if (err.response?.data) {
+        const errorData = err.response.data;
+        
+        // Se for um objeto com detalhes
+        if (errorData.detail) {
+          if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else if (Array.isArray(errorData.detail)) {
+            // Se for um array de erros de validação
+            errorMessage = errorData.detail.map(item => 
+              typeof item === 'string' ? item : 
+              item.msg || 'Erro de validação'
+            ).join('; ');
+          } else if (typeof errorData.detail === 'object') {
+            errorMessage = 'Erro de validação. Verifique os campos preenchidos.';
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -227,7 +296,7 @@ export default function RegisterModal({ isOpen, onClose }) {
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <BaseFields formData={formData} onChange={handleChange} />
+            <BaseFields formData={formData} onChange={handleChange} setFormData={setFormData} />
 
             <button
               type="submit"

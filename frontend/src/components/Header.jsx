@@ -63,7 +63,7 @@ function FilterChip({ icon: Icon, label, active, color, onClick, count }) {
   );
 }
 
-export default function Header({ showFilters = false, onFilterChange, currentFilter, onLoginClick = () => { }, onOperationStatusChange }) {
+export default function Header({ showFilters = false, onFilterChange, currentFilter, onLoginClick = () => { }, onRegisterClick = () => { }, onOperationStatusChange }) {
   const { user } = useAuth();
   const { userState, colors, refreshState, activeOperations } = useUserState();
   const navigate = useNavigate();
@@ -131,6 +131,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
   };
 
   const getDashboardRoute = () => {
+    if (user?.roles?.includes('admin')) return '/dashboard/admin';
     if (user?.roles?.includes('provider')) return '/dashboard/fornecedor';
     if (user?.roles?.includes('shelter')) return '/dashboard/abrigo';
     if (user?.roles?.includes('volunteer')) return '/dashboard/voluntario';
@@ -253,12 +254,33 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
       onSuccess: (result) => {
         console.log('✅ Header: Cancelamento sucesso:', result);
         showNotification('✅ Operação cancelada com sucesso!', 'success');
+        
+        // Evitar múltiplos eventos
+        if (window.cancelEventFired) {
+          console.log('⏸️ Evento de cancelamento já foi disparado');
+          return;
+        }
+        
+        window.cancelEventFired = true;
+        
+        // Forçar atualização do estado
+        console.log('🔄 Header: Disparando refreshState...');
         refreshState();
-        // Segunda atualização após delay para garantir sincronização
+        
+        // Disparar evento manualmente para garantir atualização do mapa
+        console.log('🔄 Header: Disparando evento userStateChange manualmente...');
+        window.dispatchEvent(new CustomEvent('userStateChange', {
+          detail: {
+            action: 'cancelled',
+            timestamp: Date.now(),
+            source: 'header_cancel'
+          }
+        }));
+        
+        // Resetar flag após 2 segundos
         setTimeout(() => {
-          console.log('🔄 Segunda atualização após cancelamento...');
-          refreshState();
-        }, 1500);
+          window.cancelEventFired = false;
+        }, 2000);
       },
       onError: (result) => {
         console.log('❌ Header: Cancelamento erro:', result);
@@ -369,7 +391,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {/* Logo */}
           <div
-            onClick={() => navigate('/mapa')}
+            onClick={() => navigate('/')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -379,7 +401,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
           >
             <Package style={{ width: '28px', height: '28px', color: '#2563eb' }} />
             <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>EuAjudo</h1>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>Vou Ajudar</h1>
               <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>
                 {activeOperations.length > 0
                   ? `⚡ ${activeOperations.length} Operação(ões)`
@@ -517,6 +539,33 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                           <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{user.nome}</p>
                           <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>{user.email}</p>
                         </div>
+                        {user && user.roles.includes('admin') && (
+                        <button
+                          onClick={() => {
+                            navigate(getDashboardRoute() || '/');
+                            setShowUserMenu(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '12px 16px',
+                            border: 'none',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#374151',
+                            borderRadius: '6px',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#f9fafb'}
+                          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <Home size={16} />
+                          Dashboard
+                        </button>
+                        )}
                         <button
                           onClick={handleLogout}
                           style={{
@@ -546,21 +595,52 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                 </div>
               </>
             ) : (
-              <button
-                data-testid="login-button"
-                onClick={onLoginClick}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: 'none',
-                  color: '#374151',
-                  cursor: 'pointer',
-                  fontWeight: '500'
-                }}
-              >
-                Login
-              </button>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <button
+                  data-testid="register-button"
+                  onClick={onRegisterClick}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: '1px solid #2563eb',
+                    background: 'white',
+                    color: '#2563eb',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = '#eff6ff';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = 'white';
+                  }}
+                >
+                  Cadastrar
+                </button>
+                <button
+                  data-testid="login-button"
+                  onClick={onLoginClick}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.background = '#1d4ed8';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.background = '#2563eb';
+                  }}
+                >
+                  Login
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -734,6 +814,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                   <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#6b7280' }}>
                     Você não tem nenhuma operação em andamento no momento
                   </p>
+                  {user && user.roles.includes('admin') && (
                   <button
                     onClick={() => {
                       navigate(getDashboardRoute() || '/');
@@ -752,6 +833,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                   >
                     Ver Dashboard
                   </button>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -854,17 +936,29 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                               onClick={() => handleCancelClick(operation)}
                               style={{
                                 flex: 1,
-                                background: '#ef4444',
+                                background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
                                 color: 'white',
-                                border: 'none',
-                                padding: '6px 12px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                cursor: 'pointer'
+                                border: '1px solid #b91c1c',
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseOver={(e) => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                                e.currentTarget.style.boxShadow = '0 4px 8px rgba(220, 38, 38, 0.3)';
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 2px 4px rgba(220, 38, 38, 0.2)';
                               }}
                             >
-                              Cancelar
+                              Cancelar Entrega
                             </button>
                           )}
 
@@ -902,20 +996,29 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                             )}
                             style={{
                               flex: 1,
-                              background: '#16a34a',
+                              background: 'linear-gradient(135deg, #059669 0%, #16a34a 100%)',
                               color: 'white',
-                              border: 'none',
-                              padding: '6px 12px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: '500',
+                              border: '1px solid #047857',
+                              padding: '8px 16px',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              fontWeight: '600',
                               cursor: 'pointer',
-                              transition: 'background 0.2s'
+                              boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)',
+                              transition: 'all 0.2s ease'
                             }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#15803d'}
-                            onMouseOut={(e) => e.currentTarget.style.background = '#16a34a'}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = 'linear-gradient(135deg, #047857 0%, #059669 100%)';
+                              e.currentTarget.style.transform = 'translateY(-1px)';
+                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(5, 150, 105, 0.3)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = 'linear-gradient(135deg, #059669 0%, #16a34a 100%)';
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(5, 150, 105, 0.2)';
+                            }}
                           >
-                            📦 Entregar Itens (no Dashboard)
+                            ✅ Confirmar Entrega
                           </button>
                         )}
                       </div>
@@ -926,7 +1029,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
             </div>
 
             {/* Footer */}
-            {userState.activeOperation && (
+            {userState.activeOperation && user && user.roles.includes('admin') && (
               <div style={{
                 marginTop: '24px',
                 paddingTop: '16px',

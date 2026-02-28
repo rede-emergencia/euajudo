@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { deliveries, resourceReservations } from '../lib/api';
+import { formatProductWithQuantity } from '../shared/enums';
 
 // Adicionar CSS para animação
 const style = document.createElement('style');
@@ -104,7 +105,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
               type: 'delivery',
               id: delivery.id,
               title: 'Entrega em Andamento',
-              description: `${delivery.quantity} marmitas para ${delivery.location?.name}`,
+              description: `${delivery.quantity} ${formatProductWithQuantity(delivery.product_type, delivery.quantity)} para ${delivery.location?.name}`,
               step: delivery.status === 'reserved' ? 1 : delivery.status === 'picked_up' ? 2 : 3,
               totalSteps: 4,
               stepLabel: delivery.status === 'reserved' ? 'Comprometido' : delivery.status === 'picked_up' ? 'Retirado' : 'Em trânsito',

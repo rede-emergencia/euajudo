@@ -219,29 +219,68 @@ class CancelService:
     def _cancel_delivery_logic(self, delivery: Delivery, user_id: int, reason: str) -> CancelResult:
         """Lógica específica para cancelamento de delivery"""
         try:
-            # Retornar quantidade ao batch
+            print(f"🔍 DEBUG CANCEL SERVICE: Delivery ID={delivery.id}, quantity={delivery.quantity}, parent_id={delivery.parent_delivery_id}, batch_id={delivery.batch_id}")
+            
+            quantity_returned = 0
+            
             if delivery.batch_id:
-                batch = self.db.query(ProductBatch).filter(
-                    ProductBatch.id == delivery.batch_id
-                ).first()
-                
+                # Has batch - return to batch.quantity_available
+                batch = self.db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
                 if batch:
                     old_quantity = batch.quantity_available
                     batch.quantity_available += delivery.quantity
-                    print(f"🔄 Restaurando quantidade: batch {batch.id} de {old_quantity} para {batch.quantity_available}")
-                    self.db.commit()  # Commit imediato para garantir persistência
-                    
-                    # Verificar se atualizou
-                    self.db.refresh(batch)
-                    print(f"✅ Quantidade atualizada no banco: {batch.quantity_available}")
+                    quantity_returned = delivery.quantity
+                    print(f"🔄 Restaurando quantidade ao batch {batch.id}: {old_quantity} → {batch.quantity_available}")
+            elif delivery.parent_delivery_id:
+                # This is a split delivery - return quantity to parent delivery
+                parent_delivery = self.db.query(Delivery).filter(Delivery.id == delivery.parent_delivery_id).first()
+                if parent_delivery:
+                    old_quantity = parent_delivery.quantity
+                    parent_delivery.quantity += delivery.quantity
+                    quantity_returned = delivery.quantity
+                    print(f"🔄 Restaurando quantidade ao parent delivery {parent_delivery.id}: {old_quantity} → {parent_delivery.quantity}")
+                    print(f"✅ Parent delivery restaurado com {parent_delivery.quantity} itens - PONTO VOLTA A VERMELHO")
+                else:
+                    # Parent not found (shouldn't happen) - just delete
+                    quantity_returned = delivery.quantity
+                    print(f"⚠️ Parent delivery {delivery.parent_delivery_id} não encontrado")
+            else:
+                # Direct delivery without parent - just delete
+                quantity_returned = delivery.quantity
+                print(f"🗑️ Delivery direta sem parent, apenas deletando")
             
-            return CancelResult(success=True, message="Delivery logic executed")
+            return CancelResult(success=True, message=f"Delivery cancelled, quantity returned: {quantity_returned}")
             
         except Exception as e:
             self.db.rollback()
+            print(f"❌ Erro no cancelamento: {str(e)}")
             return CancelResult(
                 success=False,
                 message=f"Error in delivery cancel logic: {str(e)}"
+            )
+    
+    def _complete_delivery_logic(self, delivery: Delivery, user_id: int) -> CancelResult:
+        """Lógica para finalização de delivery - deleta parent se todos itens foram entregues"""
+        try:
+            print(f"🔍 DEBUG COMPLETE: Delivery ID={delivery.id}, parent_id={delivery.parent_delivery_id}")
+            
+            if delivery.parent_delivery_id:
+                # Check if this was the complete delivery (all items)
+                parent_delivery = self.db.query(Delivery).filter(Delivery.id == delivery.parent_delivery_id).first()
+                if parent_delivery and parent_delivery.quantity == 0:
+                    print(f"🗑️ Parent delivery {parent_delivery.id} tem 0 itens e foi completamente entregue - deletando")
+                    self.db.delete(parent_delivery)
+                else:
+                    print(f"📦 Parent delivery {parent_delivery.id} ainda tem {parent_delivery.quantity if parent_delivery else 'N/A'} itens - mantendo")
+            
+            return CancelResult(success=True, message="Delivery completed successfully")
+            
+        except Exception as e:
+            self.db.rollback()
+            print(f"❌ Erro na finalização: {str(e)}")
+            return CancelResult(
+                success=False,
+                message=f"Error in delivery completion logic: {str(e)}"
             )
     
     def _prepare_entity_data(self, entity) -> Dict[str, Any]:

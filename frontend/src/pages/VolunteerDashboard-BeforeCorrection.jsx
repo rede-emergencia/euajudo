@@ -163,7 +163,7 @@ export default function VolunteerDashboard() {
             title="Nenhuma entrega encontrada"
             description="Você não tem entregas ativas no momento."
             action={
-              <Button onClick={() => window.location.href = '/mapa'}>
+              <Button onClick={() => window.location.href = '/'}>
                 Ver Mapa de Entregas
               </Button>
             }
@@ -256,7 +256,7 @@ export default function VolunteerDashboard() {
             title="Nenhuma reserva encontrada"
             description="Você não tem reservas de doações ativas."
             action={
-              <Button onClick={() => window.location.href = '/mapa'}>
+              <Button onClick={() => window.location.href = '/'}>
                 Ver Mapa de Doações
               </Button>
             }

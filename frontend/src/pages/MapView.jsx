@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   MapPin, X, Phone, Clock,
   Home, Store, Truck, LayoutDashboard,
@@ -17,6 +17,7 @@ import UserStateWidget from '../components/UserStateWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
 import { getProductInfo, getProductText, getProductLocation, getProductAction } from '../lib/productUtils';
+import { formatProductWithQuantity } from '../shared/enums';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 // Sistema de modal único padronizado implementado
@@ -47,7 +48,8 @@ const STATE_COLORS = {
   available: '#10b981',    // Verde - Disponível / Sem necessidade
   urgent: '#ef4444',       // Vermelho - Urgente / Com pedido ativo
   inTransit: '#3b82f6',    // Azul - Em trânsito
-  inactive: '#9ca3af'      // Cinza - Inativo
+  inactive: '#9ca3af',      // Cinza - Inativo
+  participant: '#f97316'    // Laranja - Participante com reserva ativa
 };
 
 // Cores específicas para tipos de localização
@@ -142,12 +144,100 @@ function getStateColor(hasActiveOrder, isInTransit) {
   return STATE_COLORS.available;
 }
 
+// Função escalável para calcular estado baseado no usuário
+function getUserBasedState(location, user, filteredDeliveries) {
+  // Verificar se há deliveries disponíveis (sem volunteer)
+  const availableDeliveries = filteredDeliveries.filter(d => d.status === 'available' && !d.volunteer_id);
+  const hasActiveOrder = filteredDeliveries.length > 0;
+  const hasAvailableItems = availableDeliveries.length > 0;
+  const isCompletelyReserved = hasActiveOrder && !hasAvailableItems;
+  
+  // Verificar se o usuário atual tem reserva neste local
+  const userDeliveries = filteredDeliveries.filter(d => d.volunteer_id === user?.id);
+  const hasUserReservation = userDeliveries.length > 0;
+  const hasUserCompletedDelivery = userDeliveries.some(d => d.status === 'delivered');
+  
+  // Debug logs
+  console.log(`🔍 DEBUG STATE - Location ${location.id}:`, {
+    userId: user?.id,
+    totalDeliveries: filteredDeliveries.length,
+    userDeliveries: userDeliveries.length,
+    hasUserReservation,
+    hasUserCompletedDelivery,
+    userDeliveryDetails: userDeliveries.map(d => ({ id: d.id, status: d.status, quantity: d.quantity }))
+  });
+  
+  // Retornar estado baseado na prioridade do usuário
+  if (hasUserReservation && !hasUserCompletedDelivery) {
+    return {
+      color: STATE_COLORS.participant,  // 🟠 Laranja
+      size: getStateSize(true),
+      titleColor: '#f97316',
+      statusIcon: '🤝',
+      statusText: '🟠 Você tem reserva ativa',
+      hasUserReservation: true,
+      hasUserCompletedDelivery: false,
+      isCompletelyReserved: false,
+      hasAvailableItems: hasAvailableItems
+    };
+  } else if (hasUserCompletedDelivery) {
+    return {
+      color: STATE_COLORS.available,    // 🟢 Verde
+      size: getStateSize(false),
+      titleColor: '#10b981',
+      statusIcon: '✅',
+      statusText: '✅ Entrega completada',
+      hasUserReservation: true,
+      hasUserCompletedDelivery: true,
+      isCompletelyReserved: false,
+      hasAvailableItems: false
+    };
+  } else if (isCompletelyReserved) {
+    return {
+      color: STATE_COLORS.available,    // 🟢 Verde (público)
+      size: getStateSize(false),
+      titleColor: '#10b981',
+      statusIcon: '📍',
+      statusText: '✅ Tudo reservado',
+      hasUserReservation: false,
+      hasUserCompletedDelivery: false,
+      isCompletelyReserved: true,
+      hasAvailableItems: false
+    };
+  } else if (hasActiveOrder) {
+    return {
+      color: STATE_COLORS.urgent,       // 🔴 Vermelho
+      size: getStateSize(true),
+      titleColor: '#ef4444',
+      statusIcon: '🔴',
+      statusText: '🔴 Pedido em aberto',
+      hasUserReservation: false,
+      hasUserCompletedDelivery: false,
+      isCompletelyReserved: false,
+      hasAvailableItems: hasAvailableItems
+    };
+  } else {
+    return {
+      color: STATE_COLORS.available,    // 🟢 Verde
+      size: getStateSize(false),
+      titleColor: '#10b981',
+      statusIcon: '📍',
+      statusText: '✅ Disponível',
+      hasUserReservation: false,
+      hasUserCompletedDelivery: false,
+      isCompletelyReserved: false,
+      hasAvailableItems: false
+    };
+  }
+}
+
 // Função auxiliar para determinar tamanho baseado no estado
 function getStateSize(hasActiveOrder) {
   return hasActiveOrder ? 32 : 28;
 }
 
 export default function MapView() {
+  const [searchParams] = useSearchParams();
   const [activeFilters, setActiveFilters] = useState({ abrigos: true, fornecedores: true, insumos: true });
   const [pendingFilters, setPendingFilters] = useState({ abrigos: true, fornecedores: true, insumos: true });
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -234,15 +324,50 @@ export default function MapView() {
     // Event-driven: recarregar apenas quando necessário, não a cada 10s
   }, []);
 
+  // Verificar se deve mostrar modal de cadastro
+  useEffect(() => {
+    const showRegister = searchParams.get('showRegister');
+    if (showRegister === 'true' && !user) {
+      setShowRegisterModal(true);
+      // Limpar parâmetro da URL para não mostrar novamente
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams, user]);
+
   // Recarregar dados quando estado do usuário mudar (após cancelamento/commitment)
   useEffect(() => {
-    const handleUserStateChange = () => {
-      console.log('🔄 Evento userStateChange recebido - recarregando dados do mapa');
-      loadData();
+    const handleUserStateChange = (event) => {
+      console.log('🔄 Evento userStateChange recebido no MapView:', event.detail);
+      
+      // Evitar múltiplas atualizações simultâneas
+      if (window.mapViewUpdating) {
+        console.log('⏸️ MapView já está atualizando, ignorando...');
+        return;
+      }
+      
+      window.mapViewUpdating = true;
+      console.log('🔄 Recarregando dados do mapa...');
+      
+      // Pequeno delay para garantir que o backend processou
+      setTimeout(async () => {
+        try {
+          await loadData();
+          console.log('✅ Dados do mapa recarregados com sucesso');
+        } catch (error) {
+          console.error('❌ Erro ao recarregar dados do mapa:', error);
+        } finally {
+          window.mapViewUpdating = false;
+        }
+      }, 800);
     };
 
     window.addEventListener('userStateChange', handleUserStateChange);
-    return () => window.removeEventListener('userStateChange', handleUserStateChange);
+    
+    // Limpar flag ao desmontar
+    return () => {
+      window.removeEventListener('userStateChange', handleUserStateChange);
+      window.mapViewUpdating = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -573,16 +698,18 @@ export default function MapView() {
 
           const filteredDeliveries = activeDeliveries;
 
-          const hasActiveOrder = filteredDeliveries.length > 0;
-
-          // Usar ícone Home com cor baseada no estado (consistente com legenda)
-          const color = getStateColor(hasActiveOrder, false);
-          const size = getStateSize(hasActiveOrder);
+          // Calcular estado baseado no usuário de forma escalável
+          const state = getUserBasedState(location, user, filteredDeliveries);
+          const { color, size, titleColor, statusIcon, statusText } = state;
+          
+          // Debug log para verificar a cor
+          console.log(`🎨 DEBUG COLOR - Location ${location.id}:`, {
+            color,
+            statusText,
+            stateKey: state.hasUserReservation ? 'PARTICIPANT' : 'PUBLIC'
+          });
+          
           const icon = makeLucideIcon('home', color, size);
-
-          const titleColor = hasActiveOrder ? '#ef4444' : '#10b981';
-          const statusIcon = hasActiveOrder ? '🔴' : '📍';
-          const statusText = hasActiveOrder ? 'Possui pedido ativo' : 'Sem pedido ativo no momento';
 
           // Agrupar por tipo de produto
           const productTypes = {};
@@ -612,9 +739,19 @@ export default function MapView() {
           let productsHtml = '';
           let buttonsHtml = '';
 
-          if (hasActiveOrder) {
-            productsHtml = '<div style="margin: 8px 0; padding: 8px; background: #fef2f2; border-radius: 6px; border-left: 3px solid #ef4444;">';
-            productsHtml += '<p style="margin: 0 0 6px 0; font-size: 12px; font-weight: bold; color: #dc2626;">📋 Necessidades Ativas:</p>';
+          if (filteredDeliveries.length > 0) {
+            productsHtml = `
+              <div style="
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                border-radius: 6px;
+                padding: 10px;
+                margin-bottom: 10px;
+              ">
+                <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #dc2626;">
+                  Precisa de:
+                </p>
+            `;
 
             // Mostrar deliveries disponíveis (sem voluntário)
             const availableDeliveries = filteredDeliveries.filter(d =>
@@ -623,49 +760,156 @@ export default function MapView() {
 
             availableDeliveries.forEach(delivery => {
               const label = productTypeLabels[delivery.product_type] || delivery.product_type;
-              productsHtml += `<p style="margin: 2px 0; font-size: 12px; color: #374151;">• ${label}: <strong>${delivery.quantity} unidades</strong></p>`;
+              const name = label.replace(/[^\w\s]/gi, '').trim(); // Remove emojis
+              
+              productsHtml += `
+                <div style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  padding: 6px 0;
+                  border-bottom: 1px solid #fecaca;
+                ">
+                  <span style="font-size: 13px; color: #374151; font-weight: 500;">
+                    ${name}
+                  </span>
+                  <span style="font-size: 14px; color: #dc2626; font-weight: 600;">
+                    ${delivery.quantity}
+                  </span>
+                </div>
+              `;
             });
 
-            // Adicionar botão único de comprometer para todos os locais com deliveries disponíveis
-            const locationDeliveries = deliveries.filter(d => d.location_id === location.id && d.status === 'available');
-            if (locationDeliveries.length > 0) {
-              const canCommit = canUserDoDeliveries() && isUserIdle();
-              productsHtml += `
-                <button 
-                  onclick="window.openSimplifiedCommitment(${location.id})"
-                  style="
-                    background: linear-gradient(135deg, #10b981, #3b82f6); 
+            // Remover última borda
+            productsHtml = productsHtml.replace(/border-bottom: 1px solid #fecaca;<\/div>$/, 'border-bottom: none;</div>');
+
+            // Adicionar botão (apenas se usuário não tiver reserva ativa e houver itens disponíveis)
+            if (!state.hasUserReservation && state.hasAvailableItems) {
+              const locationDeliveries = deliveries.filter(d => d.location_id === location.id && d.status === 'available');
+              if (locationDeliveries.length > 0) {
+                const canCommit = canUserDoDeliveries() && isUserIdle();
+                productsHtml += `
+                  <button 
+                    onclick="window.openSimplifiedCommitment(${location.id})"
+                    style="
+                      background: ${canCommit ? '#10b981' : '#d1d5db'};
                     color: white; 
                     border: none; 
-                    padding: 10px 12px; 
+                    padding: 8px 12px; 
                     border-radius: 6px; 
                     cursor: ${canCommit ? 'pointer' : 'not-allowed'}; 
-                    font-size: 12px; 
+                    font-size: 13px; 
                     width: 100%; 
                     margin-top: 8px; 
-                    font-weight: 600;
-                    opacity: ${canCommit ? '1' : '0.6'};
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                    font-weight: 500;
+                  "
                   title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer' : 'Comprometer-se com entregas'}"
                 >
-                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : '🤝 Comprometer Entrega'}
+                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : '🤝 Ajudar'}
                 </button>
-              `;
+                ${!canUserDoDeliveries() || !isUserIdle() ? '<p style="margin: 4px 0 0 0; font-size: 10px; color: #6b7280; font-style: italic;">' + (!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer' : 'Finalize sua entrega atual para ajudar') + '</p>' : ''}
+                `;
+              }
             }
 
             productsHtml += '</div>';
           }
 
           marker.bindPopup(`
-            <div style="min-width: 250px;">
-              <h3 style="margin: 0 0 8px 0; color: ${titleColor};">${statusIcon} ${location.name}</h3>
-              <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Endereço:</strong> ${location.address}</p>
-              ${location.contact_person ? `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Responsável:</strong> ${location.contact_person}</p>` : ''}
-              ${location.phone ? `<p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Telefone:</strong> ${location.phone}</p>` : ''}
-              ${location.operating_hours ? `<p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Horário:</strong> ${location.operating_hours}</p>` : ''}
-              ${productsHtml}
-              ${buttonsHtml}
-              ${!hasActiveOrder ? `<p style="margin: 0; font-size: 12px; color: #6b7280; font-style: italic;">📋 ${statusText}</p>` : ''}
+            <div style="
+              min-width: 280px; 
+              max-width: 320px;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background: white;
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              border: 1px solid #e5e7eb;
+              overflow: hidden;
+            ">
+              <!-- Header simples -->
+              <div style="
+                background: ${color};
+                padding: 12px;
+                color: white;
+              ">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 18px;">${statusIcon}</span>
+                  <div style="flex: 1;">
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 600;">
+                      ${location.name}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Conteúdo -->
+              <div style="padding: 12px;">
+                <!-- Endereço compacto -->
+                <div style="margin-bottom: 8px;">
+                  <p style="margin: 0; font-size: 12px; color: #6b7280;">
+                    ${location.address}
+                  </p>
+                </div>
+
+                ${productsHtml}
+                ${buttonsHtml}
+                
+                ${state.hasUserReservation && !state.hasUserCompletedDelivery ? `
+                  <div style="
+                    background: #fff7ed;
+                    border: 1px solid #fed7aa;
+                    border-radius: 6px;
+                    padding: 8px;
+                    text-align: center;
+                  ">
+                    <p style="margin: 0; font-size: 12px; color: #ea580c; font-weight: 500;">
+                      🤝 Você tem ${filteredDeliveries.filter(d => d.volunteer_id === user?.id).reduce((sum, d) => sum + d.quantity, 0)} itens reservados
+                    </p>
+                  </div>
+                ` : ''}
+                
+                ${state.hasUserCompletedDelivery ? `
+                  <div style="
+                    background: #f0fdf4;
+                    border: 1px solid #bbf7d0;
+                    border-radius: 6px;
+                    padding: 8px;
+                    text-align: center;
+                  ">
+                    <p style="margin: 0; font-size: 12px; color: #166534; font-weight: 500;">
+                      ✅ Você completou sua entrega aqui
+                    </p>
+                  </div>
+                ` : ''}
+                
+                ${!state.hasUserReservation && state.isCompletelyReserved ? `
+                  <div style="
+                    background: #f3f4f6;
+                    border: 1px solid #d1d5db;
+                    border-radius: 6px;
+                    padding: 8px;
+                    text-align: center;
+                  ">
+                    <p style="margin: 0; font-size: 12px; color: #6b7280; font-weight: 500;">
+                      ✅ Todos os itens já foram reservados
+                    </p>
+                  </div>
+                ` : ''}
+                
+                ${filteredDeliveries.length === 0 ? `
+                  <div style="
+                    background: #f0fdf4;
+                    border: 1px solid #bbf7d0;
+                    border-radius: 6px;
+                    padding: 8px;
+                    text-align: center;
+                  ">
+                    <p style="margin: 0; font-size: 12px; color: #166534; font-weight: 500;">
+                      Sem necessidades no momento
+                    </p>
+                  </div>
+                ` : ''}
+              </div>
             </div>
           `);
         }
@@ -752,7 +996,7 @@ export default function MapView() {
               <div style="min-width: 300px;">
                 <h3 style="margin: 0 0 8px 0; color: ${titleColor};">${statusText} - Pedido de Insumos</h3>
                 <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Cozinha:</strong> ${request.provider.name}</p>
-                <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Para produzir:</strong> ${request.quantity_meals} marmitas</p>
+                <p style="margin: 0 0 4px 0; font-size: 14px;"><strong>Para produzir:</strong> ${request.quantity_meals} ${formatProductWithQuantity(request.product_type, request.quantity_meals)}</p>
                 
                 <div style="margin: 8px 0;">
                   <h4 style="margin: 0 0 4px 0; font-size: 13px; font-weight: bold;">Ingredientes necessários:</h4>
@@ -785,8 +1029,9 @@ export default function MapView() {
                            opacity: ${isUserIdle() && canUserAcceptIngredients() ? '1' : '0.6'};"
                     title="${!canUserAcceptIngredients() ? 'Apenas voluntários podem aceitar pedidos de insumos' : ''}"
                   >
-                    ${!canUserAcceptIngredients() ? '🚫 Apenas Voluntários' : (isUserIdle() ? '🤝 Aceitar Pedido' : '⏳ Compromisso em Andamento')}
+                    ${!canUserAcceptIngredients() ? '🚫 Apenas Voluntários' : (isUserIdle() ? '🤝 Aceitar Pedido' : '⏳ Você já tem um compromisso ativo')}
                   </button>
+                  ${!isUserIdle() ? '<p style="margin: 4px 0 0 0; font-size: 10px; color: #6b7280; font-style: italic;">Finalize sua entrega atual para aceitar novos pedidos</p>' : ''}
                 ` : '<p style="margin: 8px 0 0 0; font-size: 11px; color: #6b7280;">✅ Pedido totalmente reservado</p>'}
                 
                 ${!isCompletelyReserved ? `
@@ -833,7 +1078,7 @@ export default function MapView() {
                 <h3 style="margin: 0 0 8px 0; color: ${productInfo.color}; font-size: 16px;">${productInfo.emoji} Fornecedor Ofertando ${productInfo.label}</h3>
                 <div style="background: #dcfce7; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
                   <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>🏪 Cozinha:</strong> ${batch.provider.name}</p>
-                  <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>📦 Disponível:</strong> ${batch.quantity_available || batch.quantity} marmitas</p>
+                  <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>📦 Disponível:</strong> ${batch.quantity_available || batch.quantity} ${productInfo.label.toLowerCase()}</p>
                   <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>📍 Retirar em:</strong> ${batch.provider.address}</p>
                   ${batch.provider.phone ? `<p style="margin: 0 0 6px 0; font-size: 14px;"><strong>📞 Contato:</strong> ${batch.provider.phone}</p>` : ''}
                   ${batch.pickup_deadline ? `<p style="margin: 0 0 6px 0; font-size: 14px;"><strong>⏰ Retirar até:</strong> ${batch.pickup_deadline}</p>` : ''}
@@ -858,8 +1103,9 @@ export default function MapView() {
                                transition: background 0.2s; 
                                opacity: ${isUserIdle() && canUserReserveBatches() ? '1' : '0.6'};" 
                         ${isUserIdle() && canUserReserveBatches() ? 'onmouseover="this.style.background=\'#047857\'" onmouseout="this.style.background=\'#059669\'"' : ''}>
-                  ${!canUserReserveBatches() ? '🚫 Apenas Fornecedores' : (isUserIdle() ? '🤝 Reservar para Entrega' : '⏳ Compromisso em Andamento')}
+                  ${!canUserReserveBatches() ? '🚫 Apenas Fornecedores' : (isUserIdle() ? '🤝 Reservar para Entrega' : '⏳ Você já tem um compromisso ativo')}
                 </button>
+                ${!isUserIdle() ? '<p style="margin: 4px 0 0 0; font-size: 10px; color: #6b7280; font-style: italic;">Finalize sua entrega atual para criar uma nova</p>' : ''}
                 <p style="margin: 8px 0 0 0; font-size: 11px; color: #6b7280; text-align: center;">
                   ${isUserIdle() ? 'Você escolherá o abrigo de destino' : 'Finalize sua entrega atual para criar uma nova'}
                 </p>
@@ -901,13 +1147,8 @@ export default function MapView() {
 
       // Verificar se usuário está ocioso
       if (!isUserIdle()) {
-        showConfirmation(
-          '⚠️ Compromisso em Andamento',
-          `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
-          () => { },
-          'warning'
-        );
-        return;
+        console.log('❌ Usuário já tem operação ativa - ignorando ação');
+        return; // Apenas ignora, não mostra modal
       }
 
       // Buscar o pedido completo com itens
@@ -931,13 +1172,8 @@ export default function MapView() {
 
       // Verificar se usuário está ocioso
       if (!isUserIdle()) {
-        showConfirmation(
-          '⚠️ Compromisso em Andamento',
-          `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
-          () => { },
-          'warning'
-        );
-        return;
+        console.log('❌ Usuário já tem operação ativa - ignorando ação');
+        return; // Apenas ignora, não mostra modal
       }
 
       const batch = batches.find(b => b.id === batchId);
@@ -1007,22 +1243,13 @@ export default function MapView() {
           id: d.id,
           volunteer_id: d.volunteer_id,
           status: d.status,
-          isMatch: d.volunteer_id === user.id && d.status === 'pending_confirmation'
         }))
       });
 
       if (activeDeliveries.length > 0) {
-        console.log('❌ DEBUG - Usuário tem compromissos ativos, mostrando aviso');
-        showConfirmation(
-          '⚠️ Limite de Compromissos',
-          `Você já tem ${activeDeliveries.length} compromisso(s) ativo(s).\n\nComplete as entregas ativas antes de aceitar novas.`,
-          () => { },
-          'warning'
-        );
-        return;
+        console.log('❌ Usuário tem compromissos ativos, ignorando nova solicitação');
+        return; // Apenas ignora, não mostra modal
       }
-
-      console.log('✅ DEBUG - Usuário pode se comprometer, abrindo modal...');
 
       const location = locations.find(l => l.id === locationId);
       if (location) {
@@ -1084,13 +1311,8 @@ export default function MapView() {
       });
 
       if (activeDeliveries.length > 0) {
-        showConfirmation(
-          '⚠️ Compromisso em Andamento',
-          `Você já tem ${activeDeliveries.length} compromisso(s) ativo(s).\n\nComplete ou cancele antes de aceitar outro.`,
-          () => { },
-          'warning'
-        );
-        return;
+        console.log('❌ Usuário tem compromissos ativos, ignorando nova solicitação');
+        return; // Apenas ignora, não mostra modal
       }
 
       // Para cada compromisso, criar um delivery (mantido assim por enquanto)
@@ -1223,13 +1445,8 @@ export default function MapView() {
 
     // Verificação de segurança: garantir que usuário ainda está ocioso
     if (!isUserIdle()) {
-      showConfirmation(
-        '⚠️ Compromisso em Andamento',
-        `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
-        () => {},
-        'warning'
-      );
-      return;
+      console.log('❌ Usuário já tem operação ativa - ignorando ação');
+      return; // Apenas ignora, não mostra modal
     }
 
     // Mudar para o passo de confirmação
@@ -1240,17 +1457,8 @@ export default function MapView() {
   const handleSecondStepConfirmation = async () => {
     // Verificação de segurança: garantir que usuário ainda está ocioso
     if (!isUserIdle()) {
-      showConfirmation(
-        '⚠️ Compromisso em Andamento',
-        `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
-        () => {
-          setShowModalChooseLocation(false);
-          setSelectedBatch(null);
-          setChosenLocation(null);
-        },
-        'warning'
-      );
-      return;
+      console.log('❌ Usuário já tem operação ativa - ignorando ação');
+      return; // Apenas ignora, não mostra modal
     }
 
     setIsConfirming(true);
@@ -1355,7 +1563,7 @@ export default function MapView() {
         gap: '8px',
       }}>
 
-        {user && (
+        {user && user.roles.includes('admin') && (
           <button
             onClick={() => navigate(getDashboardRoute())}
             style={{
@@ -1811,7 +2019,7 @@ export default function MapView() {
                 {commitmentStep === 'select' ? '📍 Pedidos em Aberto' : '🤝 Confirmar Compromisso'}
               </h2>
               <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
-                {commitmentStep === 'select' ? 'Abrigos precisando de marmitas' : 'Revise os detalhes antes de confirmar'}
+                {commitmentStep === 'select' ? 'Abrigos precisando de doações' : 'Revise os detalhes antes de confirmar'}
               </p>
               
               {/* Descrição do Fluxo */}
@@ -2028,7 +2236,7 @@ export default function MapView() {
                                 border: '1px solid #bbf7d0'
                               }}>
                                 <p style={{ margin: 0, fontSize: '11px', color: '#166534', fontWeight: 'medium', lineHeight: '1.3' }}>
-                                  🎯 **Perfeito!** Você pode levar todas as {location.shelterNeed} marmitas que este abrigo precisa em uma única entrega.
+                                  🎯 **Perfeito!** Você pode levar todas as ${location.shelterNeed} ${location.productType === 'meal' ? 'marmitas' : location.productType === 'clothing' ? 'roupas' : 'itens'} que este abrigo precisa em uma única entrega.
                                 </p>
                               </div>
                             ) : (
@@ -2040,7 +2248,7 @@ export default function MapView() {
                                 border: '1px solid #fde68a'
                               }}>
                                 <p style={{ margin: 0, fontSize: '11px', color: '#92400e', fontWeight: 'medium', lineHeight: '1.3' }}>
-                                  ⚠️ Você pode levar até {location.maxToReserve} de {location.shelterNeed} marmitas. O restante precisará de outro voluntário.
+                                  ⚠️ Você pode levar até {location.maxToReserve} de {location.shelterNeed} ${location.productType === 'meal' ? 'marmitas' : location.productType === 'clothing' ? 'roupas' : 'itens'}. O restante precisará de outro voluntário.
                                 </p>
                               </div>
                             )}

@@ -231,8 +231,8 @@ def create_users(db):
     
     # ADMIN
     admin_data = {
-        'email': 'admin@euajudo.com',
-        'name': 'Administrador EuAjudo',
+        'email': 'admin@vouajudar.org',
+        'name': 'Administrador Vou Ajudar',
         'phone': '32999999999',
         'roles': 'admin',
         'hashed_password': password_hash,

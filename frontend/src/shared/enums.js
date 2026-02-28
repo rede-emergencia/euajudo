@@ -25,3 +25,34 @@ export function colorClass(enumName, value) {
 export function getMapIconColor(role, status) {
   return enumsData.mapIcons?.[role]?.[status]?.color || '#6b7280';
 }
+
+/**
+ * Retorna o display format para um tipo de produto no singular
+ */
+export function formatProductTypeSingular(type) {
+  const typeMap = {
+    'meal': 'marmita',
+    'ingredient': 'insumo', 
+    'clothing': 'roupa',
+    'medicine': 'medicamento',
+    'hygiene': 'item de higiene',
+    'cleaning': 'item de limpeza',
+    'school_supplies': 'material escolar',
+    'baby_items': 'item de bebê',
+    'pet_supplies': 'item para pet',
+    'generic': 'item'
+  };
+  
+  return typeMap[type] || type;
+}
+
+/**
+ * Retorna o nome formatado do produto com quantidade (singular/plural automático)
+ */
+export function formatProductWithQuantity(type, quantity) {
+  if (quantity === 1) {
+    return formatProductTypeSingular(type);
+  }
+  // Usa os dados do JSON para plural (já existem em displayNames.ProductType)
+  return enumsData.displayNames?.ProductType?.[type]?.toLowerCase() || type;
+}

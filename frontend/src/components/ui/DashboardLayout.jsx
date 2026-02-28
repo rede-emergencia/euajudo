@@ -27,7 +27,7 @@ export default function DashboardLayout({
       }}>
         {/* Botão Voltar */}
         <button
-          onClick={() => navigate('/mapa')}
+          onClick={() => navigate('/')}
           style={{
             display: 'flex',
             alignItems: 'center',
