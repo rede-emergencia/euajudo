@@ -75,15 +75,26 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {hasRole('volunteer') && (
-          <Link to="/mapa" className="card hover:shadow-lg transition-shadow">
-            <div className="flex items-center space-x-4">
-              <Truck className="h-10 w-10 text-purple-600" />
-              <div>
-                <h3 className="font-semibold text-gray-900">Entregas</h3>
-                <p className="text-sm text-gray-600">Visualize e comprometa-se com entregas</p>
+          <>
+            <Link to="/minhas-entregas" className="card hover:shadow-lg transition-shadow">
+              <div className="flex items-center space-x-4">
+                <Truck className="h-10 w-10 text-purple-600" />
+                <div>
+                  <h3 className="font-semibold text-gray-900">Minhas Entregas</h3>
+                  <p className="text-sm text-gray-600">Gerencie suas entregas ativas</p>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+            <Link to="/mapa" className="card hover:shadow-lg transition-shadow">
+              <div className="flex items-center space-x-4">
+                <Truck className="h-10 w-10 text-blue-600" />
+                <div>
+                  <h3 className="font-semibold text-gray-900">Mapa de Entregas</h3>
+                  <p className="text-sm text-gray-600">Visualize e comprometa-se com entregas</p>
+                </div>
+              </div>
+            </Link>
+          </>
         )}
       </div>
     </div>

@@ -13,6 +13,7 @@ import UnifiedDashboard from './pages/UnifiedDashboard';
 import Admin from './pages/Admin';
 import PerfilFornecedor from './pages/PerfilFornecedor';
 import Perfil from './pages/Perfil';
+import MinhasEntregas from './pages/MinhasEntregas';
 
 // Adicionar estilos globais para garantir que a borda seja visível
 const globalStyles = `
@@ -156,6 +157,14 @@ function App() {
               element={<Home onOperationStatusChange={setIsInOperation} />} 
             />
             <Route path="/mapa" element={<MapView />} />
+            <Route 
+              path="/minhas-entregas" 
+              element={
+                <ProtectedRoute requireRole="volunteer">
+                  <MinhasEntregas />
+                </ProtectedRoute>
+              } 
+            />
           
           {/* Unified Dashboard - New modular architecture */}
           <Route

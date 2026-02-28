@@ -897,6 +897,22 @@ export default function MapView() {
         return;
       }
 
+      // Verificar se já tem compromissos ativos
+      const activeDeliveries = deliveries.filter(d => 
+        d.volunteer_id === user.id && 
+        d.status === 'pending_confirmation'
+      );
+      
+      if (activeDeliveries.length > 0) {
+        showConfirmation(
+          '⚠️ Limite de Compromissos',
+          `Você já tem ${activeDeliveries.length} compromisso(s) ativo(s).\n\nComplete as entregas ativas antes de aceitar novas.`,
+          () => {},
+          'warning'
+        );
+        return;
+      }
+
       const location = locations.find(l => l.id === locationId);
       if (location) {
         setSelectedLocationForCommitment(location);
@@ -938,7 +954,23 @@ export default function MapView() {
     try {
       const token = localStorage.getItem('token');
       
-      // Para cada compromisso, criar um delivery
+      // Verificar se voluntário já tem compromissos ativos
+      const activeDeliveries = deliveries.filter(d => 
+        d.volunteer_id === user.id && 
+        d.status === 'pending_confirmation'
+      );
+      
+      if (activeDeliveries.length > 0) {
+        showConfirmation(
+          '⚠️ Compromisso em Andamento',
+          `Você já tem ${activeDeliveries.length} compromisso(s) ativo(s).\n\nComplete ou cancele antes de aceitar outro.`,
+          () => {},
+          'warning'
+        );
+        return;
+      }
+      
+      // Para cada compromisso, criar um delivery (mantido assim por enquanto)
       const promises = commitments.map(async (commitment) => {
         // Encontrar deliveries disponíveis para este local e tipo
         const availableDeliveries = deliveries.filter(
