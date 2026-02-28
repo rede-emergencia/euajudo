@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Package, X, User, LogOut, Home,
   MapPin, Store, Truck, UtensilsCrossed, Pill, Droplet, Shirt, Sparkles, Filter as FilterIcon,
-  Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart
+  Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart, LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
@@ -794,6 +794,39 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
 
             {/* Content */}
             <div style={{ padding: '24px' }}>
+
+              {/* Ir para Dashboard — visível para todos os usuários logados */}
+              {user && (
+                <button
+                  onClick={() => {
+                    navigate(getDashboardRoute());
+                    setShowActionsModal(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '12px 16px',
+                    marginBottom: '16px',
+                    border: '1.5px solid #e5e7eb',
+                    borderRadius: '12px',
+                    background: '#f9fafb',
+                    color: '#1f2937',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.color = '#2563eb'; }}
+                  onMouseOut={e => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#1f2937'; }}
+                >
+                  <LayoutDashboard size={18} />
+                  Ir para Dashboard
+                </button>
+              )}
+
               {activeOperations.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <div style={{
