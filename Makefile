@@ -112,27 +112,8 @@ seed-status: ## Verifica status do banco de dados
 	@echo "$(YELLOW)📊 Verificando status do banco de dados...$(NC)"
 	cd $(BACKEND_DIR) && \
 	source venv/bin/activate && \
-	$(PYTHON) -c "
-from app.database import SessionLocal
-from app import models
-db = SessionLocal()
-users = db.query(models.User).count()
-locations = db.query(models.DeliveryLocation).count()
-batches = db.query(models.ProductBatch).count()
-deliveries = db.query(models.Delivery).count()
-requests = db.query(models.ResourceRequest).count()
-db.close()
-print('$(GREEN)✅ Status do Banco:$(NC)')
-print(f'   👥 Usuários: {users}')
-print(f'   🏠 Locais: {locations}')
-print(f'   📦 Batches: {batches}')
-print(f'   🚚 Deliveries: {deliveries}')
-print(f'   📋 Requests: {requests}')
-if users == 0 and locations == 0:
-    print('$(YELLOW)⚠️  Banco vazio - execute \"make seed\" para popular$(NC)')
-else:
-    print('$(GREEN)✅ Banco contém dados$(NC)')
-"
+	cd .. && \
+	$(PYTHON) check_db_status.py
 
 backend: ## Inicia apenas o backend FastAPI
 	@echo "$(YELLOW)🚀 Iniciando backend FastAPI...$(NC)"
