@@ -63,13 +63,18 @@ app = FastAPI(
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     print(f"❌ VALIDATION ERROR: {exc.errors()}")
-    print(f"❌ BODY RECEIVED: {exc.body}")
+    # Não tentar serializar body se for FormData
+    try:
+        body_str = str(exc.body)
+    except:
+        body_str = "FormData (not serializable)"
+    print(f"❌ BODY RECEIVED: {body_str}")
+    
     return JSONResponse(
         status_code=422,
         content={
             "detail": "Validation error",
-            "errors": exc.errors(),
-            "body": exc.body
+            "errors": exc.errors()
         }
     )
 

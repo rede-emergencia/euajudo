@@ -38,9 +38,9 @@ def run_seed_if_needed():
             print("\n🌱 Banco vazio detectado. Rodando seed...")
             try:
                 # Importar e executar o seed
-                import seed_improved
-                print("📦 Módulo seed_improved importado com sucesso")
-                seed_improved.main()
+                import seed_small
+                print("📦 Módulo seed_small importado com sucesso")
+                seed_small.main()
                 print("✅ Seed concluído com sucesso!")
                 return True
             except Exception as e:

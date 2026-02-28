@@ -1,4 +1,4 @@
-# VouAjudar Makefile
+# EuAjudo Makefile
 # Facilita setup, desenvolvimento e deploy do projeto
 
 .PHONY: help setup seed seed-status backend frontend dev kill clean test lint format reset-db create-admin seed-safe seed-small
@@ -25,7 +25,7 @@ BACKEND_PORT := 8000
 FRONTEND_PORT := 3000
 
 help: ## Exibe ajuda com todos os comandos disponíveis
-	@echo "$(CYAN)VouAjudar - Plataforma de Conexão Social$(NC)"
+	@echo "$(CYAN)EuAjudo - Plataforma de Conexão Social$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Comandos disponíveis:$(NC)"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -39,7 +39,7 @@ help: ## Exibe ajuda com todos os comandos disponíveis
 	@echo "  make kill           # Para todos os serviços"
 
 setup: ## Configura ambiente completo (Python + Node + dependências)
-	@echo "$(YELLOW)🔧 Configurando ambiente VouAjudar...$(NC)"
+	@echo "$(YELLOW)🔧 Configurando ambiente EuAjudo...$(NC)"
 	
 	# Verificar Python
 	@if ! command -v $(PYTHON) >/dev/null 2>&1; then \
@@ -261,7 +261,7 @@ logs: ## Exibe logs dos serviços em tempo real
 	fi
 
 status: ## Verifica status dos serviços
-	@echo "$(CYAN)📊 Status dos Serviços VouAjudar$(NC)"
+	@echo "$(CYAN)📊 Status dos Serviços EuAjudo$(NC)"
 	@echo ""
 	
 	# Verificar backend
@@ -349,6 +349,14 @@ seed-small: ## Seed minimalista: admin + 2 pontos de coleta com pedidos
 	echo "" && \
 	echo "$(GREEN)✅ Seed minimalista concluído!$(NC)" && \
 	echo "$(CYAN)Acesse http://localhost:3003/map para ver os pontos no mapa$(NC)"
+
+reset-prod: ## Resetar banco de produção (CUIDADO: apaga tudo!)
+	@echo "$(RED)🚨 ATENÇÃO: RESETANDO BANCO DE PRODUÇÃO$(NC)"
+	@echo "$(YELLOW)Este comando irá APAGAR TODOS os dados de produção!$(NC)"
+	@read -p "Tem certeza? (s/N): " confirm && [ "$$confirm" = "s" ] || exit 1
+	cd $(BACKEND_DIR) && \
+	source venv/bin/activate && \
+	$(PYTHON) reset_production.py
 
 db-backup: ## Backup do banco de dados SQLite
 	@echo "$(YELLOW)💾 Fazendo backup do banco...$(NC)"
