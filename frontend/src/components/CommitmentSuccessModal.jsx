@@ -32,9 +32,14 @@ export default function CommitmentSuccessModal({
             <div className="bg-white/20 rounded-full p-3 mb-3">
               <CheckCircle size={48} className="text-white" />
             </div>
-            <h2 className="text-2xl font-bold">Compromisso Confirmado!</h2>
+            <h2 className="text-2xl font-bold">
+              {delivery.batch_id ? 'Compromisso Confirmado!' : 'Entrega Confirmada!'}
+            </h2>
             <p className="text-green-100 mt-2">
-              Você se comprometeu com sucesso
+              {delivery.batch_id 
+                ? 'Você se comprometeu com sucesso' 
+                : 'Você confirmou a entrega direta'
+              }
             </p>
           </div>
         </div>
@@ -61,39 +66,52 @@ export default function CommitmentSuccessModal({
             </div>
           </div>
 
-          {/* Código de retirada */}
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-400 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">
-              Código de Retirada
-            </p>
-            <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-yellow-300">
-              <span className="text-3xl font-bold text-yellow-700 tracking-wider">
-                {delivery.pickup_code}
-              </span>
-              <button
-                onClick={copyCode}
-                className="ml-3 flex items-center gap-2 px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors text-sm font-medium"
-              >
-                <Copy size={16} />
-                {copied ? 'Copiado!' : 'Copiar'}
-              </button>
+          {/* Código de retirada - Apenas para entregas com batch */}
+          {delivery.batch_id && (
+            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-400 rounded-lg p-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                Código de Retirada
+              </p>
+              <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-yellow-300">
+                <span className="text-3xl font-bold text-yellow-700 tracking-wider">
+                  {delivery.pickup_code}
+                </span>
+                <button
+                  onClick={copyCode}
+                  className="ml-3 flex items-center gap-2 px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  <Copy size={16} />
+                  {copied ? 'Copiado!' : 'Copiar'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                Use este código ao retirar os itens
+              </p>
             </div>
-            <p className="text-xs text-gray-600 mt-2">
-              Use este código ao retirar os itens
-            </p>
-          </div>
+          )}
 
-          {/* Próximos passos */}
+          {/* Próximos passos - Diferentes para cada fluxo */}
           <div className="bg-blue-50 rounded-lg p-4">
             <p className="text-sm font-medium text-blue-900 mb-2">
               📋 Próximos Passos
             </p>
-            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-              <li>Vá até o local de retirada</li>
-              <li>Apresente o código de retirada</li>
-              <li>Retire os itens e confirme</li>
-              <li>Entregue no destino</li>
-            </ol>
+            {delivery.batch_id ? (
+              // Fluxo com retirada (tem batch_id)
+              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                <li>Vá até o local de retirada</li>
+                <li>Apresente o código de retirada</li>
+                <li>Retire os itens e confirme</li>
+                <li>Entregue no destino</li>
+              </ol>
+            ) : (
+              // Fluxo de entrega direta (sem batch_id)
+              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                <li>Prepare os itens para entrega</li>
+                <li>Vá até o local de entrega</li>
+                <li>Entregue diretamente no abrigo</li>
+                <li>Confirme a entrega</li>
+              </ol>
+            )}
           </div>
 
           {/* Botão de ação */}

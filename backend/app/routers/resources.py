@@ -245,7 +245,6 @@ def cancel_reservation(
         resource_item = resource_item_repo.get_by_id(reservation_item.resource_item_id)
         if resource_item:
             resource_item.quantity_reserved -= reservation_item.quantity
-            resource_item_repo.commit()
     
     # Delete reservation items
     for reservation_item in reservation_items:
@@ -262,6 +261,8 @@ def cancel_reservation(
         other_reservations = reservation_repo.filter_by(request_id=request.id)
         if not other_reservations:
             request.status = OrderStatus.REQUESTING
-            request_repo.commit()
+    
+    # Single commit for all operations
+    db.commit()
     
     return {"message": "Reservation cancelled successfully"}
