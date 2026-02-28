@@ -130,9 +130,11 @@ export default function VolunteerDashboard() {
   };
 
   const handleCancelarEntrega = async (deliveryId) => {
-    // Só pode cancelar se status for 'reserved' (ainda não pegou)
     const delivery = myDeliveries.find(d => d.id === deliveryId);
-    if (delivery && delivery.status !== 'reserved') {
+    
+    // Para deliveries diretas (batch_id=null), pode cancelar a qualquer momento
+    // Para deliveries com batch, só pode cancelar se status for 'reserved' (ainda não pegou)
+    if (delivery.batch_id && delivery.status !== 'reserved') {
       showAlert('Não Permitido', 'Você só pode cancelar antes de retirar o item. Como já pegou, deve completar a entrega.', 'warning');
       return;
     }
