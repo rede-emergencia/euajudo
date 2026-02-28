@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -63,6 +63,74 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         db.commit()
 
     return new_user
+
+@router.post("/quick-login", response_model=Token)
+def quick_login(user_type: str = Form(...), db: Session = Depends(get_db)):
+    """
+    Login rápido para testes - aceita qualquer usuário com senha "123"
+    Parâmetros: provider, volunteer, shelter, admin
+    """
+    
+    # Usuários hardcoded para testes
+    quick_users = {
+        "provider": {
+            "email": "cozinha.solidaria@jfood.com",
+            "name": "Cozinha Solidária Central",
+            "roles": "provider"
+        },
+        "volunteer": {
+            "email": "joao.voluntario@jfood.com", 
+            "name": "João Voluntário",
+            "roles": "volunteer"
+        },
+        "shelter": {
+            "email": "abrigo.sao.francisco@jfood.com",
+            "name": "Abrigo São Francisco de Assis", 
+            "roles": "shelter"
+        },
+        "admin": {
+            "email": "admin@jfood.com",
+            "name": "Administrador Sistema",
+            "roles": "admin"
+        }
+    }
+    
+    if user_type not in quick_users:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid user_type. Use: {', '.join(quick_users.keys())}"
+        )
+    
+    user_info = quick_users[user_type]
+    user = db.query(User).filter(User.email == user_info["email"]).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_info['email']} not found. Run seed first."
+        )
+    
+    # Verifica se a senha é "123" (padrão do seed)
+    if not verify_password("123", user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Quick login only works with password '123'"
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user_info": {
+            "email": user.email,
+            "name": user.name,
+            "roles": user.roles
+        }
+    }
 
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
