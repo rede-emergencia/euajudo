@@ -209,7 +209,7 @@ export default function MapView() {
   };
 
   // Helper function para mostrar modal de confirmação
-  const showConfirmation = (title, message, onConfirm, type = 'info') => {
+  const showConfirmation = (title, message, onConfirm, type = 'info', showOnlyOk = false) => {
     setConfirmationData({
       title,
       message,
@@ -217,7 +217,8 @@ export default function MapView() {
         onConfirm();
         setShowConfirmationModal(false);
       },
-      type
+      type,
+      showOnlyOk
     });
     setShowConfirmationModal(true);
   };
@@ -892,7 +893,8 @@ export default function MapView() {
           'Acesso Restrito',
           'Apenas voluntários podem aceitar pedidos de insumos',
           () => { },
-          'error'
+          'error',
+          true // showOnlyOk
         );
         return;
       }
@@ -969,7 +971,8 @@ export default function MapView() {
           'Acesso Restrito',
           'Apenas voluntários podem se comprometer com entregas',
           () => { },
-          'error'
+          'error',
+          true // showOnlyOk
         );
         return;
       }

@@ -8,7 +8,8 @@ export default function ConfirmationModal({
   message, 
   confirmText = "Confirmar",
   cancelText = "Cancelar",
-  type = "info" // info, success, warning, error
+  type = "info", // info, success, warning, error
+  showOnlyOk = false // Mostra apenas botão OK
 }) {
   if (!isOpen) return null;
 
@@ -61,18 +62,29 @@ export default function ConfirmationModal({
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            {cancelText}
-          </button>
-          <button
-            onClick={onConfirm}
-            className={`flex-1 px-4 py-2 rounded-lg text-white transition-colors ${styles.button}`}
-          >
-            {confirmText}
-          </button>
+          {showOnlyOk ? (
+            <button
+              onClick={onClose}
+              className={`w-full px-4 py-2 rounded-lg text-white transition-colors ${styles.button}`}
+            >
+              OK
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                {cancelText}
+              </button>
+              <button
+                onClick={onConfirm}
+                className={`flex-1 px-4 py-2 rounded-lg text-white transition-colors ${styles.button}`}
+              >
+                {confirmText}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
