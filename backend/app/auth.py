@@ -80,7 +80,10 @@ def require_approved(current_user: User = Depends(get_current_active_user)) -> U
     return current_user
 
 def require_admin(current_user: User = Depends(get_current_active_user)) -> User:
-    user_roles = current_user.roles.split(",")
+    # Lidar com diferentes formatos de roles: "admin" ou "{admin}" ou "admin,volunteer"
+    roles_str = str(current_user.roles).strip("{}")
+    user_roles = [role.strip() for role in roles_str.split(",")]
+    
     if "admin" not in user_roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
