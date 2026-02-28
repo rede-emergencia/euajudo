@@ -882,6 +882,7 @@ export default function MapView() {
       });
       
       if (!user) {
+        console.log('❌ DEBUG - Usuário não logado');
         showConfirmation(
           'Login Necessário',
           'Você precisa estar logado como voluntário para se comprometer com entregas',
@@ -892,6 +893,7 @@ export default function MapView() {
       }
       
       if (!user.roles.includes('volunteer')) {
+        console.log('❌ DEBUG - Usuário não é voluntário. Roles:', user.roles);
         showConfirmation(
           'Acesso Restrito',
           'Apenas voluntários podem se comprometer com entregas',
@@ -901,8 +903,11 @@ export default function MapView() {
         return;
       }
 
+      console.log('✅ DEBUG - Usuário é voluntário, verificando idle...');
+
       // Verificar se usuário está ocioso
       if (!isUserIdle()) {
+        console.log('❌ DEBUG - Usuário não está idle');
         showConfirmation(
           '⚠️ Compromisso em Andamento',
           `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
@@ -911,6 +916,8 @@ export default function MapView() {
         );
         return;
       }
+
+      console.log('✅ DEBUG - Usuário está idle, verificando compromissos ativos...');
 
       // Verificar se já tem compromissos ativos
       const activeDeliveries = deliveries.filter(d => 
@@ -931,6 +938,7 @@ export default function MapView() {
       });
       
       if (activeDeliveries.length > 0) {
+        console.log('❌ DEBUG - Usuário tem compromissos ativos, mostrando aviso');
         showConfirmation(
           '⚠️ Limite de Compromissos',
           `Você já tem ${activeDeliveries.length} compromisso(s) ativo(s).\n\nComplete as entregas ativas antes de aceitar novas.`,
@@ -939,6 +947,8 @@ export default function MapView() {
         );
         return;
       }
+
+      console.log('✅ DEBUG - Usuário pode se comprometer, abrindo modal...');
 
       const location = locations.find(l => l.id === locationId);
       if (location) {
