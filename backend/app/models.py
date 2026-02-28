@@ -25,13 +25,13 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)  # Corrigido: hashed_password -> password_hash
-    full_name = Column(String, nullable=False)  # Corrigido: name -> full_name
+    hashed_password = Column(String, nullable=False)
+    name = Column(String, nullable=False)
     phone = Column(String)
     roles = Column(String, nullable=False)  # Comma-separated roles
     city_id = Column(String, index=True, default='belo-horizonte')
     approved = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)  # Corrigido: active -> is_active
+    active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Location & capacity

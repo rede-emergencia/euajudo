@@ -23,9 +23,7 @@ def clear_database(db: Session):
     """Limpa todas as tabelas"""
     print("🧹 Limpando banco de dados...")
     
-    # Ordem importa por causa das foreign keys
-    db.query(Delivery).delete()
-    db.query(DeliveryLocation).delete()
+    # Apenas limpar users por enquanto
     db.query(User).delete()
     
     db.commit()
