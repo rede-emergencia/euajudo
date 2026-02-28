@@ -75,12 +75,12 @@ export default function ProviderDashboard() {
       if (activeTab === 'publicacoes') {
         // Carregar publicações/doações que o fornecedor criou
         const response = await batches.list();
-        const myBatches = response.data?.filter(b => b.provider_id === user.id) || [];
+        const myBatches = response.data?.filter(b => b.provider_id === user.id && b.status !== 'cancelled') || [];
         setMyPublications(myBatches);
       } else if (activeTab === 'solicitacoes') {
         // Carregar solicitações de insumos que o fornecedor criou
         const response = await pedidosInsumo.list();
-        const myInsumos = response.data?.filter(r => r.provider_id === user.id) || [];
+        const myInsumos = response.data?.filter(r => r.provider_id === user.id && r.status !== 'cancelled') || [];
         setMyRequests(myInsumos);
       } else if (activeTab === 'retiradas') {
         // Carregar deliveries pendentes de retirada do fornecedor
@@ -94,7 +94,7 @@ export default function ProviderDashboard() {
             // Para deliveries diretas, precisamos identificar qual provider criou originalmente
             false; // Por enquanto, vamos mostrar apenas as com batch_id
           
-          return isMyDelivery && (d.status === 'reserved' || d.status === 'pending_confirmation');
+          return isMyDelivery && (d.status === 'reserved' || d.status === 'pending_confirmation') && d.status !== 'cancelled';
         }) || [];
         
         // Adicionar deliveries diretas por product_type (temporário até ter provider_id nas deliveries)
@@ -103,7 +103,7 @@ export default function ProviderDashboard() {
           
           // Para deliveries diretas, vamos mostrar para todos os providers por enquanto
           // TODO: Implementar lógica correta quando tivermos provider_id nas deliveries
-          return (d.status === 'reserved' || d.status === 'pending_confirmation');
+          return (d.status === 'reserved' || d.status === 'pending_confirmation') && d.status !== 'cancelled';
         }) || [];
         
         setPendingPickups([...myDeliveries, ...directDeliveries]);

@@ -53,7 +53,7 @@ export default function ShelterDashboard() {
     setLoading(true);
     try {
       const response = await resourceRequests.list();
-      const myRequests = response.data?.filter(r => r.shelter_id === user.id) || [];
+      const myRequests = response.data?.filter(r => r.shelter_id === user.id && r.status !== 'cancelled') || [];
       const active = myRequests.find(o => ['pending', 'partially_fulfilled'].includes(o.status));
       setActiveRequest(active || null);
     } catch (error) {

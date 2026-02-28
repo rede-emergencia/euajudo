@@ -59,7 +59,7 @@ export default function VolunteerDashboard() {
         // Carregar entregas que o voluntário está fazendo
         const response = await deliveries.list();
         const activeDeliveries = response.data?.filter(d => 
-          d.volunteer_id === user.id && ['pending_confirmation', 'reserved', 'picked_up', 'in_transit'].includes(d.status)
+          d.volunteer_id === user.id && ['pending_confirmation', 'reserved', 'picked_up', 'in_transit'].includes(d.status) && d.status !== 'cancelled'
         ) || [];
         setMyDeliveries(activeDeliveries);
       } else if (activeTab === 'doacoes') {
@@ -69,7 +69,7 @@ export default function VolunteerDashboard() {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
           const donations = await response.json();
-          setMyDonations(donations || []);
+          setMyDonations((donations || []).filter(d => d.status !== 'cancelled'));
         } catch (error) {
           console.error('Erro ao carregar doações:', error);
           setMyDonations([]);
