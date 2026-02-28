@@ -333,7 +333,11 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
     }
   }, [isFlashing]);
 
-  const headerColors = getHeaderColor();
+  const headerColors = colors || {
+    background: '#dcfce7',
+    border: '#bbf7d0', 
+    shadow: 'rgba(34, 197, 94, 0.2)'
+  };
 
   // Efeito para sincronizar cores com as bordas do App.jsx
   useEffect(() => {
