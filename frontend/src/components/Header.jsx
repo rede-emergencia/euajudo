@@ -269,7 +269,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
     console.log('📊 Header: Resultado do cancelEntity:', result);
   };
 
-  const handleCancelClick = async () => {
+  const handleCancelClick = async (operation) => {
     // Usar modal padrão de confirmação
     const confirmed = await showConfirmationModal(
       'Cancelar Operação',
@@ -279,8 +279,8 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
 
     try {
       const result = await cancelEntity(
-        userState.activeOperation.type,
-        userState.activeOperation.id,
+        operation.type,
+        operation.id,
         {
           onSuccess: () => {
             // Disparar evento para atualizar UserStateContext
@@ -922,7 +922,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                         {operation.type === 'delivery' && 
                          (operation.status === 'pending_confirmation' || operation.status === 'reserved') && (
                           <button
-                            onClick={() => handleCancelClick}
+                            onClick={() => handleCancelClick(operation)}
                             style={{
                               flex: 1,
                               background: '#ef4444',

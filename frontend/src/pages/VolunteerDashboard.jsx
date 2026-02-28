@@ -140,31 +140,29 @@ export default function VolunteerDashboard() {
       return;
     }
     
-    // Mostrar modal de confirmação em vez de alert nativo
-    showAlert(
-      'Cancelar Compromisso',
-      `Tem certeza que deseja cancelar a entrega #${deliveryId} (${delivery.quantity} ${delivery.product_type})? Isso irá desfazer o compromisso.`,
-      'warning',
-      async () => {
-        try {
-          const response = await fetch(`/api/deliveries/${deliveryId}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-          });
+    // Mostrar modal de confirmação nativo (simples e rápido)
+    if (!window.confirm(`Tem certeza que deseja cancelar a entrega #${deliveryId} (${delivery.quantity} ${delivery.product_type})? Isso irá desfazer o compromisso.`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/deliveries/${deliveryId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
 
-          if (response.ok) {
-            loadData();
-            triggerUserStateUpdate();
-          } else {
-            const error = await response.json();
-            showAlert('Erro', '❌ ' + (error.detail || 'Erro ao cancelar entrega'), 'error');
-          }
-        } catch (error) {
-          console.error('Erro ao cancelar entrega:', error);
-          showAlert('Erro', '❌ Erro ao cancelar entrega', 'error');
-        }
+      if (response.ok) {
+        loadData();
+        triggerUserStateUpdate();
+        showAlert('Sucesso', '✅ Entrega cancelada com sucesso!', 'success');
+      } else {
+        const error = await response.json();
+        showAlert('Erro', '❌ ' + (error.detail || 'Erro ao cancelar entrega'), 'error');
       }
-    );
+    } catch (error) {
+      console.error('Erro ao cancelar entrega:', error);
+      showAlert('Erro', '❌ Erro ao cancelar entrega', 'error');
+    }
   };
 
   const handleCancelarDoacao = async (donationId) => {
@@ -175,31 +173,29 @@ export default function VolunteerDashboard() {
       return;
     }
     
-    // Mostrar modal de confirmação em vez de alert nativo
-    showAlert(
-      'Cancelar Doação',
-      `Tem certeza que deseja cancelar a doação #${donationId}? Isso irá desfazer o compromisso.`,
-      'warning',
-      async () => {
-        try {
-          const response = await fetch(`/api/resource-reservations/${donationId}/cancel`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-          });
+    // Mostrar modal de confirmação nativo (simples e rápido)
+    if (!window.confirm(`Tem certeza que deseja cancelar a doação #${donationId}? Isso irá desfazer o compromisso.`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/resource-reservations/${donationId}/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
 
-          if (response.ok) {
-            loadData();
-            triggerUserStateUpdate();
-          } else {
-            const error = await response.json();
-            showAlert('Erro', '❌ ' + (error.detail || 'Erro ao cancelar doação'), 'error');
-          }
-        } catch (error) {
-          console.error('Erro ao cancelar doação:', error);
-          showAlert('Erro', '❌ Erro ao cancelar doação', 'error');
-        }
+      if (response.ok) {
+        loadData();
+        triggerUserStateUpdate();
+        showAlert('Sucesso', '✅ Doação cancelada com sucesso!', 'success');
+      } else {
+        const error = await response.json();
+        showAlert('Erro', '❌ ' + (error.detail || 'Erro ao cancelar doação'), 'error');
       }
-    );
+    } catch (error) {
+      console.error('Erro ao cancelar doação:', error);
+      showAlert('Erro', '❌ Erro ao cancelar doação', 'error');
+    }
   };
 
   const getStatusColor = (status) => {
