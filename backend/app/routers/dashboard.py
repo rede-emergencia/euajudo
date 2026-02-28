@@ -410,7 +410,7 @@ def load_stats_data(
     """Load statistics data"""
     stats = {}
     
-    if has_role(user, 'provider'):
+    if has_role(user, 'provider') or has_role(user, 'produtor'):
         stats['total_batches'] = db.query(ProductBatch).filter(
             ProductBatch.provider_id == user.id
         ).count()
@@ -431,3 +431,37 @@ def load_stats_data(
         ).count()
     
     return [stats]
+
+@router.get("/stats")
+def get_dashboard_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get dashboard statistics for current user (legacy endpoint for compatibility)
+    """
+    stats = {}
+    
+    # Provider stats
+    if has_role(current_user, 'provider') or has_role(current_user, 'produtor'):
+        stats['total_batches'] = db.query(ProductBatch).filter(
+            ProductBatch.provider_id == current_user.id
+        ).count()
+        
+        stats['active_batches'] = db.query(ProductBatch).filter(
+            ProductBatch.provider_id == current_user.id,
+            ProductBatch.status.in_([BatchStatus.READY, BatchStatus.IN_DELIVERY])
+        ).count()
+    
+    # Volunteer stats
+    if has_role(current_user, 'volunteer'):
+        stats['total_deliveries'] = db.query(Delivery).filter(
+            Delivery.volunteer_id == current_user.id
+        ).count()
+        
+        stats['completed_deliveries'] = db.query(Delivery).filter(
+            Delivery.volunteer_id == current_user.id,
+            Delivery.status == DeliveryStatus.DELIVERED
+        ).count()
+    
+    return stats
