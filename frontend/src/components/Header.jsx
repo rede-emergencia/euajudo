@@ -65,7 +65,7 @@ function FilterChip({ icon: Icon, label, active, color, onClick, count }) {
 
 export default function Header({ showFilters = false, onFilterChange, currentFilter, onLoginClick = () => {}, onRegisterClick = () => {}, onOperationStatusChange }) {
   const { user } = useAuth();
-  const { userState, colors, refreshState } = useUserState();
+  const { userState, colors, refreshState, activeOperations } = useUserState();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -381,8 +381,8 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
             <div>
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>EuAjudo</h1>
               <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>
-                {userState.activeOperation 
-                  ? '⚡ Operação em Andamento' 
+                {activeOperations.length > 0 
+                  ? `⚡ ${activeOperations.length} Operação(ões)` 
                   : '✅ Pronto para Ajudar'
                 }
               </p>
@@ -467,23 +467,25 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                 >
                   <Activity style={{ width: '18px', height: '18px' }} />
                   <span style={{ fontSize: '13px' }}>Ações</span>
-                  {userState.activeOperation && (
+                  {activeOperations.length > 0 && (
                     <span style={{
                       position: 'absolute',
                       top: '-4px',
                       right: '-4px',
-                      background: '#ef4444',
+                      background: '#dc2626',
                       color: 'white',
-                      borderRadius: '50%',
-                      width: '18px',
-                      height: '18px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      padding: '2px 5px',
+                      borderRadius: '10px',
+                      minWidth: '16px',
+                      height: '16px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '10px',
-                      fontWeight: 'bold'
+                      lineHeight: '1'
                     }}>
-                      1
+                      {activeOperations.length}
                     </span>
                   )}
                 </button>
@@ -756,8 +758,8 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                     Minhas Ações
                   </h2>
                   <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                    {userState.activeOperation 
-                      ? 'Você tem operações em andamento' 
+                    {activeOperations.length > 0 
+                      ? `Você tem ${activeOperations.length} operação(ões) em andamento` 
                       : 'Nenhuma operação ativa no momento'
                     }
                   </p>
@@ -783,13 +785,13 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
 
             {/* Content */}
             <div style={{ padding: '24px' }}>
-              {!userState.activeOperation ? (
+              {activeOperations.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <div style={{
                     width: '64px',
                     height: '64px',
-                    borderRadius: '50%',
                     background: '#dcfce7',
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -797,327 +799,192 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                   }}>
                     <CheckCircle size={32} color="#16a34a" />
                   </div>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
-                    Tudo em dia!
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
+                    Nenhuma Operação Ativa
                   </h3>
-                  <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                    Você não tem nenhuma operação ativa no momento.
+                  <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#6b7280' }}>
+                    Você não tem nenhuma operação em andamento no momento
                   </p>
+                  <button
+                    onClick={() => {
+                      navigate(getDashboardRoute() || '/');
+                      setShowActionsModal(false);
+                    }}
+                    style={{
+                      background: '#16a34a',
+                      color: 'white',
+                      border: 'none',
+                      padding: '10px 20px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Ver Dashboard
+                  </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {userState.activeOperation ? (
-                    <div key={userState.activeOperation.id} style={{
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {activeOperations.map(operation => (
+                    <div key={operation.id} style={{
                       border: '1px solid #e5e7eb',
-                      borderRadius: '12px',
-                      padding: '16px',
-                      background: '#f9fafb'
+                      borderRadius: '8px',
+                      padding: '12px',
+                      background: '#ffffff',
+                      transition: 'all 0.2s ease'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>
-                            {userState.activeOperation.title}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ margin: '0', fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
+                            {operation.title}
                           </h4>
-                          <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#6b7280' }}>
-                            {userState.activeOperation.description}
+                          <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6b7280', lineHeight: '1.3' }}>
+                            {operation.description}
                           </p>
-                          
-                          {/* Código de Entrega - quando em trânsito */}
-                          {(userState.activeOperation.status === 'picked_up' || 
-                            userState.activeOperation.status === 'in_transit') && 
-                            userState.activeOperation.delivery_code && (
-                            <div style={{ 
-                              marginTop: '8px', 
-                              padding: '8px', 
-                              background: '#eff6ff', 
-                              border: '1px solid #bfdbfe', 
-                              borderRadius: '6px' 
-                            }}>
-                              <p style={{ margin: '0 0 4px 0', fontSize: '12px', fontWeight: '600', color: '#1e40af' }}>
-                                📋 Código de Entrega:
-                              </p>
-                              <p style={{ 
-                                margin: 0, 
-                                fontSize: '14px', 
-                                fontWeight: 'bold', 
-                                color: '#1e40af',
-                                fontFamily: 'monospace',
-                                background: 'white',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                display: 'inline-block'
-                              }}>
-                                {userState.activeOperation.delivery_code}
-                              </p>
-                              <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
-                                Peça este código ao abrigo
-                              </p>
-                            </div>
-                          )}
                         </div>
                         <div style={{
-                          width: '12px',
-                          height: '12px',
+                          width: '8px',
+                          height: '8px',
                           borderRadius: '50%',
-                          background: userState.activeOperation.color,
-                          flexShrink: 0
+                          background: operation.color || '#16a34a',
+                          flexShrink: 0,
+                          marginTop: '2px'
                         }} />
                       </div>
 
-                      {/* Progress Bar */}
-                      <div style={{ marginBottom: '8px' }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: '4px'
+                      {/* Código de Retirada - para deliveries pending_confirmation */}
+                      {operation.type === 'delivery' && 
+                       (operation.status === 'pending_confirmation' || operation.status === 'reserved') && 
+                       operation.pickup_code && (
+                        <div style={{ 
+                          marginTop: '8px', 
+                          padding: '8px', 
+                          background: '#fef3c7', 
+                          borderRadius: '6px',
+                          border: '1px solid #f59e0b'
                         }}>
-                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                            {userState.activeOperation.stepLabel}
-                          </span>
-                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                            {userState.activeOperation.step}/{userState.activeOperation.totalSteps}
-                          </span>
+                          <p style={{ margin: '0', fontSize: '11px', color: '#92400e', fontWeight: '500' }}>
+                            📋 Código de Retirada
+                          </p>
+                          <p style={{ 
+                            margin: '2px 0 0 0', 
+                            fontSize: '14px', 
+                            fontWeight: 'bold', 
+                            color: '#92400e',
+                            fontFamily: 'monospace',
+                            letterSpacing: '1px'
+                          }}>
+                            {operation.pickup_code}
+                          </p>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#92400e' }}>
+                            Mostre ao fornecedor
+                          </p>
                         </div>
-                        <div style={{
-                          height: '6px',
-                          background: '#e5e7eb',
-                          borderRadius: '3px',
-                          overflow: 'hidden'
-                        }}>
-                          <div style={{
-                            height: '100%',
-                            width: `${(userState.activeOperation.step / userState.activeOperation.totalSteps) * 100}%`,
-                            background: userState.activeOperation.color,
-                            borderRadius: '3px',
-                            transition: 'width 0.3s ease'
-                          }} />
-                        </div>
-                      </div>
+                      )}
 
-                      {/* Step Indicators */}
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {Array.from({ length: userState.activeOperation.totalSteps }, (_, i) => (
-                          <div
-                            key={i}
+                      {/* Código de Entrega - quando em trânsito */}
+                      {(operation.status === 'picked_up' || 
+                        operation.status === 'in_transit') && 
+                        operation.delivery_code && (
+                        <div style={{ 
+                          marginTop: '8px', 
+                          padding: '8px', 
+                          background: '#dbeafe', 
+                          borderRadius: '6px',
+                          border: '1px solid #3b82f6'
+                        }}>
+                          <p style={{ margin: '0', fontSize: '11px', color: '#1e40af', fontWeight: '500' }}>
+                            📋 Código de Entrega
+                          </p>
+                          <p style={{ 
+                            margin: '2px 0 0 0', 
+                            fontSize: '14px', 
+                            fontWeight: 'bold', 
+                            color: '#1e40af',
+                            fontFamily: 'monospace',
+                            letterSpacing: '1px'
+                          }}>
+                            {operation.delivery_code}
+                          </p>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#1e40af' }}>
+                            Peça este código ao abrigo
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Botões de Ação */}
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '8px', 
+                        marginTop: '12px'
+                      }}>
+                        {operation.type === 'delivery' && 
+                         (operation.status === 'pending_confirmation' || operation.status === 'reserved') && (
+                          <button
+                            onClick={() => handleCancelClick}
                             style={{
                               flex: 1,
-                              height: '4px',
-                              borderRadius: '2px',
-                              background: i < userState.activeOperation.step ? userState.activeOperation.color : '#e5e7eb'
-                            }}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div style={{ 
-                        marginTop: '12px', 
-                        display: 'flex', 
-                        gap: '8px',
-                        flexWrap: 'wrap'
-                      }}>
-                        {userState.activeOperation.type === 'delivery' && 
-                        (userState.activeOperation.status === 'reserved' || userState.activeOperation.status === 'pending_confirmation') && (
-                          <>
-                            {/* Código de Retirada - Mostrado diretamente no modal */}
-                            <div style={{ width: '100%', marginBottom: '8px' }}>
-                              <div style={{
-                                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                                border: '2px solid #f59e0b',
-                                borderRadius: '12px',
-                                padding: '16px',
-                                textAlign: 'center'
-                              }}>
-                                <p style={{ 
-                                  margin: '0 0 8px 0', 
-                                  fontSize: '13px', 
-                                  fontWeight: '600', 
-                                  color: '#92400e',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px'
-                                }}>
-                                  📋 Código de Retirada
-                                </p>
-                                <p style={{ 
-                                  margin: '0 0 8px 0', 
-                                  fontSize: '28px', 
-                                  fontWeight: 'bold', 
-                                  color: '#92400e',
-                                  fontFamily: 'monospace',
-                                  letterSpacing: '4px',
-                                  background: 'white',
-                                  padding: '8px 16px',
-                                  borderRadius: '8px',
-                                  display: 'inline-block',
-                                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                }}>
-                                  {userState.activeOperation.pickup_code}
-                                </p>
-                                <p style={{ 
-                                  margin: '8px 0 0 0', 
-                                  fontSize: '12px', 
-                                  color: '#a16207'
-                                }}>
-                                  Mostre este código ao fornecedor para retirar
-                                </p>
-                              </div>
-                            </div>
-                            
-                            {/* Botão Cancelar - abre modal de confirmação padrão */}
-                            <button
-                              onClick={handleCancelClick}
-                              style={{
-                                width: '100%',
-                                padding: '10px 16px',
-                                border: 'none',
-                                borderRadius: '8px',
-                                background: '#ef4444',
-                                color: 'white',
-                                fontSize: '13px',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                transition: 'background 0.2s'
-                              }}
-                              onMouseOver={(e) => e.currentTarget.style.background = '#dc2626'}
-                              onMouseOut={(e) => e.currentTarget.style.background = '#ef4444'}
-                            >
-                              ❌ Cancelar Entrega
-                            </button>
-                          </>
-                        )}
-                        {userState.activeOperation.type === 'delivery' && userState.activeOperation.status === 'picked_up' && (
-                          <>
-                            {/* Voluntário DOA - confirma código do abrigo */}
-                            <button
-                              onClick={() => openConfirmCodeModal(
-                                'Confirmar Entrega',
-                                'Digite o código de entrega fornecido pelo abrigo:',
-                                userState.activeOperation.delivery_code,
-                                {
-                                  'Quantidade': `${userState.activeOperation.metadata?.quantity || userState.activeOperation.quantity} itens`,
-                                  'Destino': userState.activeOperation.metadata?.location?.name || 'Local não especificado',
-                                  'Status': 'Em trânsito'
-                                },
-                                async (enteredCode) => {
-                                  // Validar código e confirmar entrega
-                                  try {
-                                    const response = await fetch(`/api/deliveries/${userState.activeOperation.id}/validate-delivery`, {
-                                      method: 'POST',
-                                      headers: {
-                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                                        'Content-Type': 'application/json'
-                                      },
-                                      body: JSON.stringify({ code: enteredCode })
-                                    });
-                                    if (response.ok) {
-                                      showNotification('✅ Entrega confirmada com sucesso!', 'success');
-                                      refreshState();
-                                    } else {
-                                      const error = await response.json();
-                                      showNotification('❌ ' + (error.detail || 'Código inválido'), 'error');
-                                    }
-                                  } catch (error) {
-                                    showNotification('❌ Erro ao confirmar entrega', 'error');
-                                  }
-                                }
-                              )}
-                              style={{
-                                flex: 1,
-                                padding: '8px 12px',
-                                border: 'none',
-                                borderRadius: '6px',
-                                background: '#10b981',
-                                color: 'white',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                transition: 'background 0.2s'
-                              }}
-                              onMouseOver={(e) => e.currentTarget.style.background = '#059669'}
-                              onMouseOut={(e) => e.currentTarget.style.background = '#10b981'}
-                              >
-                              ✅ Confirmar Entrega
-                            </button>
-                            <button
-                              onClick={handleCancelClick}
-                              style={{
-                                flex: 1,
-                                padding: '8px 12px',
-                                border: 'none',
-                                borderRadius: '6px',
-                                background: '#ef4444',
-                                color: 'white',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                transition: 'background 0.2s'
-                              }}
-                              onMouseOver={(e) => e.currentTarget.style.background = '#dc2626'}
-                              onMouseOut={(e) => e.currentTarget.style.background = '#ef4444'}
-                            >
-                              ❌ Cancelar
-                            </button>
-                          </>
-                        )}
-                        {userState.activeOperation.type === 'reservation' && userState.activeOperation.status === 'reserved' && (
-                          <>
-                            <button
-                              style={{
-                                flex: 1,
-                                padding: '8px 12px',
-                                border: 'none',
-                                borderRadius: '6px',
-                                background: '#10b981',
-                                color: 'white',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                transition: 'background 0.2s'
-                              }}
-                              onMouseOver={(e) => e.currentTarget.style.background = '#059669'}
-                              onMouseOut={(e) => e.currentTarget.style.background = '#10b981'}
-                              onClick={() => showNotification('Vá para o dashboard para confirmar a retirada', 'info')}
-                            >
-                              ✅ Confirmar Retirada (no Dashboard)
-                            </button>
-                            <button
-                              onClick={handleCancelClick}
-                              style={{
-                                flex: 1,
-                                padding: '8px 12px',
-                                border: 'none',
-                                borderRadius: '6px',
-                                background: '#ef4444',
-                                color: 'white',
-                                fontSize: '12px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                transition: 'background 0.2s'
-                              }}
-                              onMouseOver={(e) => e.currentTarget.style.background = '#dc2626'}
-                              onMouseOut={(e) => e.currentTarget.style.background = '#ef4444'}
-                            >
-                              ❌ Cancelar
-                            </button>
-                          </>
-                        )}
-                        {userState.activeOperation.type === 'reservation' && userState.activeOperation.status === 'acquired' && (
-                          <button
-                            style={{
-                              width: '100%',
-                              padding: '8px 12px',
-                              border: 'none',
-                              borderRadius: '6px',
-                              background: '#3b82f6',
+                              background: '#ef4444',
                               color: 'white',
+                              border: 'none',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                        
+                        {operation.type === 'delivery' && operation.status === 'picked_up' && (
+                          <button
+                            onClick={() => openConfirmCodeModal(
+                              'Confirmar Entrega',
+                              'Digite o código de entrega fornecido pelo abrigo:',
+                              operation.delivery_code,
+                              {
+                                'Delivery': `#${operation.id}`,
+                                'Destino': operation.metadata?.location?.name || 'Local não especificado'
+                              },
+                              async (code) => {
+                                try {
+                                  const response = await fetch(`/api/deliveries/${operation.id}/confirm`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                      'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ delivery_code: code })
+                                  });
+
+                                  if (response.ok) {
+                                    window.dispatchEvent(new CustomEvent('refreshUserState', {
+                                      detail: { forceUpdate: true }
+                                    }));
+                                    setShowActionsModal(false);
+                                  }
+                                } catch (error) {
+                                  console.error('Erro ao confirmar entrega:', error);
+                                }
+                              }
+                            )}
+                            style={{
+                              flex: 1,
+                              background: '#16a34a',
+                              color: 'white',
+                              border: 'none',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
                               fontSize: '12px',
                               fontWeight: '500',
                               cursor: 'pointer',
                               transition: 'background 0.2s'
                             }}
-                            onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
-                            onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#15803d'}
+                            onMouseOut={(e) => e.currentTarget.style.background = '#16a34a'}
                             onClick={() => showNotification('Vá para o dashboard para entregar os itens', 'info')}
                           >
                             📦 Entregar Itens (no Dashboard)
@@ -1125,15 +992,10 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                         )}
                       </div>
                     </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                      <p style={{ color: '#6b7280' }}>
-                        Nenhuma operação ativa encontrada.
-                      </p>
-                    </div>
-                  )}
+                  ))}
                 </div>
               )}
+            </div>
 
               {/* Footer */}
               {userState.activeOperation && (

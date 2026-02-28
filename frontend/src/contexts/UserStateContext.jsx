@@ -203,10 +203,15 @@ export function UserStateProvider({ children }) {
         });
       }
 
-      // REGRA: Apenas UMA operação ativa por vez
-      // Se houver múltiplas, pegar a mais recente
-      const activeOperation = operations.length > 0 
-        ? operations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+      // REGRA: Permitir múltiplas operações ativas (para volunteers com múltiplas deliveries)
+      // Manter todas as operações ativas para exibição no modal
+      const activeOperations = operations.filter(op => 
+        !['completed', 'cancelled', 'expired'].includes(op.status)
+      );
+
+      // Para compatibilidade, manter a operação principal como a mais recente
+      const activeOperation = activeOperations.length > 0 
+        ? activeOperations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
         : null;
 
       const currentState = getStateFromOperation(activeOperation);
@@ -214,6 +219,7 @@ export function UserStateProvider({ children }) {
 
       console.log('🎯 UserStateContext: Estado final:', { 
         operationsCount: operations.length, 
+        activeOperationsCount: activeOperations.length,
         activeOperation: activeOperation ? { id: activeOperation.id, type: activeOperation.type, status: activeOperation.status } : null,
         currentState 
       });
@@ -221,6 +227,7 @@ export function UserStateProvider({ children }) {
       setUserState({
         currentState,
         activeOperation,
+        activeOperations, // Nova: todas as operações ativas
         operationHistory: operations,
         stateColors,
         lastUpdate: new Date(),
@@ -310,6 +317,9 @@ export function UserStateProvider({ children }) {
     isPickedUp: userState.currentState === 'picked_up',
     isInTransit: userState.currentState === 'in_transit',
     isDelivering: userState.currentState === 'delivering',
+    
+    // Operações ativas
+    activeOperations: userState.activeOperations || [],
     
     // Cores atuais
     colors: userState.stateColors
