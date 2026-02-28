@@ -49,7 +49,7 @@ export default function ProviderDashboard() {
   const { alert, showAlert, closeAlert } = useAlert();
 
   const triggerUserStateUpdate = () => {
-    window.dispatchEvent(new CustomEvent('userOperationUpdate', {
+    window.dispatchEvent(new CustomEvent('refreshUserState', {
       detail: { forceUpdate: true }
     }));
   };
@@ -57,6 +57,17 @@ export default function ProviderDashboard() {
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  // Listener para recarregar dados quando UserStateContext atualizar
+  useEffect(() => {
+    const handleRefreshUserState = () => {
+      console.log('🔄 ProviderDashboard: Recarregando dados devido ao UserStateContext...');
+      loadData();
+    };
+
+    window.addEventListener('refreshUserState', handleRefreshUserState);
+    return () => window.removeEventListener('refreshUserState', handleRefreshUserState);
+  }, []);
 
   const loadData = async () => {
     setLoading(true);

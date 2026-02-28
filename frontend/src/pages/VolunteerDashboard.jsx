@@ -41,6 +41,17 @@ export default function VolunteerDashboard() {
     loadData();
   }, [activeTab]);
 
+  // Listener para recarregar dados quando UserStateContext atualizar
+  useEffect(() => {
+    const handleRefreshUserState = () => {
+      console.log('🔄 VolunteerDashboard: Recarregando dados devido ao UserStateContext...');
+      loadData();
+    };
+
+    window.addEventListener('refreshUserState', handleRefreshUserState);
+    return () => window.removeEventListener('refreshUserState', handleRefreshUserState);
+  }, []);
+
   const loadData = async () => {
     setLoading(true);
     try {
