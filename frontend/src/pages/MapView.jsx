@@ -11,6 +11,7 @@ import RegisterModal from '../components/RegisterModal';
 import IngredientReservationModal from '../components/IngredientReservationModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import CommitmentSuccessModal from '../components/CommitmentSuccessModal';
+import CommitmentModal from '../components/CommitmentModal';
 import UserStateWidget from '../components/UserStateWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
@@ -115,6 +116,8 @@ export default function MapView() {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showCommitmentSuccess, setShowCommitmentSuccess] = useState(false);
   const [committedDeliveryData, setCommittedDeliveryData] = useState(null);
+  const [showCommitmentModal, setShowCommitmentModal] = useState(false);
+  const [selectedLocationForCommitment, setSelectedLocationForCommitment] = useState(null);
   const [confirmationData, setConfirmationData] = useState({
     title: '',
     message: '',
@@ -562,10 +565,36 @@ export default function MapView() {
                          opacity: ${canCommit ? '1' : '0.6'};"
                   title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer com entregas' : ''}"
                 >
-                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : (isUserIdle() ? `🤝 Me Comprometer - ${label}` : '⏳ Compromisso em Andamento')}
+                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : (isUserIdle() ? `🤝 Comprometer Entrega` : '⏳ Compromisso em Andamento')}
                 </button>
               `;
             });
+            
+            // Adicionar botão único de comprometer para locais com múltiplos produtos
+            const locationDeliveries = deliveries.filter(d => d.location_id === location.id && d.status === 'available');
+            if (locationDeliveries.length > 1) {
+              const canCommit = canUserDoDeliveries() && isUserIdle();
+              productsHtml += `
+                <button 
+                  onclick="window.openSimplifiedCommitment(${location.id})"
+                  style="
+                    background: linear-gradient(135deg, #3b82f6, #8b5cf6); 
+                    color: white; 
+                    border: none; 
+                    padding: 8px 12px; 
+                    border-radius: 6px; 
+                    cursor: ${canCommit ? 'pointer' : 'not-allowed'}; 
+                    font-size: 12px; 
+                    width: 100%; 
+                    margin-top: 6px; 
+                    font-weight: 500;
+                    opacity: ${canCommit ? '1' : '0.6'};"
+                  title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer com entregas' : ''}"
+                >
+                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : '🤝 Comprometer Entrega'}
+                </button>
+              `;
+            }
             
             productsHtml += '</div>';
           }
@@ -860,6 +889,45 @@ export default function MapView() {
       }
     };
 
+    window.openSimplifiedCommitment = (locationId) => {
+      if (!user) {
+        showConfirmation(
+          'Login Necessário',
+          'Você precisa estar logado como voluntário para se comprometer com entregas',
+          () => setShowLoginModal(true),
+          'warning'
+        );
+        return;
+      }
+      
+      if (!user.roles.includes('volunteer')) {
+        showConfirmation(
+          'Acesso Restrito',
+          'Apenas voluntários podem se comprometer com entregas',
+          () => {},
+          'error'
+        );
+        return;
+      }
+
+      // Verificar se usuário está ocioso
+      if (!isUserIdle()) {
+        showConfirmation(
+          '⚠️ Compromisso em Andamento',
+          `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
+          () => {},
+          'warning'
+        );
+        return;
+      }
+
+      const location = locations.find(l => l.id === locationId);
+      if (location) {
+        setSelectedLocationForCommitment(location);
+        setShowCommitmentModal(true);
+      }
+    };
+
     window.commitToDelivery = async (deliveryId) => {
       if (!user) {
         showConfirmation(
@@ -945,33 +1013,85 @@ export default function MapView() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Erro ao se comprometer com a entrega');
+        throw new Error(error.detail || 'Erro ao comprometer entrega');
       }
 
-      const committedDelivery = await response.json();
-      
-      // ATUALIZAÇÃO INSTANTÂNEA - não esperar loadData
-      // 1. Atualizar UserStateContext imediatamente
-      refreshState();
-      
-      // 2. Mostrar modal de sucesso com código
-      setCommittedDeliveryData(committedDelivery);
+      const delivery = await response.json();
+      setCommittedDeliveryData(delivery);
       setShowCommitmentSuccess(true);
-      
-      // 3. Recarregar dados do mapa em background (não bloqueia UI)
-      loadData().catch(err => console.error('Erro ao recarregar dados:', err));
-      
-      // 4. Segunda atualização de estado após 1 segundo (garante sincronização)
-      setTimeout(() => {
-        console.log('🔄 Segunda atualização de estado após commitment...');
-        refreshState();
-      }, 1000);
-      
-      console.log('✅ Compromisso confirmado! ID:', committedDelivery.id);
+      setShowModalCommitDelivery(false);
+      await loadData();
+      await refreshState();
       
     } catch (error) {
-      console.error('Erro ao se comprometer:', error);
-      throw error;
+      console.error('Erro ao comprometer entrega:', error);
+      showConfirmation('Erro', error.message, 'error');
+    }
+  };
+
+  const handleSimplifiedCommitment = async (locationId, commitments) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Para cada compromisso, criar um delivery
+      const promises = commitments.map(async (commitment) => {
+        // Encontrar deliveries disponíveis para este local e tipo
+        const availableDeliveries = deliveries.filter(
+          d => d.location_id === locationId && 
+               d.product_type === commitment.product_type && 
+               d.status === 'available'
+        );
+
+        if (availableDeliveries.length === 0) {
+          throw new Error(`Não há deliveries disponíveis para ${commitment.product_type}`);
+        }
+
+        // Distribuir quantidade entre os deliveries disponíveis
+        let remainingQuantity = commitment.quantity;
+        const results = [];
+
+        for (const delivery of availableDeliveries) {
+          if (remainingQuantity <= 0) break;
+
+          const quantityToCommit = Math.min(remainingQuantity, delivery.quantity);
+          
+          const response = await fetch(`http://localhost:8000/api/deliveries/${delivery.id}/commit`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ quantity: quantityToCommit })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao comprometer entrega');
+          }
+
+          results.push(await response.json());
+          remainingQuantity -= quantityToCommit;
+        }
+
+        return results;
+      });
+
+      await Promise.all(promises);
+      
+      // Mostrar sucesso
+      setCommittedDeliveryData({
+        location: { name: selectedLocationForCommitment?.name },
+        quantity: commitments.reduce((sum, c) => sum + c.quantity, 0),
+        product_type: commitments.length > 1 ? 'mixed' : commitments[0].product_type
+      });
+      setShowCommitmentSuccess(true);
+      setShowCommitmentModal(false);
+      
+      await loadData();
+      await refreshState();
+    } catch (error) {
+      console.error('Erro ao comprometer:', error);
+      showConfirmation('Erro', error.message, 'error');
     }
   };
 
@@ -1975,6 +2095,18 @@ export default function MapView() {
           setCommittedDeliveryData(null);
         }}
         delivery={committedDeliveryData}
+      />
+
+      {/* Modal Simplificado de Compromisso */}
+      <CommitmentModal
+        isOpen={showCommitmentModal}
+        onClose={() => {
+          setShowCommitmentModal(false);
+          setSelectedLocationForCommitment(null);
+        }}
+        location={selectedLocationForCommitment}
+        deliveries={deliveries.filter(d => d.location_id === selectedLocationForCommitment?.id && d.status === 'available')}
+        onCommit={handleSimplifiedCommitment}
       />
       
       {/* Widget de Estado do Usuário */}
