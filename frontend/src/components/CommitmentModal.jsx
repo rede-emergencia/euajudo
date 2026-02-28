@@ -80,6 +80,14 @@ export default function CommitmentModal({
       .reduce((sum, d) => sum + d.quantity, 0);
   };
 
+  const getProductIcon = (productType) => {
+    return productType === 'meal' ? '📦' : '💊';
+  };
+
+  const getProductName = (productType) => {
+    return productType === 'meal' ? 'Marmitas' : 'Medicamentos';
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-scale-in">
@@ -122,7 +130,7 @@ export default function CommitmentModal({
               <div className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Package className="text-orange-600" size={20} />
-                  <span className="font-medium text-gray-900">Marmitas</span>
+                  <span className="font-medium text-gray-900">{getProductName('meal')}</span>
                   <span className="text-sm text-gray-500">
                     (Disponível: {getMaxQuantity('meal')})
                   </span>
@@ -134,7 +142,7 @@ export default function CommitmentModal({
                   value={quantities.meal}
                   onChange={(e) => handleQuantityChange('meal', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Quantidade de marmitas"
+                  placeholder={`Quantidade de ${getProductName('meal').toLowerCase()}`}
                 />
               </div>
             )}
@@ -144,7 +152,7 @@ export default function CommitmentModal({
               <div className="border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Pill className="text-green-600" size={20} />
-                  <span className="font-medium text-gray-900">Medicamentos</span>
+                  <span className="font-medium text-gray-900">{getProductName('medicine')}</span>
                   <span className="text-sm text-gray-500">
                     (Disponível: {getMaxQuantity('medicine')})
                   </span>
@@ -156,7 +164,7 @@ export default function CommitmentModal({
                   value={quantities.medicine}
                   onChange={(e) => handleQuantityChange('medicine', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Quantidade de medicamentos"
+                  placeholder={`Quantidade de ${getProductName('medicine').toLowerCase()}`}
                 />
               </div>
             )}
@@ -168,10 +176,10 @@ export default function CommitmentModal({
               <h4 className="font-medium text-blue-900 mb-2">Resumo do compromisso:</h4>
               <div className="text-sm text-blue-800 space-y-1">
                 {quantities.meal > 0 && (
-                  <div>• {quantities.meal} marmita(s)</div>
+                  <div>{getProductIcon('meal')} {quantities.meal} {getProductName('meal').toLowerCase()}</div>
                 )}
                 {quantities.medicine > 0 && (
-                  <div>• {quantities.medicine} medicamento(s)</div>
+                  <div>{getProductIcon('medicine')} {quantities.medicine} {getProductName('medicine').toLowerCase()}</div>
                 )}
                 <div className="font-semibold pt-2 border-t border-blue-200">
                   Total: {quantities.meal + quantities.medicine} itens

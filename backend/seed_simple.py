@@ -171,24 +171,40 @@ def create_locations(db):
         locations.append(location)
     
     db.commit()
-    print(f"🏠 {len(locations)} abrigos criados")
+    print(f"\n🏠 {len(locations)} abrigos criados")
     return locations
 
+def print_delivery_summary(deliveries, locations):
+    """Print summary of deliveries by location"""
+    print("\n📋 RESUMO DOS PEDIDOS POR ABRIGO:")
+    
+    for location in locations:
+        location_deliveries = [d for d in deliveries if d.location_id == location.id]
+        if location_deliveries:
+            print(f"\n   🏠 {location.name}:")
+            for delivery in location_deliveries:
+                product_icon = "📦" if delivery.product_type == 'meal' else "💊"
+                print(f"      {product_icon} {delivery.quantity} {delivery.product_type}s")
+    
+    print(f"\n   📊 Total: {len(deliveries)} pedidos")
+    print(f"      • {len([d for d in deliveries if d.product_type == 'meal'])} pedidos de marmitas")
+    print(f"      • {len([d for d in deliveries if d.product_type == 'medicine'])} pedidos de medicamentos")
+
 def create_deliveries(db, locations):
-    """Create delivery requests for meals and medicines"""
+    """Create delivery requests for meals and medicines with different quantities"""
     deliveries_data = [
-        # Marmitas
+        # Marmitas - quantidades diferentes
         {
             'location_id': locations[0].id,  # Abrigo São Francisco
             'product_type': ProductType.MEAL,
-            'quantity': 50,
+            'quantity': 45,
             'status': DeliveryStatus.AVAILABLE,
             'expires_at': datetime.utcnow() + timedelta(days=2)
         },
         {
             'location_id': locations[2].id,  # Centro Comunitário
             'product_type': ProductType.MEAL,
-            'quantity': 40,
+            'quantity': 30,
             'status': DeliveryStatus.AVAILABLE,
             'expires_at': datetime.utcnow() + timedelta(days=2)
         },
@@ -199,18 +215,33 @@ def create_deliveries(db, locations):
             'status': DeliveryStatus.AVAILABLE,
             'expires_at': datetime.utcnow() + timedelta(days=2)
         },
-        # Medicamentos
+        # Medicamentos - quantidades diferentes
         {
             'location_id': locations[1].id,  # Casa de Saúde
             'product_type': ProductType.MEDICINE,
-            'quantity': 30,
+            'quantity': 25,
             'status': DeliveryStatus.AVAILABLE,
             'expires_at': datetime.utcnow() + timedelta(days=2)
         },
         {
             'location_id': locations[3].id,  # Abrigo Esperança (também pede medicamentos)
             'product_type': ProductType.MEDICINE,
-            'quantity': 25,
+            'quantity': 40,
+            'status': DeliveryStatus.AVAILABLE,
+            'expires_at': datetime.utcnow() + timedelta(days=2)
+        },
+        # Adicionar mais pedidos para ter múltiplos tipos em alguns locais
+        {
+            'location_id': locations[0].id,  # Abrigo São Francisco também pede medicamentos
+            'product_type': ProductType.MEDICINE,
+            'quantity': 20,
+            'status': DeliveryStatus.AVAILABLE,
+            'expires_at': datetime.utcnow() + timedelta(days=2)
+        },
+        {
+            'location_id': locations[1].id,  # Casa de Saúde também pede marmitas
+            'product_type': ProductType.MEAL,
+            'quantity': 35,
             'status': DeliveryStatus.AVAILABLE,
             'expires_at': datetime.utcnow() + timedelta(days=2)
         }
@@ -279,6 +310,9 @@ def main():
         deliveries = create_deliveries(db, locations)
         batches = create_batches(db, users)
         
+        # Mostrar resumo detalhado
+        print_delivery_summary(deliveries, locations)
+        
         print("\n" + "="*70)
         print("✅ BANCO DE DADOS POPULADO COM SUCESSO!")
         print("="*70)
@@ -289,9 +323,19 @@ def main():
         print(f"      • {len([u for u in users if 'volunteer' in u.roles])} voluntários")
         print(f"      • 1 administrador")
         
-        print(f"\n   🏠 {len(locations)} abrigos pedindo:")
-        print(f"      • {len([d for d in deliveries if d.product_type == 'meal'])} pedidos de marmitas")
-        print(f"      • {len([d for d in deliveries if d.product_type == 'medicine'])} pedidos de medicamentos")
+        print(f"\n   🏠 {len(locations)} abrigos com pedidos:")
+        multi_product_locations = []
+        single_product_locations = []
+        
+        for location in locations:
+            location_deliveries = [d for d in deliveries if d.location_id == location.id]
+            if len(location_deliveries) > 1:
+                multi_product_locations.append(location.name)
+            else:
+                single_product_locations.append(location.name)
+        
+        print(f"      • {len(multi_product_locations)} abrigos com múltiplos produtos: {', '.join(multi_product_locations)}")
+        print(f"      • {len(single_product_locations)} abrigos com produto único: {', '.join(single_product_locations)}")
         
         print(f"\n   📦 {len(batches)} lotes disponíveis:")
         print(f"      • 1 lote de marmitas (100 unidades)")
@@ -305,7 +349,8 @@ def main():
         print("\n🎯 AÇÕES DISPONÍVEIS:")
         print("   1. Comprometer-se com entregas de marmitas para abrigos")
         print("   2. Comprometer-se com entregas de medicamentos para abrigos")
-        print("   3. Interface simplificada com um botão de comprometer")
+        print("   3. Comprometer-se com AMBOS tipos simultaneamente")
+        print("   4. Interface simplificada com botão único de comprometer")
         
     finally:
         db.close()

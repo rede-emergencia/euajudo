@@ -578,7 +578,35 @@ export default function MapView() {
                 <button 
                   onclick="window.openSimplifiedCommitment(${location.id})"
                   style="
-                    background: linear-gradient(135deg, #3b82f6, #8b5cf6); 
+                    background: linear-gradient(135deg, #10b981, #3b82f6); 
+                    color: white; 
+                    border: none; 
+                    padding: 10px 12px; 
+                    border-radius: 6px; 
+                    cursor: ${canCommit ? 'pointer' : 'not-allowed'}; 
+                    font-size: 12px; 
+                    width: 100%; 
+                    margin-top: 8px; 
+                    font-weight: 600;
+                    opacity: ${canCommit ? '1' : '0.6'};
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                  title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer com entregas' : 'Comprometer-se com múltiplos itens'}"
+                >
+                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : '🤝 Comprometer Entrega'}
+                </button>
+              `;
+            } else if (locationDeliveries.length === 1) {
+              // Para locais com apenas um produto, usar botão específico
+              const delivery = locationDeliveries[0];
+              const canCommit = canUserDoDeliveries() && isUserIdle();
+              const productInfo = getProductInfo(delivery.product_type);
+              const label = `${productInfo.emoji} ${productInfo.label}`;
+              
+              productsHtml += `
+                <button 
+                  onclick="window.commitToDelivery(${delivery.id})"
+                  style="
+                    background: linear-gradient(135deg, ${productInfo.color}, ${productInfo.color}dd); 
                     color: white; 
                     border: none; 
                     padding: 8px 12px; 
@@ -591,7 +619,7 @@ export default function MapView() {
                     opacity: ${canCommit ? '1' : '0.6'};"
                   title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer com entregas' : ''}"
                 >
-                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : '🤝 Comprometer Entrega'}
+                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : (isUserIdle() ? `🤝 Comprometer - ${label}` : '⏳ Compromisso em Andamento')}
                 </button>
               `;
             }
