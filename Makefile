@@ -1,7 +1,7 @@
 # EuAjudo Makefile
 # Facilita setup, desenvolvimento e deploy do projeto
 
-.PHONY: help setup seed backend frontend dev kill clean test lint format
+.PHONY: help setup seed seed-status backend frontend dev kill clean test lint format
 
 # Cores para output
 RED := \033[0;31m
@@ -32,9 +32,10 @@ help: ## Exibe ajuda com todos os comandos disponíveis
 	@echo ""
 	@echo "$(BLUE)Exemplos de uso:$(NC)"
 	@echo "  make setup          # Configura ambiente completo"
+	@echo "  make seed           # Popula banco de dados"
+	@echo "  make seed-status    # Verifica status do banco"
 	@echo "  make dev            # Inicia frontend e backend em background"
 	@echo "  make kill           # Para todos os serviços"
-	@echo "  make seed           # Popula banco de dados"
 
 setup: ## Configura ambiente completo (Python + Node + dependências)
 	@echo "$(YELLOW)🔧 Configurando ambiente EuAjudo...$(NC)"
@@ -91,15 +92,47 @@ seed: ## Popula banco de dados com dados de teste
 	@echo "$(YELLOW)🌱 Populando banco de dados...$(NC)"
 	cd $(BACKEND_DIR) && \
 	source venv/bin/activate && \
-	$(PYTHON) init_db.py && \
-	echo "$(GREEN)✅ Banco de dados inicializado$(NC)" && \
-	$(PYTHON) seed.py && \
+	$(PYTHON) seed_improved.py && \
 	echo "$(GREEN)✅ Dados de teste inseridos$(NC)"
 	@echo ""
-	@echo "$(CYAN)Credenciais de teste:$(NC)"
-	@echo "  Fornecedor: p1@j.com / 123"
-	@echo "  Voluntário: v1@j.com / 123"  
-	@echo "  Admin: adm@j.com / 123"
+	@echo "$(CYAN)Credenciais de teste (senha: 123):$(NC)"
+	@echo "  🏪 Fornecedores:"
+	@echo "     • cozinha.solidaria@euajudo.com"
+	@echo "     • farmacia.esperanca@euajudo.com"
+	@echo "     • restaurante.bom.sabor@euajudo.com"
+	@echo "  🙋 Voluntários:"
+	@echo "     • joao.voluntario@euajudo.com"
+	@echo "     • maria.voluntaria@euajudo.com"
+	@echo "  🏠 Abrigos:"
+	@echo "     • abrigo.carmo@euajudo.com"
+	@echo "  👤 Admin:"
+	@echo "     • admin@euajudo.com"
+
+seed-status: ## Verifica status do banco de dados
+	@echo "$(YELLOW)📊 Verificando status do banco de dados...$(NC)"
+	cd $(BACKEND_DIR) && \
+	source venv/bin/activate && \
+	$(PYTHON) -c "
+from app.database import SessionLocal
+from app import models
+db = SessionLocal()
+users = db.query(models.User).count()
+locations = db.query(models.DeliveryLocation).count()
+batches = db.query(models.ProductBatch).count()
+deliveries = db.query(models.Delivery).count()
+requests = db.query(models.ResourceRequest).count()
+db.close()
+print('$(GREEN)✅ Status do Banco:$(NC)')
+print(f'   👥 Usuários: {users}')
+print(f'   🏠 Locais: {locations}')
+print(f'   📦 Batches: {batches}')
+print(f'   🚚 Deliveries: {deliveries}')
+print(f'   📋 Requests: {requests}')
+if users == 0 and locations == 0:
+    print('$(YELLOW)⚠️  Banco vazio - execute \"make seed\" para popular$(NC)')
+else:
+    print('$(GREEN)✅ Banco contém dados$(NC)')
+"
 
 backend: ## Inicia apenas o backend FastAPI
 	@echo "$(YELLOW)🚀 Iniciando backend FastAPI...$(NC)"
