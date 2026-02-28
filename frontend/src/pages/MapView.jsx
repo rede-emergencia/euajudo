@@ -903,6 +903,18 @@ export default function MapView() {
         d.status === 'pending_confirmation'
       );
       
+      console.log('🔍 DEBUG - MapView openSimplifiedCommitment:', {
+        userId: user.id,
+        totalDeliveries: deliveries.length,
+        activeDeliveries: activeDeliveries.length,
+        allDeliveries: deliveries.map(d => ({
+          id: d.id,
+          volunteer_id: d.volunteer_id,
+          status: d.status,
+          isMatch: d.volunteer_id === user.id && d.status === 'pending_confirmation'
+        }))
+      });
+      
       if (activeDeliveries.length > 0) {
         showConfirmation(
           '⚠️ Limite de Compromissos',
@@ -959,6 +971,18 @@ export default function MapView() {
         d.volunteer_id === user.id && 
         d.status === 'pending_confirmation'
       );
+      
+      console.log('🔍 DEBUG - MapView handleSimplifiedCommitment:', {
+        userId: user.id,
+        totalDeliveries: deliveries.length,
+        activeDeliveries: activeDeliveries.length,
+        allDeliveries: deliveries.map(d => ({
+          id: d.id,
+          volunteer_id: d.volunteer_id,
+          status: d.status,
+          isMatch: d.volunteer_id === user.id && d.status === 'pending_confirmation'
+        }))
+      });
       
       if (activeDeliveries.length > 0) {
         showConfirmation(
