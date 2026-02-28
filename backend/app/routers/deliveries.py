@@ -375,8 +375,12 @@ def cancel_delivery(
     
     # Check authorization
     if delivery.volunteer_id != current_user.id:
-        batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
-        if not batch or batch.provider_id != current_user.id:
+        # Allow providers to cancel their own batch deliveries
+        if delivery.batch_id:
+            batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
+            if not batch or batch.provider_id != current_user.id:
+                raise HTTPException(status_code=403, detail="Not authorized to cancel this delivery")
+        else:
             raise HTTPException(status_code=403, detail="Not authorized to cancel this delivery")
     
     # Can only cancel if not yet picked up
@@ -386,12 +390,17 @@ def cancel_delivery(
             detail="Cannot cancel delivery after pickup. You must complete the delivery."
         )
     
-    # Return quantity to batch
-    batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
-    if batch:
-        batch.quantity_available += delivery.quantity
-        db.commit()
+    # Return quantity to batch (if has batch)
+    quantity_returned = 0
+    if delivery.batch_id:
+        batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
+        if batch:
+            batch.quantity_available += delivery.quantity
+            quantity_returned = delivery.quantity
+    else:
+        # For direct deliveries (no batch), just delete - quantity was virtual
+        quantity_returned = delivery.quantity
     
     db.delete(delivery)
     db.commit()
-    return {"message": "Delivery cancelled successfully", "quantity_returned": delivery.quantity}
+    return {"message": "Delivery cancelled successfully", "quantity_returned": quantity_returned}
