@@ -1,198 +1,158 @@
 #!/usr/bin/env python3
 """
-Seed simplificado para cenário pós-catástrofe com categorias essenciais
+Seed específico para produção PostgreSQL
 """
 
-import sys
 import os
+import sys
 from datetime import datetime
 from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, text
+
+# Configurar ambiente para produção
+os.environ["DATABASE_URL"] = "postgresql://euajudo_user:niHQGFxb2EClbnS6Rvq86GDFS6fuexNM@dpg-d6h6fj0gjchc73cidakg-a.oregon-postgres.render.com/euajudo"
+os.environ["ENVIRONMENT"] = "production"
+
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
-from app.database import get_db, engine, Base
-import os
-
-# Usar DATABASE_URL do environment ou padrão local
-if not os.environ.get("DATABASE_URL"):
-    os.environ["DATABASE_URL"] = "sqlite:///./euajudo.db"
+from app.database import Base
 from app.models import (
     User, DeliveryLocation, ProductBatch, Delivery, 
-    Category, CategoryAttribute, ResourceRequest, ResourceItem, ResourceReservation, ReservationItem, Order,
-    ProductType, DeliveryStatus
+    Category, CategoryAttribute, ResourceRequest, ResourceItem, 
+    ResourceReservation, ReservationItem, Order, ProductType, DeliveryStatus
 )
 from app.auth import get_password_hash
 from app.enums import UserRole
 
-def clear_database(db: Session):
+def clear_database(engine):
     """Limpa todas as tabelas na ordem correta"""
     print("🧹 Limpando banco de dados...")
     
-    # Ordem correta para evitar erros de chave estrangeira
-    tables_to_clear = [
-        Order,
-        ReservationItem,
-        ResourceReservation,
-        ResourceItem,
-        ResourceRequest,
-        Delivery,
-        ProductBatch,
-        CategoryAttribute,
-        Category,
-        DeliveryLocation,
-        User
+    tables_to_drop = [
+        'order_events', 'orders',
+        'reservation_items', 'resource_reservations', 
+        'resource_items', 'resource_requests',
+        'deliveries', 'product_batches',
+        'category_attributes', 'categories',
+        'delivery_locations', 'users'
     ]
     
-    for table in tables_to_clear:
-        try:
-            db.query(table).delete()
-            print(f"  ✅ Limpo: {table.__name__}")
-        except Exception as e:
-            print(f"  ⚠️ Pulando {table.__name__}: {e}")
-    
-    db.commit()
-    print("✅ Banco limpo!")
+    with engine.connect() as conn:
+        for table in tables_to_drop:
+            try:
+                conn.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE"))
+                print(f"  ✅ Limpo: {table}")
+            except Exception as e:
+                print(f"  ⚠️ Pulando {table}: {e}")
+        conn.commit()
 
-def create_admin(db: Session):
-    """Cria usuário admin principal"""
-    print("\n👑 Criando admin...")
-    
+def create_admin_user(db: Session):
+    """Cria usuário admin"""
+    print("👑 Criando admin...")
     admin = User(
-        name="Admin Sistema",
         email="admin@vouajudar.org",
         hashed_password=get_password_hash("admin123"),
-        roles="admin",
-        phone="21999999999",
-        active=True,
+        name="Administrador",
+        phone="11999999999",
+        roles=[UserRole.ADMIN.value],
+        city_id=1,
+        address="Endereço Admin",
         approved=True
     )
     db.add(admin)
     db.commit()
-    
-    print(f"✅ Admin criado: {admin.email} / senha: admin123")
-    return admin
+    print("✅ Admin criado: admin@vouajudar.org / senha: admin123")
 
-def create_volunteers(db: Session, count: int = 2):
-    """Cria voluntários essenciais"""
-    print(f"\n🤝 Criando {count} voluntários...")
+def create_volunteers(db: Session):
+    """Cria voluntários"""
+    print("🤝 Criando 2 voluntários...")
     
-    volunteers_data = [
+    volunteers = [
         {
-            "name": "João Silva",
             "email": "joao@vouajudar.org",
             "password": "joao123",
-            "phone": "21988887777",
-            "vehicle": "Moto"
+            "name": "João Voluntário",
+            "phone": "11888888888"
         },
         {
-            "name": "Maria Santos",
             "email": "maria@vouajudar.org", 
             "password": "maria123",
-            "phone": "21988886666",
-            "vehicle": "Carro"
+            "name": "Maria Voluntária",
+            "phone": "11777777777"
         }
     ]
     
-    created_volunteers = []
-    
-    for vol_data in volunteers_data[:count]:
-        volunteer = User(
-            name=vol_data["name"],
-            email=vol_data["email"],
-            hashed_password=get_password_hash(vol_data["password"]),
-            roles="volunteer",
-            phone=vol_data["phone"],
-            active=True,
+    for vol in volunteers:
+        user = User(
+            email=vol["email"],
+            hashed_password=get_password_hash(vol["password"]),
+            name=vol["name"],
+            phone=vol["phone"],
+            roles=[UserRole.VOLUNTEER.value],
+            city_id=1,
+            address="Endereço Voluntário",
             approved=True
         )
-        db.add(volunteer)
-        db.commit()
-        created_volunteers.append(volunteer)
-        print(f"✅ Voluntário criado: {volunteer.email} / senha: {volunteer.email.split('@')[0]}123")
+        db.add(user)
+        print(f"✅ Voluntário criado: {vol['email']} / senha: {vol['password']}")
     
-    return created_volunteers
+    db.commit()
 
 def create_shelters(db: Session):
-    """Cria 2 abrigos essenciais para cenário pós-catástrofe"""
-    print("\n🏠 Criando abrigos...")
+    """Cria abrigos"""
+    print("🏠 Criando abrigos...")
     
-    shelters_data = [
+    shelters = [
         {
-            "name": "Abrigo Centro de Operações",
             "email": "abrigo.centro@vouajudar.org",
-            "password": "123456",
-            "phone": "2133335555",
-            "address": "Praça da República, 100 - Centro, Juiz de Fora - MG",
-            "latitude": -21.7642,
-            "longitude": -43.3505,
-            "contact_person": "Carlos Mendes",
-            "operating_hours": "24 horas",
-            "capacity": 200,
-            "daily_need": 150
+            "password": "centro123",
+            "name": "Abrigo Centro de Operações",
+            "phone": "11666666666",
+            "address": "Praça Central, 100 - Centro"
         },
         {
-            "name": "Abrigo São Sebastião",
             "email": "abrigo.saosebastiao@vouajudar.org",
-            "password": "saosebastiao123",
-            "phone": "2133336666",
-            "address": "Rua São Sebastião, 200 - São Sebastião, Juiz de Fora - MG",
-            "latitude": -21.7842,
-            "longitude": -43.3705,
-            "contact_person": "Ana Paula Costa",
-            "operating_hours": "24 horas",
-            "capacity": 150,
-            "daily_need": 100
+            "password": "saosebastiao123", 
+            "name": "Abrigo São Sebastião",
+            "phone": "11555555555",
+            "address": "Rua São Sebastião, 200"
         }
     ]
     
-    created_shelters = []
-    created_locations = []
-    
-    for shelter_data in shelters_data:
-        # Criar usuário shelter
-        shelter_user = User(
-            name=shelter_data["name"],
-            email=shelter_data["email"],
-            hashed_password=get_password_hash(shelter_data["password"]),
-            roles=UserRole.SHELTER.value,
-            phone=shelter_data["phone"],
-            active=True,
+    for shelter in shelters:
+        # Criar usuário
+        user = User(
+            email=shelter["email"],
+            hashed_password=get_password_hash(shelter["password"]),
+            name=shelter["name"],
+            phone=shelter["phone"],
+            roles=[UserRole.SHELTER.value],
+            city_id=1,
+            address=shelter["address"],
             approved=True
         )
-        db.add(shelter_user)
-        db.flush()
+        db.add(user)
+        db.flush()  # Para pegar o ID
         
-        # Criar localização do abrigo
+        # Criar local associado
         location = DeliveryLocation(
-            name=shelter_data["name"],
-            address=shelter_data["address"],
-            latitude=shelter_data["latitude"],
-            longitude=shelter_data["longitude"],
-            phone=shelter_data["phone"],
-            contact_person=shelter_data["contact_person"],
-            operating_hours=shelter_data["operating_hours"],
-            capacity=shelter_data["capacity"],
-            daily_need=shelter_data["daily_need"],
-            active=True,
-            approved=True,
-            user_id=shelter_user.id
+            name=shelter["name"],
+            address=shelter["address"],
+            latitude=-23.5505,
+            longitude=-46.6333,
+            phone=shelter["phone"],
+            user_id=user.id,
+            active=True
         )
         db.add(location)
         
-        created_shelters.append(shelter_user)
-        created_locations.append(location)
+        print(f"✅ Abrigo criado: {shelter['email']} / senha: {shelter['password']}")
     
     db.commit()
-    
-    for shelter, location in zip(created_shelters, created_locations):
-        db.refresh(shelter)
-        db.refresh(location)
-        print(f"✅ Abrigo criado: {shelter.email} / senha: {shelter.email.split('@')[0]}123")
-    
-    return created_shelters, created_locations
 
 def create_categories(db: Session):
-    """Cria categorias essenciais para desastres com metadados simplificados"""
-    print("\n📦 Criando categorias essenciais para desastres...")
+    """Cria categorias essenciais"""
+    print("📦 Criando categorias essenciais para desastres...")
     
     categories_data = [
         {
@@ -302,7 +262,7 @@ def create_categories(db: Session):
             "description": "Itens de higiene",
             "icon": "🧼",
             "color": "#4CAF50",
-            "sort_order": 3,
+            "sort_order": 4,
             "attributes": [
                 {
                     "name": "tipo",
@@ -334,7 +294,7 @@ def create_categories(db: Session):
             "description": "Roupas para doação",
             "icon": "👕",
             "color": "#9C27B0",
-            "sort_order": 4,
+            "sort_order": 5,
             "attributes": [
                 {
                     "name": "tipo",
@@ -368,7 +328,7 @@ def create_categories(db: Session):
             "description": "Medicamentos essenciais",
             "icon": "💊",
             "color": "#F44336",
-            "sort_order": 5,
+            "sort_order": 6,
             "attributes": [
                 {
                     "name": "tipo_medicamento",
@@ -422,14 +382,15 @@ def create_categories(db: Session):
             **cat_data
         )
         db.add(category)
-        db.flush()
+        db.flush()  # Para pegar o ID
         
-        # Criar atributos
+        # Adicionar atributos
         for attr_data in attributes:
             attribute = CategoryAttribute(
-                category_id=category.id,
+                active=True,
                 **attr_data
             )
+            attribute.category_id = category.id
             db.add(attribute)
         
         categories.append(category)
@@ -440,66 +401,58 @@ def create_categories(db: Session):
     db.commit()
     return categories
 
-def create_sample_deliveries(db: Session, shelters: list, locations: list, categories: list):
-    """Cria deliveries de exemplo para os abrigos com quantidades realistas"""
-    print("\n📋 Pulando criação de deliveries - será feito via interface")
-    print("   (Problema com parent_delivery_id no modelo)")
-    return []
-
 def main():
     """Função principal do seed"""
-    print("🌱 Iniciando seed simplificado para cenário pós-catástrofe...")
-    print("=" * 60)
-    
-    # Garantir que as tabelas existam
-    print("🔨 Verificando/criando tabelas...")
-    Base.metadata.create_all(bind=engine)
-    print("✅ Tabelas verificadas!")
-    
-    db = next(get_db())
+    print("🌱 Iniciando seed para produção PostgreSQL...")
+    print("="*70)
     
     try:
-        # Limpar banco
-        clear_database(db)
+        # Criar engine com PostgreSQL
+        engine = create_engine(
+            "postgresql://euajudo_user:niHQGFxb2EClbnS6Rvq86GDFS6fuexNM@dpg-d6h6fj0gjchc73cidakg-a.oregon-postgres.render.com/euajudo"
+        )
         
-        # Criar dados base
-        admin = create_admin(db)
-        volunteers = create_volunteers(db, 2)
-        shelters, locations = create_shelters(db)
-        categories = create_categories(db)
+        # Criar tabelas
+        print("🔨 Verificando/criando tabelas...")
+        Base.metadata.create_all(bind=engine)
+        print("✅ Tabelas verificadas!")
         
-        # Criar deliveries de exemplo
-        deliveries = create_sample_deliveries(db, shelters, locations, categories)
+        # Criar sessão
+        db = Session(bind=engine)
         
-        print("\n" + "=" * 60)
-        print("✅ Seed simplificado concluído com sucesso!")
-        print("\n📊 Resumo:")
-        print(f"   👤 Usuários: {1 + len(volunteers) + len(shelters)} (1 admin, {len(volunteers)} voluntários, {len(shelters)} abrigos)")
-        print(f"   🏠 Locais: {len(locations)} abrigos")
-        print(f"   📦 Categorias: {len(categories)} essenciais")
-        print(f"   📋 Deliveries: {len(deliveries)} de exemplo")
-        
-        print("\n🔐 Credenciais de acesso:")
-        print("   Admin: admin@vouajudar.org / admin123")
-        print("   Voluntários: joao@vouajudar.org / joao123")
-        print("                maria@vouajudar.org / maria123")
-        print("   Abrigos: abrigo.centro@vouajudar.org / centro123")
-        print("            abrigo.saosebastiao@vouajudar.org / saosebastiao123")
-        
-        print("\n📋 Simplificação das categorias:")
-        print("   💧 Água: apenas quantidade")
-        print("   🥫 Alimentos: quantidade + tipo")
-        print("   🧼 Higiene: quantidade + tipo")
-        print("   👕 Roupas: quantidade + tipo + tamanho + gênero")
-        print("   💊 Medicamentos: quantidade + tipo")
-        print("   🍱 Refeições: quantidade + tipo")
-        
+        try:
+            # Criar dados
+            create_admin_user(db)
+            create_volunteers(db)
+            create_shelters(db)
+            categories = create_categories(db)
+            
+            print("\n" + "="*70)
+            print("✅ Seed de produção concluído com sucesso!")
+            print("="*70)
+            
+            print("\n📊 Resumo:")
+            print(f"   👤 Usuários: {db.query(User).count()}")
+            print(f"   🏠 Locais: {db.query(DeliveryLocation).count()}")
+            print(f"   📦 Categorias: {db.query(Category).count()}")
+            
+            print("\n🔐 Credenciais de acesso:")
+            print("   Admin: admin@vouajudar.org / admin123")
+            print("   Voluntários: joao@vouajudar.org / joao123")
+            print("                maria@vouajudar.org / maria123")
+            print("   Abrigos: abrigo.centro@vouajudar.org / centro123")
+            print("            abrigo.saosebastiao@vouajudar.org / saosebastiao123")
+            
+        finally:
+            db.close()
+            
     except Exception as e:
         print(f"❌ Erro durante o seed: {e}")
-        db.rollback()
-        raise
-    finally:
-        db.close()
+        import traceback
+        traceback.print_exc()
+        return False
+    
+    return True
 
 if __name__ == "__main__":
     main()
