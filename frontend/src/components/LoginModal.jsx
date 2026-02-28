@@ -86,7 +86,9 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
   if (!isOpen) return null;
 
   return (
-    <div style={{
+    <div 
+      data-testid="login-modal"
+      style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -292,6 +294,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
                 Email {selectedUser && '(selecionado acima)'}
               </label>
               <input
+                data-testid="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => {
@@ -329,6 +332,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
                 Senha (padrão: 123)
               </label>
               <input
+                data-testid="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -349,6 +353,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
             </div>
 
             <button
+              data-testid="login-submit"
               type="submit"
               disabled={loading}
               style={{

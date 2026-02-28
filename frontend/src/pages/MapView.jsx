@@ -9,10 +9,12 @@ import Header from '../components/Header';
 import LoginModal from '../components/LoginModal';
 import RegisterModal from '../components/RegisterModal';
 import IngredientReservationModal from '../components/IngredientReservationModal';
-import DeliveryCommitmentModal from '../components/DeliveryCommitmentModal';
 import ConfirmationModal from '../components/ConfirmationModal';
+import CommitmentSuccessModal from '../components/CommitmentSuccessModal';
+import UserStateWidget from '../components/UserStateWidget';
 import { useAuth } from '../contexts/AuthContext';
-import { getProductInfo, getProductText } from '../lib/productUtils';
+import { useUserState } from '../contexts/UserStateContext';
+import { getProductInfo, getProductText, getProductLocation, getProductAction } from '../lib/productUtils';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -89,6 +91,8 @@ export default function MapView() {
   const [activeFilters, setActiveFilters] = useState({ abrigos: true, fornecedores: true, insumos: true });
   const [pendingFilters, setPendingFilters] = useState({ abrigos: true, fornecedores: true, insumos: true });
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('legend'); // 'legend' ou 'filters'
   const [locations, setLocations] = useState([]);
   const [locationsWithStatus, setLocationsWithStatus] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -101,21 +105,39 @@ export default function MapView() {
   const [quantityToReserve, setQuantityToReserve] = useState(1);
   const [showModalReserveIngredient, setShowModalReserveIngredient] = useState(false);
   const [selectedIngredientRequest, setSelectedIngredientRequest] = useState(null);
-  const [showDeliveryCommitmentModal, setShowDeliveryCommitmentModal] = useState(false);
+  const [showModalCommitDelivery, setShowModalCommitDelivery] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
+  const [deliveryQuantity, setDeliveryQuantity] = useState(1);
   const [mapInstance, setMapInstance] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showCommitmentSuccess, setShowCommitmentSuccess] = useState(false);
+  const [committedDeliveryData, setCommittedDeliveryData] = useState(null);
   const [confirmationData, setConfirmationData] = useState({
     title: '',
     message: '',
     onConfirm: () => {},
     type: 'info'
   });
-  const [legendOpen, setLegendOpen] = useState(false);
-  const { user } = useAuth(); // Adicionar hook do AuthContext
+  const { user } = useAuth();
+  const { userState, refreshState } = useUserState(); // Adicionar hook do AuthContext
+
+  // Helper function para verificar se usuário pode fazer deliveries
+  const canUserDoDeliveries = () => {
+    return user && user.roles.includes('volunteer');
+  };
+
+  // Helper function para verificar se usuário pode aceitar pedidos de insumos
+  const canUserAcceptIngredients = () => {
+    return user && (user.roles.includes('volunteer') || user.roles.includes('volunteer_comprador'));
+  };
+
+  // Helper function para verificar se usuário pode reservar lotes
+  const canUserReserveBatches = () => {
+    return user && (user.roles.includes('provider') || user.roles.includes('volunteer'));
+  };
 
   // Helper function para mostrar modal de confirmação
   const showConfirmation = (title, message, onConfirm, type = 'info') => {
@@ -131,65 +153,26 @@ export default function MapView() {
     setShowConfirmationModal(true);
   };
 
-  // Máquina de Estados: Verifica se usuário tem QUALQUER compromisso ativo
-  const getUserActiveCommitments = () => {
-    if (!user) return { hasActiveCommitment: true, commitments: [] };
-    
-    const commitments = [];
-    
-    // 1. Verificar entregas de marmitas ativas (deliveries)
-    const activeDeliveryStatuses = new Set(['available', 'reserved', 'picked_up', 'in_transit']);
-    const userActiveDeliveries = deliveries.filter(d => 
-      d.volunteer_id === user.id && activeDeliveryStatuses.has(d.status)
-    );
-    
-    if (userActiveDeliveries.length > 0) {
-      commitments.push({
-        type: 'delivery',
-        count: userActiveDeliveries.length,
-        description: 'Entrega de marmitas em andamento'
-      });
-    }
-    
-    // 2. Verificar reservas de ingredientes ativas (resource requests)
-    const activeResourceStatuses = new Set(['reserved', 'in_progress']);
-    const userActiveResourceReservations = resourceRequests.filter(r => {
-      // Verificar se alguma reserva do request pertence ao usuário
-      return r.reservations?.some(res => 
-        res.volunteer_id === user.id && activeResourceStatuses.has(res.status)
-      );
-    });
-    
-    if (userActiveResourceReservations.length > 0) {
-      commitments.push({
-        type: 'resource_reservation',
-        count: userActiveResourceReservations.length,
-        description: 'Reserva de ingredientes em andamento'
-      });
-    }
-    
-    return {
-      hasActiveCommitment: commitments.length > 0,
-      commitments: commitments
-    };
-  };
-
   // Helper function simplificada para verificar se usuário está ocioso
   const isUserIdle = () => {
-    const { hasActiveCommitment } = getUserActiveCommitments();
-    return !hasActiveCommitment;
+    // Usar apenas UserStateContext como fonte única de verdade
+    return !userState.activeOperation;
   };
 
   useEffect(() => {
     loadData();
-    
-    // Reload data every 10 seconds to get new requests
-    // Recarregar dados a cada 10 segundos para pegar novos pedidos
-    const interval = setInterval(() => {
+    // Event-driven: recarregar apenas quando necessário, não a cada 10s
+  }, []);
+
+  // Recarregar dados quando estado do usuário mudar (após cancelamento/commitment)
+  useEffect(() => {
+    const handleUserStateChange = () => {
+      console.log('🔄 Evento userStateChange recebido - recarregando dados do mapa');
       loadData();
-    }, 10000);
+    };
     
-    return () => clearInterval(interval);
+    window.addEventListener('userStateChange', handleUserStateChange);
+    return () => window.removeEventListener('userStateChange', handleUserStateChange);
   }, []);
 
   useEffect(() => {
@@ -207,9 +190,27 @@ export default function MapView() {
   }, [locations, deliveries]);
 
   useEffect(() => {
-    console.log('🔄 useEffect disparado - iniciando mapa');
-    initMap();
+    console.log('🔄 useEffect disparado - atualizando mapa');
+    if (mapInstance) {
+      // Usar whenReady para garantir que o mapa está pronto
+      mapInstance.whenReady(() => {
+        updateMarkers(mapInstance);
+      });
+    } else {
+      initMap();
+    }
   }, [locationsWithStatus, batches, resourceRequests, providers, activeFilters.abrigos, activeFilters.fornecedores, activeFilters.insumos]);
+
+  // Limpar mapa quando componente desmontar
+  useEffect(() => {
+    return () => {
+      if (mapInstance) {
+        console.log('🧹 Limpando mapa ao desmontar componente');
+        mapInstance.remove();
+        setMapInstance(null);
+      }
+    };
+  }, []);
 
   const loadData = async () => {
     try {
@@ -217,10 +218,15 @@ export default function MapView() {
       
       // Carregar locais de entrega (agora usando locations)
       const responseEntrega = await fetch('http://localhost:8000/api/locations/?active_only=true');
+      console.log('📍 Response locations:', responseEntrega.status, responseEntrega.ok);
       if (responseEntrega.ok) {
         const data = await responseEntrega.json();
-        console.log('📍 Locations carregadas:', data.length);
+        console.log('📍 Locations carregadas:', data.length, data);
         setLocations(data);
+      } else {
+        console.error('❌ Erro ao carregar locations:', responseEntrega.status);
+        const errorText = await responseEntrega.text();
+        console.error('❌ Error text:', errorText);
       }
 
       // Mostrar pedidos de insumos disponíveis (agora usando resource requests)
@@ -299,19 +305,27 @@ export default function MapView() {
       return;
     }
 
+    // Verificar se o container já tem um mapa inicializado
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+      console.error('❌ Container do mapa não encontrado!');
+      return;
+    }
+
+    // Verificar se já existe uma instância do Leaflet no container
+    if (mapContainer._leaflet || mapContainer._leaflet_id) {
+      console.log('🔄 Container já tem mapa, reutilizando...');
+      return;
+    }
+    
     try {
       console.log('🆕 Criando novo mapa...');
-      
-      const mapContainer = document.getElementById('map');
-      if (!mapContainer) {
-        console.error('❌ Container do mapa não encontrado!');
-        return;
-      }
       
       // Criar mapa com Leaflet já importado
       const map = L.map('map', {
         center: [-21.7642, -43.3502],
-        zoom: 13
+        zoom: 13,
+        zoomControl: false // Remover controle de zoom padrão
       });
       
       // Adicionar tiles do OpenStreetMap
@@ -319,14 +333,97 @@ export default function MapView() {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 18,
       }).addTo(map);
+
+      // Criar controle de zoom personalizado no canto inferior direito
+      const zoomControl = L.control({ position: 'bottomright' });
+      
+      zoomControl.onAdd = function(map) {
+        const div = L.DomUtil.create('div', 'custom-zoom-control');
+        div.style.backgroundColor = 'white';
+        div.style.border = '2px solid #d1d5db';
+        div.style.borderRadius = '8px';
+        div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+        div.style.overflow = 'hidden';
+        
+        // Botão de zoom in
+        const zoomInButton = L.DomUtil.create('button', '', div);
+        zoomInButton.innerHTML = '+';
+        zoomInButton.style.cssText = `
+          display: block;
+          width: 36px;
+          height: 36px;
+          border: none;
+          background: white;
+          color: #374151;
+          font-size: 18px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          border-bottom: 1px solid #e5e7eb;
+        `;
+        
+        // Botão de zoom out
+        const zoomOutButton = L.DomUtil.create('button', '', div);
+        zoomOutButton.innerHTML = '−';
+        zoomOutButton.style.cssText = `
+          display: block;
+          width: 36px;
+          height: 36px;
+          border: none;
+          background: white;
+          color: #374151;
+          font-size: 18px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        `;
+        
+        // Hover effects
+        zoomInButton.onmouseover = () => {
+          zoomInButton.style.backgroundColor = '#f3f4f6';
+          zoomInButton.style.color = '#1f2937';
+        };
+        zoomInButton.onmouseout = () => {
+          zoomInButton.style.backgroundColor = 'white';
+          zoomInButton.style.color = '#374151';
+        };
+        
+        zoomOutButton.onmouseover = () => {
+          zoomOutButton.style.backgroundColor = '#f3f4f6';
+          zoomOutButton.style.color = '#1f2937';
+        };
+        zoomOutButton.onmouseout = () => {
+          zoomOutButton.style.backgroundColor = 'white';
+          zoomOutButton.style.color = '#374151';
+        };
+        
+        // Prevenir eventos de clique no mapa
+        L.DomEvent.disableClickPropagation(div);
+        
+        // Adicionar eventos de zoom
+        L.DomEvent.on(zoomInButton, 'click', function() {
+          map.zoomIn();
+        });
+        
+        L.DomEvent.on(zoomOutButton, 'click', function() {
+          map.zoomOut();
+        });
+        
+        return div;
+      };
+      
+      zoomControl.addTo(map);
       
       console.log('✅ Mapa criado com sucesso');
       
       setMapInstance(map);
       setMapLoaded(true);
       
-      // Adicionar marcadores
-      updateMarkers(map);
+      // Esperar o mapa estar totalmente carregado antes de adicionar marcadores
+      map.whenReady(() => {
+        console.log('🗺️ Mapa está pronto, adicionando marcadores...');
+        updateMarkers(map);
+      });
       
     } catch (error) {
       console.error('❌ Erro ao criar mapa:', error);
@@ -334,14 +431,29 @@ export default function MapView() {
   };
   
   const updateMarkers = (map) => {
-    if (!map) return;
+    if (!map) {
+      console.log('⚠️ Mapa não disponível para atualizar marcadores');
+      return;
+    }
+    
+    // Verificar se o container do mapa está no DOM
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer || !mapContainer.parentNode) {
+      console.log('⚠️ Container do mapa não está no DOM');
+      return;
+    }
+    
+    // Verificar se o mapa está inicializado e pronto
+    if (!map._container || !map._loaded) {
+      console.log('⚠️ Mapa não está totalmente carregado');
+      return;
+    }
     
     console.log('🔄 Atualizando marcadores...');
     console.log('Dados:', {
       locations: locations.length,
       deliveries: deliveries.length,
-      batches: batches.length,
-      filterType
+      batches: batches.length
     });
 
     // All icons use makeIcon() + getMapIconColor() from shared/enums.json
@@ -433,22 +545,24 @@ export default function MapView() {
               productsHtml += `<p style="margin: 2px 0; font-size: 12px; color: #374151;">• ${label}: <strong>${delivery.quantity} unidades</strong></p>`;
               
               // Adicionar botão para cada delivery disponível
+              const canCommit = isUserIdle() && canUserDoDeliveries();
               buttonsHtml += `
                 <button 
-                  ${isUserIdle() ? `onclick="window.commitToDelivery(${delivery.id})"` : ''}
-                  style="background: ${isUserIdle() ? '#3b82f6' : '#9ca3af'}; 
+                  ${canCommit ? `onclick="window.commitToDelivery(${delivery.id})"` : ''}
+                  style="background: ${canCommit ? '#3b82f6' : '#9ca3af'}; 
                          color: white; 
                          border: none; 
                          padding: 8px 12px; 
                          border-radius: 6px; 
-                         cursor: ${isUserIdle() ? 'pointer' : 'not-allowed'}; 
+                         cursor: ${canCommit ? 'pointer' : 'not-allowed'}; 
                          font-size: 12px; 
                          width: 100%; 
                          margin-top: 6px; 
                          font-weight: 500;
-                         opacity: ${isUserIdle() ? '1' : '0.6'};"
+                         opacity: ${canCommit ? '1' : '0.6'};"
+                  title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer com entregas' : ''}"
                 >
-                  ${isUserIdle() ? `🤝 Me Comprometer - ${label}` : '⏳ Compromisso em Andamento'}
+                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : (isUserIdle() ? `🤝 Me Comprometer - ${label}` : '⏳ Compromisso em Andamento')}
                 </button>
               `;
             });
@@ -571,20 +685,25 @@ export default function MapView() {
                 
                 ${!isCompletelyReserved ? `
                   <button 
-                    ${isUserIdle() ? `onclick="window.acceptIngredientRequest(${request.id})"` : ''}
-                    style="background: ${isUserIdle() ? '#3b82f6' : '#9ca3af'}; 
+                    ${isUserIdle() && canUserAcceptIngredients() ? `onclick="window.acceptIngredientRequest(${request.id})"` : ''}
+                    style="background: ${isUserIdle() && canUserAcceptIngredients() ? '#3b82f6' : '#9ca3af'}; 
                            color: white; 
                            border: none; 
                            padding: 8px 12px; 
-                           border-radius: 4px; 
-                           cursor: ${isUserIdle() ? 'pointer' : 'not-allowed'}; 
+                           border-radius: 6px; 
+                           cursor: ${isUserIdle() && canUserAcceptIngredients() ? 'pointer' : 'not-allowed'}; 
                            font-size: 12px; 
                            width: 100%; 
-                           margin-top: 8px;
-                           opacity: ${isUserIdle() ? '1' : '0.6'};"
+                           margin-top: 6px; 
+                           font-weight: 500;
+                           opacity: ${isUserIdle() && canUserAcceptIngredients() ? '1' : '0.6'};"
+                    title="${!canUserAcceptIngredients() ? 'Apenas voluntários podem aceitar pedidos de insumos' : ''}"
                   >
-                    ${isUserIdle() ? 'Quero Fornecer Parte' : '⏳ Compromisso em Andamento'}
+                    ${!canUserAcceptIngredients() ? '🚫 Apenas Voluntários' : (isUserIdle() ? '🤝 Aceitar Pedido' : '⏳ Compromisso em Andamento')}
                   </button>
+                ` : '<p style="margin: 8px 0 0 0; font-size: 11px; color: #6b7280;">✅ Pedido totalmente reservado</p>'}
+                
+                ${!isCompletelyReserved ? `
                   <p style="margin: 4px 0 0 0; font-size: 11px; color: #6b7280; text-align: center; font-style: italic;">
                     ${isUserIdle() ? 'Você pode fornecer apenas parte dos ingredientes' : 'Finalize seu compromisso atual para criar um novo'}
                   </p>
@@ -640,20 +759,20 @@ export default function MapView() {
                   </p>
                 </div>
                 
-                <button ${isUserIdle() ? `onclick="window.reserveBatch(${batch.id})"` : ''} 
-                        style="background: ${isUserIdle() ? '#059669' : '#9ca3af'}; 
+                <button ${isUserIdle() && canUserReserveBatches() ? `onclick="window.reserveBatch(${batch.id})"` : ''} 
+                        style="background: ${isUserIdle() && canUserReserveBatches() ? '#059669' : '#9ca3af'}; 
                                color: white; 
                                border: none; 
                                padding: 10px 16px; 
                                border-radius: 6px; 
-                               cursor: ${isUserIdle() ? 'pointer' : 'not-allowed'}; 
+                               cursor: ${isUserIdle() && canUserReserveBatches() ? 'pointer' : 'not-allowed'}; 
                                font-size: 13px; 
                                font-weight: 600; 
                                width: 100%; 
                                transition: background 0.2s; 
-                               opacity: ${isUserIdle() ? '1' : '0.6'};" 
-                        ${isUserIdle() ? 'onmouseover="this.style.background=\'#047857\'" onmouseout="this.style.background=\'#059669\'"' : ''}>
-                  ${isUserIdle() ? '🚚 Quero Entregar' : '⏳ Entrega em Andamento'}
+                               opacity: ${isUserIdle() && canUserReserveBatches() ? '1' : '0.6'};" 
+                        ${isUserIdle() && canUserReserveBatches() ? 'onmouseover="this.style.background=\'#047857\'" onmouseout="this.style.background=\'#059669\'"' : ''}>
+                  ${!canUserReserveBatches() ? '🚫 Apenas Fornecedores' : (isUserIdle() ? '🤝 Reservar para Entrega' : '⏳ Compromisso em Andamento')}
                 </button>
                 <p style="margin: 8px 0 0 0; font-size: 11px; color: #6b7280; text-align: center;">
                   ${isUserIdle() ? 'Você escolherá o abrigo de destino' : 'Finalize sua entrega atual para criar uma nova'}
@@ -672,11 +791,6 @@ export default function MapView() {
 
   // Adicionar função global para seleção de locais
   useEffect(() => {
-    window.selectLocation = (location, type) => {
-      setSelectedLocation(location);
-      setSelectedType(type);
-    };
-    
     window.acceptIngredientRequest = async (requestId) => {
       if (!user) {
         showConfirmation(
@@ -698,13 +812,11 @@ export default function MapView() {
         return;
       }
 
-      // Verificar se usuário tem algum compromisso ativo usando máquina de estados
-      const { hasActiveCommitment, commitments } = getUserActiveCommitments();
-      if (hasActiveCommitment) {
-        const commitmentDescriptions = commitments.map(c => `• ${c.description}`).join('\n');
+      // Verificar se usuário está ocioso
+      if (!isUserIdle()) {
         showConfirmation(
           '⚠️ Compromisso em Andamento',
-          `Você já possui compromisso(s) ativo(s):\n\n${commitmentDescriptions}\n\nPor favor, finalize seu compromisso atual antes de criar um novo.`,
+          `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
           () => {},
           'warning'
         );
@@ -730,13 +842,11 @@ export default function MapView() {
         return;
       }
 
-      // Verificar se usuário tem algum compromisso ativo usando máquina de estados
-      const { hasActiveCommitment, commitments } = getUserActiveCommitments();
-      if (hasActiveCommitment) {
-        const commitmentDescriptions = commitments.map(c => `• ${c.description}`).join('\n');
+      // Verificar se usuário está ocioso
+      if (!isUserIdle()) {
         showConfirmation(
           '⚠️ Compromisso em Andamento',
-          `Você já possui compromisso(s) ativo(s):\n\n${commitmentDescriptions}\n\nPor favor, finalize seu compromisso atual antes de criar um novo.`,
+          `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
           () => {},
           'warning'
         );
@@ -771,24 +881,23 @@ export default function MapView() {
         return;
       }
 
-      // Verificar se usuário tem algum compromisso ativo usando máquina de estados
-      const { hasActiveCommitment, commitments } = getUserActiveCommitments();
-      if (hasActiveCommitment) {
-        const commitmentDescriptions = commitments.map(c => `• ${c.description}`).join('\n');
+      // Verificar se usuário está ocioso
+      if (!isUserIdle()) {
         showConfirmation(
           '⚠️ Compromisso em Andamento',
-          `Você já possui compromisso(s) ativo(s):\n\n${commitmentDescriptions}\n\nPor favor, finalize seu compromisso atual antes de criar um novo.`,
+          `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
           () => {},
           'warning'
         );
         return;
       }
       
-      // Buscar o delivery completo
+      // Buscar o delivery completo e mostrar modal de quantidade
       const delivery = deliveries.find(d => d.id === deliveryId);
       if (delivery) {
         setSelectedDelivery(delivery);
-        setShowDeliveryCommitmentModal(true);
+        setDeliveryQuantity(delivery.quantity); // Iniciar com quantidade total disponível
+        setShowModalCommitDelivery(true);
       }
     };
     
@@ -814,6 +923,14 @@ export default function MapView() {
     setShowRegisterModal(false);
   };
 
+  // Função para disparar atualização do estado do usuário
+  const triggerUserStateUpdate = () => {
+    // Disparar evento para o Header atualizar as cores
+    window.dispatchEvent(new CustomEvent('userOperationUpdate', {
+      detail: { forceUpdate: true }
+    }));
+  };
+
   const handleDeliveryCommitment = async (deliveryId, quantity) => {
     try {
       const token = localStorage.getItem('token');
@@ -832,22 +949,25 @@ export default function MapView() {
       }
 
       const committedDelivery = await response.json();
-      const productInfo = getProductInfo(delivery.product_type);
       
-      showConfirmation(
-        '✅ Compromisso Confirmado!',
-        `Você tem 24 horas para entregar ${getProductText(delivery.product_type, quantity)}. Código de confirmação: ${committedDelivery.delivery_code}`,
-        () => {
-          // Recarregar dados após fechar modal
-          loadData();
-        },
-        'success'
-      );
-      await loadData();
+      // ATUALIZAÇÃO INSTANTÂNEA - não esperar loadData
+      // 1. Atualizar UserStateContext imediatamente
+      refreshState();
       
-      // Fechar modal
-      setShowDeliveryCommitmentModal(false);
-      setSelectedDelivery(null);
+      // 2. Mostrar modal de sucesso com código
+      setCommittedDeliveryData(committedDelivery);
+      setShowCommitmentSuccess(true);
+      
+      // 3. Recarregar dados do mapa em background (não bloqueia UI)
+      loadData().catch(err => console.error('Erro ao recarregar dados:', err));
+      
+      // 4. Segunda atualização de estado após 1 segundo (garante sincronização)
+      setTimeout(() => {
+        console.log('🔄 Segunda atualização de estado após commitment...');
+        refreshState();
+      }, 1000);
+      
+      console.log('✅ Compromisso confirmado! ID:', committedDelivery.id);
       
     } catch (error) {
       console.error('Erro ao se comprometer:', error);
@@ -921,12 +1041,10 @@ export default function MapView() {
     }
 
     // Verificação de segurança: garantir que usuário ainda está ocioso
-    const { hasActiveCommitment, commitments } = getUserActiveCommitments();
-    if (hasActiveCommitment) {
-      const commitmentDescriptions = commitments.map(c => `• ${c.description}`).join('\n');
+    if (!isUserIdle()) {
       showConfirmation(
         '⚠️ Compromisso em Andamento',
-        `Você já possui compromisso(s) ativo(s):\n\n${commitmentDescriptions}\n\nPor favor, finalize seu compromisso atual antes de criar um novo.`,
+        `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
         () => {
           setShowModalChooseLocation(false);
           setSelectedBatch(null);
@@ -1000,6 +1118,12 @@ export default function MapView() {
       <Header
         onLoginClick={openLoginModal}
         onRegisterClick={openRegisterModal}
+        onOperationStatusChange={(hasOperation) => {
+          // Disparar evento para o App.jsx
+          window.dispatchEvent(new CustomEvent('operationStatusChange', { 
+            detail: { hasActiveOperation: hasOperation } 
+          }));
+        }}
       />
 
       {/* Map */}
@@ -1014,7 +1138,7 @@ export default function MapView() {
         zIndex: 0
       }}></div>
 
-      {/* Legend — bottom-left, collapsible on mobile */}
+      {/* Painel Unificado: Legenda + Filtros — bottom-left */}
       <div style={{
         position: 'absolute',
         bottom: '24px',
@@ -1023,7 +1147,7 @@ export default function MapView() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
-        gap: '6px',
+        gap: '8px',
       }}>
         {/* Toggle button (always visible) */}
         <button
@@ -1031,200 +1155,10 @@ export default function MapView() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '7px 12px',
-            background: 'white',
-            border: '1px solid #d1d5db',
-            borderRadius: '20px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: '600',
-            color: '#374151',
-          }}
-        >
-          <MapPin size={14} color="#2563eb" />
-          Legenda
-          <span style={{ fontSize: '10px', color: '#9ca3af' }}>{legendOpen ? '▼' : '▲'}</span>
-        </button>
-
-        {/* Legend panel */}
-        {legendOpen && (
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '12px',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            border: '1px solid #e5e7eb',
-            width: '200px',
-          }}>
-            {/* Abrigos */}
-            <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Abrigos</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#10b981', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
-                  <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                </div>
-                <span style={{ fontSize: '12px', color: '#374151' }}>Sem pedido ativo</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#ef4444', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
-                  <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                </div>
-                <span style={{ fontSize: '12px', color: '#374151' }}>Com pedido ativo</span>
-              </div>
-            </div>
-
-            {/* Fornecedores */}
-            <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fornecedores</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#10b981', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
-                  <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
-                </div>
-                <span style={{ fontSize: '12px', color: '#374151' }}>🍽️ Cozinha</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#10b981', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
-                  <svg width="11" height="11" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-                </div>
-                <span style={{ fontSize: '12px', color: '#374151' }}>⚕️ Farmácia</span>
-              </div>
-            </div>
-
-            {/* Cores de status */}
-            <p style={{ margin: '0 0 6px 0', fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {[
-                { color: '#10b981', label: 'Disponível' },
-                { color: '#f97316', label: 'Solicitando' },
-                { color: '#eab308', label: 'Ocioso' },
-              ].map(({ color, label }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-                  <span style={{ fontSize: '12px', color: '#374151' }}>{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Filter button — bottom-center */}
-      <div style={{
-        position: 'absolute',
-        bottom: '24px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 1000,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '8px',
-      }}>
-        {/* Panel (opens above the button) */}
-        {showFilterPanel && (
-          <div style={{
-            background: 'white',
-            borderRadius: '16px',
-            padding: '16px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-            border: '1px solid #e5e7eb',
-            width: '252px',
-          }}>
-            <p style={{ margin: '0 0 10px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Mostrar no mapa
-            </p>
-
-            {[
-              { key: 'abrigos',      emoji: '🏠', label: 'Abrigos precisando de ajuda' },
-              { key: 'fornecedores', emoji: '🍽️', label: 'Fornecedores com itens' },
-              { key: 'insumos',      emoji: '📦', label: 'Pedidos de insumos' },
-            ].map(({ key, emoji, label }) => (
-              <label
-                key={key}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  padding: '10px 8px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  background: pendingFilters[key] ? '#f0fdf4' : 'transparent',
-                  marginBottom: '4px',
-                  transition: 'background 0.15s',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={pendingFilters[key]}
-                  onChange={() => setPendingFilters(prev => ({ ...prev, [key]: !prev[key] }))}
-                  style={{ width: '16px', height: '16px', accentColor: '#16a34a', cursor: 'pointer', flexShrink: 0 }}
-                />
-                <span style={{ fontSize: '13px', color: '#374151', fontWeight: pendingFilters[key] ? '600' : '400' }}>
-                  {emoji} {label}
-                </span>
-              </label>
-            ))}
-
-            {/* Ações */}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f3f4f6' }}>
-              <button
-                onClick={() => {
-                  setPendingFilters({ abrigos: true, fornecedores: true, insumos: true });
-                  setActiveFilters({ abrigos: true, fornecedores: true, insumos: true });
-                  setShowFilterPanel(false);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '9px 0',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  background: 'white',
-                  color: '#6b7280',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                }}
-              >
-                Remover filtros
-              </button>
-              <button
-                onClick={() => {
-                  setActiveFilters({ ...pendingFilters });
-                  setShowFilterPanel(false);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '9px 0',
-                  border: 'none',
-                  borderRadius: '8px',
-                  background: '#1d4ed8',
-                  color: 'white',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
-                Aplicar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Toggle button */}
-        <button
-          onClick={() => {
-            if (!showFilterPanel) setPendingFilters({ ...activeFilters });
-            setShowFilterPanel(o => !o);
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
             gap: '8px',
-            padding: '10px 20px',
-            background: showFilterPanel ? '#1d4ed8' : 'white',
-            color: showFilterPanel ? 'white' : '#374151',
+            padding: '10px 16px',
+            background: legendOpen ? '#3b82f6' : 'white',
+            color: legendOpen ? 'white' : '#374151',
             border: '1px solid #d1d5db',
             borderRadius: '24px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
@@ -1237,13 +1171,315 @@ export default function MapView() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
           </svg>
-          Filtros
+          Mapa
+          <span style={{ fontSize: '10px', color: legendOpen ? '#93c5fd' : '#9ca3af' }}>
+            {legendOpen ? '▼' : '▲'}
+          </span>
           {Object.values(activeFilters).some(v => !v) && (
-            <span style={{ background: '#ef4444', color: 'white', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold' }}>
+            <span style={{ 
+              background: '#ef4444', 
+              color: 'white', 
+              borderRadius: '50%', 
+              width: '18px', 
+              height: '18px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              fontSize: '11px', 
+              fontWeight: 'bold',
+              marginLeft: '4px'
+            }}>
               {Object.values(activeFilters).filter(v => !v).length}
             </span>
           )}
         </button>
+
+        {/* Unified Panel */}
+        {legendOpen && (
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            border: '1px solid #e5e7eb',
+            width: '320px',
+            overflow: 'hidden'
+          }}>
+            {/* Tabs */}
+            <div style={{
+              display: 'flex',
+              background: '#f9fafb',
+              borderBottom: '1px solid #e5e7eb'
+            }}>
+              <button
+                onClick={() => setActiveTab('legend')}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: activeTab === 'legend' ? '#3b82f6' : 'transparent',
+                  color: activeTab === 'legend' ? 'white' : '#6b7280',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  borderRadius: '0'
+                }}
+              >
+                📍 Legenda
+              </button>
+              <button
+                onClick={() => setActiveTab('filters')}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: activeTab === 'filters' ? '#3b82f6' : 'transparent',
+                  color: activeTab === 'filters' ? 'white' : '#6b7280',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  borderRadius: '0'
+                }}
+              >
+                🔍 Filtros
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div style={{ padding: '16px' }}>
+              {activeTab === 'legend' ? (
+                /* Legend Content */
+                <div>
+                  {/* Abrigos */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Abrigos</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          borderRadius: '50%', 
+                          background: '#10b981', 
+                          flexShrink: 0, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          border: '2px solid white', 
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
+                        }}>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Disponível</span>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Sem pedido ativo no momento</p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          borderRadius: '50%', 
+                          background: '#ef4444', 
+                          flexShrink: 0, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          border: '2px solid white', 
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
+                        }}>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>Precisando de ajuda</span>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Com pedido ativo</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fornecedores */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fornecedores</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          borderRadius: '50%', 
+                          background: '#10b981', 
+                          flexShrink: 0, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          border: '2px solid white', 
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
+                        }}>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>🍽️ Cozinha</span>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Com marmitas prontas</p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          borderRadius: '50%', 
+                          background: '#3b82f6', 
+                          flexShrink: 0, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          border: '2px solid white', 
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)' 
+                        }}>
+                          <svg width="12" height="12" fill="white" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>📦 Pedidos de Insumos</span>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#6b7280' }}>Precisando de ingredientes</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {[
+                        { color: '#10b981', label: 'Disponível', desc: 'Pronto para ajudar' },
+                        { color: '#f97316', label: 'Solicitando', desc: 'Aguardando voluntário' },
+                        { color: '#eab308', label: 'Ocioso', desc: 'Sem atividades' },
+                      ].map(({ color, label, desc }) => (
+                        <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ 
+                            width: '12px', 
+                            height: '12px', 
+                            borderRadius: '50%', 
+                            background: color, 
+                            flexShrink: 0,
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                          }} />
+                          <div>
+                            <span style={{ fontSize: '12px', color: '#374151', fontWeight: '500' }}>{label}</span>
+                            <p style={{ margin: '0', fontSize: '10px', color: '#6b7280' }}>{desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Filters Content */
+                <div>
+                  <p style={{ margin: '0 0 12px 0', fontSize: '12px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Mostrar no mapa
+                  </p>
+
+                  {[
+                    { key: 'abrigos', emoji: '🏠', label: 'Abrigos', desc: 'Precisando de ajuda' },
+                    { key: 'fornecedores', emoji: '🍽️', label: 'Fornecedores', desc: 'Com itens disponíveis' },
+                    { key: 'insumos', emoji: '📦', label: 'Insumos', desc: 'Pedidos de ingredientes' },
+                  ].map(({ key, emoji, label, desc }) => (
+                    <label
+                      key={key}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        background: pendingFilters[key] ? '#f0fdf4' : '#f9fafb',
+                        marginBottom: '8px',
+                        transition: 'all 0.15s',
+                        border: pendingFilters[key] ? '1px solid #bbf7d0' : '1px solid #e5e7eb'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={pendingFilters[key]}
+                        onChange={() => setPendingFilters(prev => ({ ...prev, [key]: !prev[key] }))}
+                        style={{ 
+                          width: '18px', 
+                          height: '18px', 
+                          accentColor: '#16a34a', 
+                          cursor: 'pointer', 
+                          flexShrink: 0 
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                          <span style={{ fontSize: '16px' }}>{emoji}</span>
+                          <span style={{ 
+                            fontSize: '14px', 
+                            color: '#374151', 
+                            fontWeight: pendingFilters[key] ? '600' : '500' 
+                          }}>
+                            {label}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>
+                          {desc}
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+
+                  {/* Ações */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f3f4f6' }}>
+                    <button
+                      onClick={() => {
+                        setPendingFilters({ abrigos: true, fornecedores: true, insumos: true });
+                        setActiveFilters({ abrigos: true, fornecedores: true, insumos: true });
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        background: 'white',
+                        color: '#6b7280',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f9fafb'}
+                      onMouseOut={(e) => e.currentTarget.style.background = 'white'}
+                    >
+                      Mostrar tudo
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveFilters({ ...pendingFilters });
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        background: '#3b82f6',
+                        color: 'white',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
+                      onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal de Escolha de Local de Entrega */}
@@ -1559,6 +1795,7 @@ export default function MapView() {
           }}
           onSuccess={() => {
             loadData(); // Recarregar dados para atualizar o mapa
+            triggerUserStateUpdate(); // Atualizar cores da borda/header
           }}
         />
       )}
@@ -1591,20 +1828,133 @@ export default function MapView() {
           }}
           onSuccess={() => {
             loadData(); // Recarregar dados para atualizar o mapa
+            triggerUserStateUpdate(); // Atualizar cores da borda/header
           }}
         />
       )}
 
       {/* Modal de Compromisso de Delivery */}
-      {showDeliveryCommitmentModal && selectedDelivery && (
-        <DeliveryCommitmentModal
-          delivery={selectedDelivery}
-          onClose={() => {
-            setShowDeliveryCommitmentModal(false);
-            setSelectedDelivery(null);
-          }}
-          onCommit={handleDeliveryCommitment}
-        />
+      {showModalCommitDelivery && selectedDelivery && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>
+              🤝 Me Comprometer com Entrega
+            </h3>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#374151' }}>
+                <strong>Destino:</strong> {selectedDelivery.location?.name}
+              </p>
+              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#374151' }}>
+                <strong>Produto:</strong> {selectedDelivery.product_type}
+              </p>
+              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#6b7280' }}>
+                Quantidade disponível: <strong>{selectedDelivery.quantity}</strong>
+              </p>
+            </div>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontSize: '14px', 
+                fontWeight: '500',
+                color: '#374151'
+              }}>
+                Quantidade que você pode levar:
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedDelivery.quantity}
+                  value={deliveryQuantity}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 1;
+                    setDeliveryQuantity(Math.min(Math.max(val, 1), selectedDelivery.quantity));
+                  }}
+                  style={{
+                    width: '100px',
+                    padding: '10px 12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    textAlign: 'center'
+                  }}
+                />
+                <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                  de {selectedDelivery.quantity} disponíveis
+                </span>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => {
+                  setShowModalCommitDelivery(false);
+                  setSelectedDelivery(null);
+                  setDeliveryQuantity(1);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  background: 'white',
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await handleDeliveryCommitment(selectedDelivery.id, deliveryQuantity);
+                    setShowModalCommitDelivery(false);
+                    setSelectedDelivery(null);
+                    setDeliveryQuantity(1);
+                  } catch (error) {
+                    console.error('Erro ao se comprometer:', error);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer'
+                }}
+              >
+                Me Comprometer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de Confirmação */}
@@ -1616,6 +1966,19 @@ export default function MapView() {
         message={confirmationData.message}
         type={confirmationData.type}
       />
+
+      {/* Modal de Sucesso do Compromisso */}
+      <CommitmentSuccessModal
+        isOpen={showCommitmentSuccess}
+        onClose={() => {
+          setShowCommitmentSuccess(false);
+          setCommittedDeliveryData(null);
+        }}
+        delivery={committedDeliveryData}
+      />
+      
+      {/* Widget de Estado do Usuário */}
+      <UserStateWidget position="bottom-right" size="small" />
     </div>
   );
 }

@@ -55,7 +55,7 @@ export default function ConfirmationModal({
         </h3>
         
         <div className={`p-4 rounded-lg mb-6 ${styles.bg}`}>
-          <p className={styles.text}>
+          <p className={`${styles.text} whitespace-pre-line`}>
             {message}
           </p>
         </div>

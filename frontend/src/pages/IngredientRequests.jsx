@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react';
 import { pedidosInsumo } from '@/lib/api';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '@/lib/utils';
 import { Plus, X, Package } from 'lucide-react';
+import AlertModal from '../components/AlertModal';
 
 export default function PedidosInsumo() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [alertModal, setAlertModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
   const [formData, setFormData] = useState({
     quantidade_marmitas: '',
     horario_recebimento: '',
@@ -16,6 +23,24 @@ export default function PedidosInsumo() {
   useEffect(() => {
     loadPedidos();
   }, []);
+
+  const showAlert = (title, message, type = 'error') => {
+    setAlertModal({
+      show: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertModal({
+      show: false,
+      title: '',
+      message: '',
+      type: 'info'
+    });
+  };
 
   const loadPedidos = async () => {
     try {
@@ -69,7 +94,7 @@ export default function PedidosInsumo() {
       });
       loadPedidos();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao criar pedido');
+      showAlert('Erro ao Criar Pedido', error.response?.data?.detail || 'Erro ao criar pedido', 'error');
     }
   };
 
@@ -79,7 +104,7 @@ export default function PedidosInsumo() {
       await pedidosInsumo.cancel(id);
       loadPedidos();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao cancelar pedido');
+      showAlert('Erro ao Cancelar Pedido', error.response?.data?.detail || 'Erro ao cancelar pedido', 'error');
     }
   };
 
@@ -289,6 +314,15 @@ export default function PedidosInsumo() {
           </div>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        show={alertModal.show}
+        onClose={closeAlert}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 }

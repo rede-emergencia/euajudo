@@ -208,3 +208,60 @@ def list_my_reservations(
     """List my resource reservations"""
     repo = BaseRepository(ResourceReservation, db)
     return repo.filter_by(volunteer_id=current_user.id)
+
+@router.post("/reservations/{reservation_id}/cancel")
+def cancel_reservation(
+    reservation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Cancel a resource reservation - only allowed before pickup"""
+    # TODO: Implementar validação de código de confirmação real
+    # Bypass temporário: permite cancelar sem validação
+    
+    reservation = db.query(ResourceReservation).filter(ResourceReservation.id == reservation_id).first()
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    
+    # Check authorization
+    if reservation.volunteer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to cancel this reservation")
+    
+    # Can only cancel if not yet picked up
+    if reservation.status != OrderStatus.RESERVED:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot cancel reservation after pickup. You must complete the delivery."
+        )
+    
+    # Return items to available quantity
+    reservation_repo = BaseRepository(ResourceReservation, db)
+    item_repo = BaseRepository(ReservationItem, db)
+    resource_item_repo = BaseRepository(ResourceItem, db)
+    
+    # Get all reservation items and return quantities
+    reservation_items = item_repo.filter_by(reservation_id=reservation_id)
+    for reservation_item in reservation_items:
+        resource_item = resource_item_repo.get_by_id(reservation_item.resource_item_id)
+        if resource_item:
+            resource_item.quantity_reserved -= reservation_item.quantity
+            resource_item_repo.commit()
+    
+    # Delete reservation items
+    for reservation_item in reservation_items:
+        item_repo.delete(reservation_item.id)
+    
+    # Delete reservation
+    reservation_repo.delete(reservation_id)
+    
+    # Update request status if needed
+    request_repo = BaseRepository(ResourceRequest, db)
+    request = request_repo.get_by_id(reservation.request_id)
+    if request and request.status == OrderStatus.RESERVED:
+        # Check if there are other reservations
+        other_reservations = reservation_repo.filter_by(request_id=request.id)
+        if not other_reservations:
+            request.status = OrderStatus.REQUESTING
+            request_repo.commit()
+    
+    return {"message": "Reservation cancelled successfully"}

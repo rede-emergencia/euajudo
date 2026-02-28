@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import Header from './Header';
+import { getProductInterface } from '../lib/productUtils';
+import { useCancel } from '../hooks/useCancel';
 import RequestForm from './RequestForm';
 import BatchForm from './BatchForm';
+import UserStateWidget from './UserStateWidget';
 import { getCurrentDomain, getProductInterface, getRoleInterface } from '../lib/interfaces';
 import { batches, deliveries, resourceRequests, resourceReservations } from '../lib/api';
 
@@ -12,6 +14,7 @@ import { batches, deliveries, resourceRequests, resourceReservations } from '../
  */
 export default function GenericDashboard() {
   const { user } = useAuth();
+  const { cancelDelivery } = useCancel();
   const [activeTab, setActiveTab] = useState('batches');
   const [myBatches, setMyBatches] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
@@ -77,11 +80,38 @@ export default function GenericDashboard() {
 
   const loadReservations = async () => {
     try {
-      const response = await resourceReservations.list();
+      const response = await resourceReservations.getMy();
       setMyReservations(response.data || []);
     } catch (error) {
       console.error('Error loading reservations:', error);
       setMyReservations([]);
+    }
+  };
+
+  const handleCancelRequest = async (requestId) => {
+    if (!window.confirm('Tem certeza que deseja cancelar este pedido?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/resources/requests/${requestId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        alert('✅ Pedido cancelado com sucesso!');
+        loadRequests(); // Recarregar a lista
+      } else {
+        const error = await response.json();
+        alert('❌ Erro ao cancelar pedido: ' + (error.detail || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Erro ao cancelar pedido:', error);
+      alert('❌ Erro ao cancelar pedido');
     }
   };
 
@@ -347,9 +377,19 @@ export default function GenericDashboard() {
                       </p>
                     )}
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(request.status)}`}>
-                    {getStatusLabel(request.status)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(request.status)}`}>
+                      {getStatusLabel(request.status)}
+                    </span>
+                    {userRole?.roleName === 'provider' && request.status === 'REQUESTING' && (
+                      <button
+                        onClick={() => handleCancelRequest(request.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {userRole?.roleName === 'provider' && request.items && request.items.length > 0 && (
@@ -441,11 +481,48 @@ export default function GenericDashboard() {
                   <p className="text-sm text-gray-500">
                     📍 Para: {delivery.location?.name || 'Destino'}
                   </p>
+                  
+                  {/* Códigos de Confirmação */}
+                  {delivery.pickup_code && (
+                    <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-sm font-semibold text-green-800 mb-1">📋 Códigos de Confirmação:</p>
+                      <p className="text-sm text-green-700">
+                        <strong>Retirada:</strong> <span className="font-mono bg-white px-2 py-1 rounded">{delivery.pickup_code}</span>
+                      </p>
+                      {delivery.delivery_code && (
+                        <p className="text-sm text-green-700 mt-1">
+                          <strong>Entrega:</strong> <span className="font-mono bg-white px-2 py-1 rounded">{delivery.delivery_code}</span>
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(delivery.status)}`}>
                   {getStatusLabel(delivery.status)}
                 </span>
               </div>
+              
+              {/* Botões de Ação */}
+              {(delivery.status === 'PENDING_CONFIRMATION' || delivery.status === 'RESERVED') && (
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={async () => {
+                      const result = await cancelDelivery(delivery.id, {
+                        onSuccess: () => {
+                          alert('✅ Entrega cancelada com sucesso!');
+                          loadDeliveries();
+                        },
+                        onError: (result) => {
+                          alert('❌ Erro ao cancelar: ' + result.message);
+                        }
+                      });
+                    }}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                  >
+                    ❌ Cancelar Entrega
+                  </button>
+                </div>
+              )}
             </div>
           );
         })
@@ -491,6 +568,9 @@ export default function GenericDashboard() {
           {renderContent()}
         </div>
       </div>
+    
+    {/* Widget de Estado do Usuário */}
+    <UserStateWidget position="bottom-left" size="medium" />
     </>
   );
 }

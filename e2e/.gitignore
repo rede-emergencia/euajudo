@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Test results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Screenshots e videos de debug
+*.png
+*.webm
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

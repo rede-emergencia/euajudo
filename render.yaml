@@ -1,0 +1,50 @@
+services:
+  # PostgreSQL Database
+  - type: postgres
+    name: euajudo-db
+    databaseName: euajudo
+    user: euajudo_user
+    
+  # Backend API
+  - type: web
+    name: euajudo-api
+    runtime: python
+    plan: free
+    repo: https://github.com/rede-emergencia/euajudo.git
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: euajudo-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "10080"
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      - key: CORS_ORIGINS
+        value: https://euajudo.onrender.com,https://euajudo-api.onrender.com
+    domains:
+      - euajudo-api.onrender.com
+
+  # Frontend
+  - type: web
+    name: euajudo-frontend
+    runtime: static
+    repo: https://github.com/rede-emergencia/euajudo.git
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    publishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://euajudo-api.onrender.com
+    domains:
+      - euajudo.onrender.com

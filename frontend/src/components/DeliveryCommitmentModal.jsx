@@ -47,7 +47,7 @@ export default function DeliveryCommitmentModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-bold text-gray-900">
-            Me Comprometer com Entrega
+            Me Comprometer - Entregar {productLabel}
           </h2>
           <button
             onClick={onClose}

@@ -13,6 +13,23 @@ from app.repositories import BaseRepository
 
 router = APIRouter(prefix="/api/locations", tags=["locations"])
 
+@router.get("/", response_model=List[DeliveryLocationResponse])
+def list_locations(
+    active_only: bool = True,
+    city_id: str = None,
+    db: Session = Depends(get_db)
+):
+    """List delivery locations"""
+    repo = BaseRepository(DeliveryLocation, db)
+    
+    filters = {}
+    if active_only:
+        filters['active'] = True
+    if city_id:
+        filters['city_id'] = city_id
+    
+    return repo.filter_by(**filters)
+
 @router.post("/", response_model=DeliveryLocationResponse, status_code=201)
 def create_location(
     location: DeliveryLocationCreate,
@@ -38,23 +55,6 @@ def create_location(
     repo.commit()
     repo.refresh(new_location)
     return new_location
-
-@router.get("/", response_model=List[DeliveryLocationResponse])
-def list_locations(
-    active_only: bool = True,
-    city_id: str = None,
-    db: Session = Depends(get_db)
-):
-    """List delivery locations"""
-    repo = BaseRepository(DeliveryLocation, db)
-    
-    filters = {}
-    if active_only:
-        filters['active'] = True
-    if city_id:
-        filters['city_id'] = city_id
-    
-    return repo.filter_by(**filters)
 
 @router.get("/{location_id}", response_model=DeliveryLocationResponse)
 def get_location(location_id: int, db: Session = Depends(get_db)):

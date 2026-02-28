@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Seed completo JFood - Juiz de Fora
+Seed melhorado JFood - Juiz de Fora
 - Coordenadas espaçadas em pelo menos 100m
-- Abrigos com pedidos variados (marmita, higiene, roupa, medicamento)
+- Abrigos: um pedindo item único, outro pedindo múltiplos itens
+- Fornecedores: em diferentes estados (procurando insumos, idle, com marmitas prontas)
+- Voluntários: podem retirar marmitas de fornecedores e entregar em abrigos
 - Login disponível para todos os usuários
 """
 
@@ -101,6 +103,19 @@ def create_users(db):
             'address': 'Centro Administrativo, Juiz de Fora',
             'latitude': -21.761500,
             'longitude': -43.352000,
+            'approved': True,
+            'active': True
+        },
+        # SHELTER (Abrigo como usuário)
+        {
+            'email': 'abrigo.sao.francisco@jfood.com',
+            'name': 'Abrigo São Francisco',
+            'phone': '3236881234',
+            'roles': 'shelter',
+            'hashed_password': password_hash,
+            'address': 'Rua Principal, 500 - Cascatinha, Juiz de Fora',
+            'latitude': -21.758000,
+            'longitude': -43.320000,
             'approved': True,
             'active': True
         }

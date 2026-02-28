@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { pedidosInsumo, reservasInsumo } from '@/lib/api';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '@/lib/utils';
 import { ShoppingCart, Check, X } from 'lucide-react';
+import AlertModal from '../components/AlertModal';
+import { useAlert } from '../hooks/useAlert';
 
 export default function ReservasInsumo() {
   const [pedidosDisponiveis, setPedidosDisponiveis] = useState([]);
@@ -13,6 +15,7 @@ export default function ReservasInsumo() {
     data_entrega_estimada: '',
     itens: [],
   });
+  const { alert, showAlert, closeAlert } = useAlert();
 
   useEffect(() => {
     loadData();
@@ -65,7 +68,7 @@ export default function ReservasInsumo() {
     const itensSelecionados = formData.itens.filter(item => item.quantidade > 0);
     
     if (itensSelecionados.length === 0) {
-      alert('Selecione pelo menos um item para reservar');
+      showAlert('Seleção Obrigatória', 'Selecione pelo menos um item para reservar', 'warning');
       return;
     }
 
@@ -83,7 +86,7 @@ export default function ReservasInsumo() {
       setShowModal(false);
       loadData();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao criar reserva');
+      showAlert('Erro ao Criar Reserva', error.response?.data?.detail || 'Erro ao criar reserva', 'error');
     }
   };
 
@@ -93,7 +96,7 @@ export default function ReservasInsumo() {
       await reservasInsumo.cancel(id);
       loadData();
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao cancelar reserva');
+      showAlert('Erro ao Cancelar Reserva', error.response?.data?.detail || 'Erro ao cancelar reserva', 'error');
     }
   };
 
@@ -288,6 +291,15 @@ export default function ReservasInsumo() {
           </div>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        show={alert.show}
+        onClose={closeAlert}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+      />
     </div>
   );
 }

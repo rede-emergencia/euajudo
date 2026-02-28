@@ -2,11 +2,21 @@ import { useEffect, useState } from 'react';
 import { entregasMarmita } from '@/lib/api';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '@/lib/utils';
 import { Truck, Check } from 'lucide-react';
+import AlertModal from '../components/AlertModal';
+import { useAlert } from '../hooks/useAlert';
 
 export default function EntregasMarmita() {
   const [entregasDisponiveis, setEntregasDisponiveis] = useState([]);
   const [minhasEntregas, setMinhasEntregas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { alert, showAlert, closeAlert } = useAlert();
+
+  // Função para disparar atualização do estado do usuário
+  const triggerUserStateUpdate = () => {
+    window.dispatchEvent(new CustomEvent('userOperationUpdate', {
+      detail: { forceUpdate: true }
+    }));
+  };
 
   useEffect(() => {
     loadData();
@@ -34,8 +44,9 @@ export default function EntregasMarmita() {
     try {
       await entregasMarmita.aceitar(id, horario);
       loadData();
+      triggerUserStateUpdate(); // Atualizar cores imediatamente
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao aceitar entrega');
+      showAlert('Erro ao Aceitar Entrega', error.response?.data?.detail || 'Erro ao aceitar entrega', 'error');
     }
   };
 
@@ -44,8 +55,9 @@ export default function EntregasMarmita() {
     try {
       await entregasMarmita.iniciarRota(id);
       loadData();
+      triggerUserStateUpdate(); // Atualizar cores imediatamente
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao iniciar rota');
+      showAlert('Erro ao Iniciar Rota', error.response?.data?.detail || 'Erro ao iniciar rota', 'error');
     }
   };
 
@@ -54,8 +66,9 @@ export default function EntregasMarmita() {
     try {
       await entregasMarmita.confirmar(id);
       loadData();
+      triggerUserStateUpdate(); // Atualizar cores imediatamente
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao confirmar entrega');
+      showAlert('Erro ao Confirmar Entrega', error.response?.data?.detail || 'Erro ao confirmar entrega', 'error');
     }
   };
 
@@ -64,8 +77,9 @@ export default function EntregasMarmita() {
     try {
       await entregasMarmita.cancel(id);
       loadData();
+      triggerUserStateUpdate(); // Atualizar cores imediatamente
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao cancelar entrega');
+      showAlert('Erro ao Cancelar Entrega', error.response?.data?.detail || 'Erro ao cancelar entrega', 'error');
     }
   };
 
@@ -213,6 +227,15 @@ export default function EntregasMarmita() {
           )}
         </div>
       </div>
-    </div>
-  );
+
+    {/* Alert Modal */}
+    <AlertModal
+      show={alert.show}
+      onClose={closeAlert}
+      title={alert.title}
+      message={alert.message}
+      type={alert.type}
+    />
+  </div>
+);
 }

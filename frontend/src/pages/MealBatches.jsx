@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { lotesMarmita, entregasMarmita, locaisEntrega } from '@/lib/api';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '@/lib/utils';
 import { Plus, X, Package, MapPin } from 'lucide-react';
+import AlertModal from '../components/AlertModal';
+import { useAlert } from '../hooks/useAlert';
 
 export default function MealBatches() {
   const [batches, setBatches] = useState([]);
@@ -19,6 +21,14 @@ export default function MealBatches() {
     locationId: '',
     quantity: '',
   });
+  const { alert, showAlert, closeAlert } = useAlert();
+
+  // Função para disparar atualização do estado do usuário
+  const triggerUserStateUpdate = () => {
+    window.dispatchEvent(new CustomEvent('userOperationUpdate', {
+      detail: { forceUpdate: true }
+    }));
+  };
 
   useEffect(() => {
     loadData();
@@ -51,8 +61,9 @@ export default function MealBatches() {
       setShowModal(false);
       setFormData({ quantidade: '', descricao: '', com_insumo_doado: true });
       loadData();
+      triggerUserStateUpdate(); // Atualizar cores imediatamente
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao criar lote');
+      showAlert('Erro ao Criar Lote', error.response?.data?.detail || 'Erro ao criar lote', 'error');
     }
   };
 
@@ -61,8 +72,9 @@ export default function MealBatches() {
     try {
       await lotesMarmita.marcarPronto(id);
       loadData();
+      triggerUserStateUpdate(); // Atualizar cores imediatamente
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao marcar como pronto');
+      showAlert('Erro ao Marcar como Pronto', error.response?.data?.detail || 'Erro ao marcar como pronto', 'error');
     }
   };
 
@@ -83,8 +95,9 @@ export default function MealBatches() {
       await entregasMarmita.create(data);
       setShowEntregaModal(false);
       loadData();
+      triggerUserStateUpdate(); // Atualizar cores imediatamente
     } catch (error) {
-      alert(error.response?.data?.detail || 'Erro ao criar entrega');
+      showAlert('Erro ao Criar Entrega', error.response?.data?.detail || 'Erro ao criar entrega', 'error');
     }
   };
 
@@ -301,6 +314,15 @@ export default function MealBatches() {
           </div>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        show={alert.show}
+        onClose={closeAlert}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+      />
     </div>
   );
 }

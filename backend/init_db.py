@@ -18,6 +18,10 @@ from app.models import (
 def init_database():
     """Create all tables"""
     print("🗄️  Creating database tables...")
+    # Primeiro deletar todas as tabelas para garantir limpeza completa
+    Base.metadata.drop_all(bind=engine)
+    print("🗑️  Tabelas antigas removidas")
+    # Criar novas tabelas
     Base.metadata.create_all(bind=engine)
     print("✅ Database initialized successfully!")
     

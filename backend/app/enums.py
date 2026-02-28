@@ -74,7 +74,8 @@ class BatchStatus(str, Enum):
 class DeliveryStatus(str, Enum):
     """Status for deliveries (volunteer-driven)"""
     AVAILABLE = "available"        # Available for volunteer to accept
-    RESERVED = "reserved"          # Volunteer accepted
+    PENDING_CONFIRMATION = "pending_confirmation"  # Volunteer committed but not confirmed
+    RESERVED = "reserved"          # Volunteer accepted and confirmed
     PICKED_UP = "picked_up"       # Volunteer picked up items
     IN_TRANSIT = "in_transit"     # On the way to destination
     DELIVERED = "delivered"       # Successfully delivered

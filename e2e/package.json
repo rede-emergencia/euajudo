@@ -1,0 +1,24 @@
+{
+  "name": "euajudo-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-End tests for EuAjudo platform",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:auth": "playwright test tests/auth",
+    "test:provider": "playwright test tests/provider",
+    "test:volunteer": "playwright test tests/volunteer",
+    "test:shelter": "playwright test tests/shelter",
+    "report": "playwright show-report test-results/html-report",
+    "install:browsers": "playwright install chromium"
+  },
+  "keywords": ["e2e", "playwright", "testing"],
+  "author": "EuAjudo Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}

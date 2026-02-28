@@ -34,7 +34,7 @@ def create_delivery(
     # Check if volunteer already has active delivery
     active_delivery = db.query(Delivery).filter(
         Delivery.volunteer_id == current_user.id,
-        Delivery.status.in_([DeliveryStatus.RESERVED, DeliveryStatus.PICKED_UP, DeliveryStatus.IN_TRANSIT])
+        Delivery.status.in_([DeliveryStatus.PENDING_CONFIRMATION, DeliveryStatus.RESERVED, DeliveryStatus.PICKED_UP, DeliveryStatus.IN_TRANSIT])
     ).first()
     
     if active_delivery:
@@ -210,7 +210,7 @@ def commit_to_delivery(
     # Check if volunteer already has active delivery
     active_delivery = db.query(Delivery).filter(
         Delivery.volunteer_id == current_user.id,
-        Delivery.status.in_([DeliveryStatus.RESERVED, DeliveryStatus.PICKED_UP, DeliveryStatus.IN_TRANSIT])
+        Delivery.status.in_([DeliveryStatus.PENDING_CONFIRMATION, DeliveryStatus.RESERVED, DeliveryStatus.PICKED_UP, DeliveryStatus.IN_TRANSIT])
     ).first()
     
     if active_delivery:
@@ -239,8 +239,19 @@ def commit_to_delivery(
             detail=f"Invalid quantity. Must be between 1 and {delivery.quantity}"
         )
     
+    # Get batch to reduce available quantity (if exists)
+    batch = None
+    if delivery.batch_id:
+        batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
+        if not batch:
+            raise HTTPException(status_code=404, detail="Batch not found")
+    
     # If partial commitment, split the delivery
     if quantity_to_commit < delivery.quantity:
+        # Reduce batch available quantity TEMPORARILY (until confirmation) - only if batch exists
+        if batch:
+            batch.quantity_available -= quantity_to_commit
+        
         # Create new delivery for the committed portion
         committed_delivery = Delivery(
             batch_id=delivery.batch_id,
@@ -248,9 +259,10 @@ def commit_to_delivery(
             volunteer_id=current_user.id,
             product_type=delivery.product_type,
             quantity=quantity_to_commit,
-            status=DeliveryStatus.RESERVED,
+            status=DeliveryStatus.PENDING_CONFIRMATION,  # Mudado para PENDING_CONFIRMATION
             accepted_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(hours=24),
+            pickup_code=ConfirmationCodeValidator.generate_code(),
             delivery_code=ConfirmationCodeValidator.generate_code()
         )
         
@@ -263,15 +275,92 @@ def commit_to_delivery(
         return committed_delivery
     else:
         # Full commitment - assign volunteer to existing delivery
+        # Reduce batch available quantity TEMPORARILY (until confirmation) - only if batch exists
+        if batch:
+            batch.quantity_available -= quantity_to_commit
+        
         delivery.volunteer_id = current_user.id
-        delivery.status = DeliveryStatus.RESERVED
+        delivery.status = DeliveryStatus.PENDING_CONFIRMATION  # Mudado para PENDING_CONFIRMATION
         delivery.accepted_at = datetime.utcnow()
         delivery.expires_at = datetime.utcnow() + timedelta(hours=24)
+        delivery.pickup_code = ConfirmationCodeValidator.generate_code()
         delivery.delivery_code = ConfirmationCodeValidator.generate_code()
         
         db.commit()
         db.refresh(delivery)
         return delivery
+
+@router.post("/{delivery_id}/validate-pickup", response_model=DeliveryResponse)
+def validate_pickup(
+    delivery_id: int,
+    request: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Provider validates that volunteer picked up the items"""
+    delivery = db.query(Delivery).filter(Delivery.id == delivery_id).first()
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    # Check if user is the provider
+    if delivery.batch_id:
+        batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
+        if not batch or batch.provider_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Only the provider can validate pickup")
+    else:
+        raise HTTPException(status_code=400, detail="This delivery has no provider")
+    
+    # Check status
+    if delivery.status != DeliveryStatus.RESERVED:
+        raise HTTPException(status_code=400, detail="Delivery must be in RESERVED status")
+    
+    # Validate code
+    code = request.get("code")
+    if not code or delivery.pickup_code != code:
+        raise HTTPException(status_code=400, detail="Invalid pickup code")
+    
+    # Update status and generate delivery code
+    delivery.status = DeliveryStatus.PICKED_UP
+    delivery.picked_up_at = datetime.utcnow()
+    if not delivery.delivery_code:
+        delivery.delivery_code = ConfirmationCodeValidator.generate_code()
+    
+    db.commit()
+    db.refresh(delivery)
+    return delivery
+
+@router.post("/{delivery_id}/validate-delivery", response_model=DeliveryResponse)
+def validate_delivery_code(
+    delivery_id: int,
+    request: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Volunteer validates delivery at destination"""
+    delivery = db.query(Delivery).filter(Delivery.id == delivery_id).first()
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+    
+    # Check if user is the volunteer
+    if delivery.volunteer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the volunteer can validate delivery")
+    
+    # Check status
+    if delivery.status != DeliveryStatus.PICKED_UP:
+        raise HTTPException(status_code=400, detail="Delivery must be in PICKED_UP status")
+    
+    # Validate code
+    code = request.get("code")
+    if not code or delivery.delivery_code != code:
+        raise HTTPException(status_code=400, detail="Invalid delivery code")
+    
+    # Update status
+    delivery.status = DeliveryStatus.DELIVERED
+    delivery.delivered_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(delivery)
+    return delivery
 
 @router.delete("/{delivery_id}")
 def cancel_delivery(
@@ -279,27 +368,29 @@ def cancel_delivery(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Cancel a delivery"""
+    """Cancel a delivery - only allowed before pickup"""
     delivery = db.query(Delivery).filter(Delivery.id == delivery_id).first()
     if not delivery:
         raise HTTPException(status_code=404, detail="Delivery not found")
     
-    # Check permissions
+    # Check authorization
     if delivery.volunteer_id != current_user.id:
         batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
         if not batch or batch.provider_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to cancel this delivery")
     
-    if delivery.status in [DeliveryStatus.DELIVERED, DeliveryStatus.EXPIRED]:
-        raise HTTPException(status_code=400, detail="Cannot cancel completed or expired deliveries")
+    # Can only cancel if not yet picked up
+    if delivery.status not in [DeliveryStatus.PENDING_CONFIRMATION, DeliveryStatus.RESERVED]:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot cancel delivery after pickup. You must complete the delivery."
+        )
     
     # Return quantity to batch
-    if delivery.status in [DeliveryStatus.RESERVED, DeliveryStatus.PICKED_UP, DeliveryStatus.IN_TRANSIT]:
-        batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
-        if batch:
-            batch.quantity_available += delivery.quantity
-            if batch.status == BatchStatus.IN_DELIVERY:
-                batch.status = BatchStatus.READY
+    batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
+    if batch:
+        batch.quantity_available += delivery.quantity
+        db.commit()
     
     db.delete(delivery)
     db.commit()
