@@ -44,7 +44,7 @@ export const TEST_USERS = {
     email: 'admin@euajudo.com',
     password: '123',
     role: 'admin',
-    name: 'Administrador EuAjudo'
+    name: 'Administrador VouAjudar'
   }
 };
 

@@ -1,4 +1,4 @@
-# 🔄 Fluxo de Pedidos Parciais - EuAjudo
+# 🔄 Fluxo de Pedidos Parciais - VouAjudar
 
 **Data**: 27 Fev 2026  
 **Status**: ✅ Implementado e Pronto para Teste

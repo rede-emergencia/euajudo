@@ -1,4 +1,4 @@
-# 🔧 Correções no Header e Ações - EuAjudo
+# 🔧 Correções no Header e Ações - VouAjudar
 
 ## ✅ Problemas Corrigidos
 

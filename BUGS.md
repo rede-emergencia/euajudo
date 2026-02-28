@@ -1,6 +1,6 @@
 # 🐛 Bugs Conhecidos e Issues Abertas
 
-Este documento lista os bugs conhecidos, problemas em aberto e áreas que precisam de atenção no projeto EuAjudo.
+Este documento lista os bugs conhecidos, problemas em aberto e áreas que precisam de atenção no projeto VouAjudar.
 
 **Última atualização**: 27 de Fevereiro de 2026
 

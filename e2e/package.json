@@ -1,7 +1,7 @@
 {
   "name": "euajudo-e2e-tests",
   "version": "1.0.0",
-  "description": "End-to-End tests for EuAjudo platform",
+  "description": "End-to-End tests for VouAjudar platform",
   "type": "module",
   "scripts": {
     "test": "playwright test",
@@ -16,7 +16,7 @@
     "install:browsers": "playwright install chromium"
   },
   "keywords": ["e2e", "playwright", "testing"],
-  "author": "EuAjudo Team",
+  "author": "VouAjudar Team",
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.58.2"

@@ -36,11 +36,19 @@ api.interceptors.response.use(
 export const auth = {
   register: (data) => api.post('/api/auth/register', data),
   login: (email, password) => {
-    const formData = new FormData();
-    formData.append('username', email);
-    formData.append('password', password);
-    return api.post('/api/auth/login', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const params = new URLSearchParams();
+    params.append('username', email);
+    params.append('password', password);
+    
+    console.log('🔍 DEBUG LOGIN - Frontend:', {
+      email,
+      password: password,
+      passwordLength: password.length,
+      paramsString: params.toString()
+    });
+    
+    return api.post('/api/auth/login', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
   },
   getMe: () => api.get('/api/auth/me'),

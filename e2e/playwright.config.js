@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Configuração Playwright para testes E2E do EuAjudo
+ * Configuração Playwright para testes E2E do VouAjudar
  * Framework robusto para validar fluxos críticos
  */
 export default defineConfig({

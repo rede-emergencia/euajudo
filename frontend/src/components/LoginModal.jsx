@@ -48,8 +48,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
     try {
       // Se um usuário foi selecionado, usar o email dele
       const loginEmail = selectedUser || email;
-      // Senha sempre é 123 para login rápido
-      const loginPassword = '123';
+      // Usar a senha digitada pelo usuário
+      const loginPassword = password;
       
       const userData = await login(loginEmail, loginPassword);
       
@@ -82,7 +82,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
   const handleUserSelect = (userEmail) => {
     setSelectedUser(userEmail);
     setEmail(userEmail);
-    setPassword('123'); // Preencher senha automaticamente
+    setPassword(''); // Limpar senha para usuário digitar
   };
 
   if (!isOpen) return null;
@@ -331,7 +331,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
                 color: '#374151',
                 marginBottom: '6px'
               }}>
-                Senha (padrão: 123)
+                Senha
               </label>
               <input
                 data-testid="login-password"
@@ -349,7 +349,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#2563eb'}
                 onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                placeholder="123"
+                placeholder="Digite sua senha"
                 required
               />
             </div>

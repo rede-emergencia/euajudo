@@ -30,7 +30,7 @@ def run_command(cmd, description):
 
 def main():
     """Main function to setup BETA environment"""
-    print("🚀 Configurando EuAjudo em modo BETA")
+    print("🚀 Configurando VouAjudar em modo BETA")
     print("=" * 50)
     
     # Change to backend directory

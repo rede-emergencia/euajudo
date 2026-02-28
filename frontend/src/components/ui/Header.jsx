@@ -120,7 +120,7 @@ export default function Header({
           }}
         >
           <MapPin size={24} />
-          <span>EuAjudo</span>
+          <span>VouAjudar</span>
         </div>
 
         {/* Desktop Navigation */}

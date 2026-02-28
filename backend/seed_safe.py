@@ -47,7 +47,7 @@ def seed_safe():
     db = SessionLocal()
     
     try:
-        print("🌱 Seed Seguro EuAjudo - Verificando e criando dados...")
+        print("🌱 Seed Seguro VouAjudar - Verificando e criando dados...")
         
         # Senha padrão para todos
         password_hash = get_password_hash("123")

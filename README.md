@@ -1,4 +1,4 @@
-# 🤝 EuAjudo - Plataforma de Conexão entre Necessidades e Ofertas
+# 🤝 VouAjudar - Plataforma de Conexão entre Necessidades e Ofertas
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
@@ -8,7 +8,7 @@
 
 ## 📝 Sobre o Projeto
 
-**EuAjudo** é uma plataforma open-source escalável que conecta pessoas que precisam de recursos com aquelas que podem ajudar. Inspirada no conceito **eupreciso.org**, a plataforma facilita a coordenação de doações, entregas e distribuição de recursos em situações de emergência ou necessidade social.
+**VouAjudar** é uma plataforma open-source escalável que conecta pessoas que precisam de recursos com aquelas que podem ajudar. Inspirada no conceito **eupreciso.org**, a plataforma facilita a coordenação de doações, entregas e distribuição de recursos em situações de emergência ou necessidade social.
 
 ### 🎯 Visão
 

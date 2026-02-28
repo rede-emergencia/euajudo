@@ -1,8 +1,8 @@
-# 🎯 Gerenciador de Estados Centralizado - EuAjudo
+# 🎯 Gerenciador de Estados Centralizado - VouAjudar
 
 ## 📋 Visão Geral
 
-O **UserStateContext** é um gerenciador de estados centralizado que controla o estado de cada usuário (fornecedor, abrigo, voluntário) na aplicação EuAjudo.
+O **UserStateContext** é um gerenciador de estados centralizado que controla o estado de cada usuário (fornecedor, abrigo, voluntário) na aplicação VouAjudar.
 
 ### **Princípios Fundamentais:**
 
@@ -391,7 +391,7 @@ function VolunteerDashboard() {
 
 ## 🎯 Resumo
 
-**O UserStateContext é o coração da aplicação EuAjudo.**
+**O UserStateContext é o coração da aplicação VouAjudar.**
 
 Ele garante que:
 - ✅ Cada usuário tem apenas UMA operação ativa

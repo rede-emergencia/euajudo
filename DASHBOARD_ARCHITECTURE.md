@@ -1,4 +1,4 @@
-# 🏗️ Nova Arquitetura de Dashboards - EuAjudo
+# 🏗️ Nova Arquitetura de Dashboards - VouAjudar
 
 ## 📋 Visão Geral
 

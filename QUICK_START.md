@@ -1,4 +1,4 @@
-# 🚀 Guia Rápido - EuAjudo
+# 🚀 Guia Rápido - VouAjudar
 
 ## 📋 Fluxo de Desenvolvimento Recomendado
 

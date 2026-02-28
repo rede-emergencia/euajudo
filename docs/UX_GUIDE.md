@@ -1,4 +1,4 @@
-# 🎨 EuAjudo - Guia de Padrão Visual UX
+# 🎨 VouAjudar - Guia de Padrão Visual UX
 
 **Data**: 27 Fev 2026  
 **Status**: ✅ Implementado
@@ -7,7 +7,7 @@
 
 ## 🎯 Filosofia de Design
 
-Inspirado nas melhores práticas de UX do QR Code Pro, o EuAjudo adota um padrão visual que prioriza:
+Inspirado nas melhores práticas de UX do QR Code Pro, o VouAjudar adota um padrão visual que prioriza:
 
 1. **Feedback Imediato** - Usuário sempre sabe onde está e o que pode fazer
 2. **Clareza Visual** - Cores e ícones distintos por tipo de usuário

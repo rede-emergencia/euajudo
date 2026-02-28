@@ -1,4 +1,4 @@
-# 🔧 Correção de Sincronização Header + Lateral - EuAjudo
+# 🔧 Correção de Sincronização Header + Lateral - VouAjudar
 
 ## 🎯 Problema Identificado
 

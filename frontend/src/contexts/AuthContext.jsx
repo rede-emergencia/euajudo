@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      console.log('🔐 Tentando login:', email);
+      console.log('🔐 Tentando login:', email, password.substring(0, 3) + '***');
       const response = await authApi.login(email, password);
       console.log('✅ Login response:', response);
       

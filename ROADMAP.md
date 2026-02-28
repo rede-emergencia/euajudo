@@ -1,6 +1,6 @@
 # 🗺️ Roadmap - Migração para Event-Driven Microservices
 
-Este documento descreve o plano de evolução do EuAjudo de um monólito modular para uma arquitetura de microserviços orientada a eventos.
+Este documento descreve o plano de evolução do VouAjudar de um monólito modular para uma arquitetura de microserviços orientada a eventos.
 
 **Visão**: Sistema escalável que pode ser consumido por múltiplos aplicativos através de eventos publicados.
 

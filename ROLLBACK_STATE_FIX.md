@@ -1,4 +1,4 @@
-# 🔧 Correção de Rollback de Estado - EuAjudo
+# 🔧 Correção de Rollback de Estado - VouAjudar
 
 ## 🎯 Problema Identificado
 

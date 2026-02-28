@@ -1,6 +1,6 @@
 # 🚀 Deployment Guide
 
-Este documento explica como fazer deploy do EuAjudo em produção usando Render.com.
+Este documento explica como fazer deploy do VouAjudar em produção usando Render.com.
 
 ---
 
@@ -266,4 +266,4 @@ Com os arquivos `render.yaml` configurados, o deploy é automático:
 
 **Pronto para produção!** 🎉
 
-Com esta configuração, o EuAjudo está pronto para receber usuários reais em um ambiente de produção escalável e seguro.
+Com esta configuração, o VouAjudar está pronto para receber usuários reais em um ambiente de produção escalável e seguro.

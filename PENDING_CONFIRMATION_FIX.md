@@ -1,4 +1,4 @@
-# 🔧 Correção de Estado Pendente - EuAjudo
+# 🔧 Correção de Estado Pendente - VouAjudar
 
 ## 🎯 Problema Identificado
 

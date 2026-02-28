@@ -293,7 +293,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
           >
             <Package style={{ width: '28px', height: '28px', color: '#2563eb' }} />
             <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>EuAjudo</h1>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>VouAjudar</h1>
               <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>
                 {userActions.hasActiveOperation 
                   ? '⚡ Operação em Andamento' 

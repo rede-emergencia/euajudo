@@ -1,4 +1,4 @@
-# 🔍 Validação de Endpoints - EuAjudo
+# 🔍 Validação de Endpoints - VouAjudar
 
 ## 📋 Endpoints do Backend
 

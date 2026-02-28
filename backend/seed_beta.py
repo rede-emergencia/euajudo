@@ -223,7 +223,7 @@ def create_sample_requests(db):
 
 def main():
     """Main seed function"""
-    print("🚀 Iniciando seed BETA para EuAjudo\n")
+    print("🚀 Iniciando seed BETA para VouAjudar\n")
     
     db = SessionLocal()
     try:

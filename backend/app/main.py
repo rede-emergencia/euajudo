@@ -1,5 +1,5 @@
 """
-EuAjudo API - Generic Event-Driven Order System
+VouAjudar API - Generic Event-Driven Order System
 Version 2.0 - Refactored with generic models
 """
 from fastapi import FastAPI
@@ -22,7 +22,7 @@ from app.routers import (
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="EuAjudo - Generic Order Management System",
+    title="VouAjudar - Generic Order Management System",
     description="""Event-driven API for managing donations, deliveries, and orders of any product type.
     
 ## Features
@@ -47,7 +47,7 @@ app = FastAPI(
     """,
     version="2.0.0",
     contact={
-        "name": "EuAjudo API Support",
+        "name": "VouAjudar API Support",
         "email": "dev@euajudo.com"
     },
     license_info={
@@ -79,7 +79,7 @@ app.include_router(cancel.router)
 @app.get("/")
 def root():
     return {
-        "message": "EuAjudo API - Sistema de Gestão Solidária",
+        "message": "VouAjudar API - Sistema de Gestão Solidária",
         "version": "2.0.0",
         "features": [
             "Generic product batches (meals, ingredients, etc.)",

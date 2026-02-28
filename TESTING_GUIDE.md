@@ -1,4 +1,4 @@
-# 🧪 Guia de Testes - EuAjudo
+# 🧪 Guia de Testes - VouAjudar
 
 ## 🎯 Cenários Configurados
 

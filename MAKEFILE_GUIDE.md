@@ -1,6 +1,6 @@
-# 📖 Guia do Makefile - EuAjudo
+# 📖 Guia do Makefile - VouAjudar
 
-Este documento explica em detalhes como usar o Makefile para facilitar o desenvolvimento do projeto EuAjudo.
+Este documento explica em detalhes como usar o Makefile para facilitar o desenvolvimento do projeto VouAjudar.
 
 ## 🚀 Começando Rápido
 

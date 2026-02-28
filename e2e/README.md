@@ -1,6 +1,6 @@
-# 🧪 Framework de Testes E2E - EuAjudo
+# 🧪 Framework de Testes E2E - VouAjudar
 
-Framework robusto de testes end-to-end usando **Playwright** para validar fluxos críticos da plataforma EuAjudo.
+Framework robusto de testes end-to-end usando **Playwright** para validar fluxos críticos da plataforma VouAjudar.
 
 ## 📋 Índice
 
@@ -299,4 +299,4 @@ npm run report
 
 ---
 
-**Desenvolvido com ❤️ para garantir qualidade na plataforma EuAjudo**
+**Desenvolvido com ❤️ para garantir qualidade na plataforma VouAjudar**

@@ -1,4 +1,4 @@
-# 🎨 EuAjudo Frontend - Interface Social Conectada
+# 🎨 VouAjudar Frontend - Interface Social Conectada
 
 Interface web moderna, responsiva e acessível para gerenciamento de recursos, produtos e entregas em situações de emergência e necessidade social.
 

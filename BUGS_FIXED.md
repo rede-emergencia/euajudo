@@ -1,4 +1,4 @@
-# 🔧 Bugs Corrigidos - EuAjudo
+# 🔧 Bugs Corrigidos - VouAjudar
 
 ## 🐛 Problemas Identificados e Corrigidos
 

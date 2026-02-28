@@ -153,7 +153,7 @@ REDIS_URL=redis://host:port
 VITE_GOOGLE_MAPS_API_KEY=sua_chave
 
 # Outras configurações
-VITE_APP_NAME=EuAjudo
+VITE_APP_NAME=VouAjudar
 VITE_APP_VERSION=2.0.0
 ```
 

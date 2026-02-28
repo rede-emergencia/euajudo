@@ -20,7 +20,7 @@
 
 ### **2. Navegação e Menu**
 **Problema:** 
-- Link "EuAjudo" levava para home (/)
+- Link "VouAjudar" levava para home (/)
 - Menu do mapa não estava disponível no dashboard
 
 ---
@@ -85,7 +85,7 @@ onClose={() => {
 
 ---
 
-### **3. Link EuAjudo para Mapa**
+### **3. Link VouAjudar para Mapa**
 
 #### **Arquivo:** `frontend/src/components/Header.jsx`
 
@@ -99,7 +99,7 @@ onClick={() => navigate('/')}
 onClick={() => navigate('/mapa')}
 ```
 
-**Benefício:** Clicar no logo "EuAjudo" leva direto ao mapa, que é a tela principal do sistema.
+**Benefício:** Clicar no logo "VouAjudar" leva direto ao mapa, que é a tela principal do sistema.
 
 ---
 
@@ -118,7 +118,7 @@ onClick={() => navigate('/mapa')}
 ### **Cenário 2: Navegação Melhorada**
 ```
 Dashboard → Botão "Mapa" → Mapa
-Qualquer tela → Logo "EuAjudo" → Mapa
+Qualquer tela → Logo "VouAjudar" → Mapa
 Mapa → Botão "Dashboard" → Dashboard
 ```
 
@@ -158,7 +158,7 @@ O problema **não foi totalmente resolvido** porque:
 ## ✅ Resultado Final
 
 ### **Navegação:**
-- ✅ Logo "EuAjudo" leva ao mapa
+- ✅ Logo "VouAjudar" leva ao mapa
 - ✅ Botão "Mapa" disponível em todas as telas
 - ✅ Botão "Dashboard" disponível em todas as telas
 - ✅ Menu consistente e intuitivo

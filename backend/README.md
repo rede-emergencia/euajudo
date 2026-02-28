@@ -1,4 +1,4 @@
-# 🚀 EuAjudo Backend - API Genérica de Conexão Social
+# 🚀 VouAjudar Backend - API Genérica de Conexão Social
 
 API REST escalável e genérica para gerenciamento de recursos, produtos e entregas em situações de emergência e necessidade social.
 

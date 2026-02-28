@@ -1,4 +1,4 @@
-# 📋 Resumo do Projeto EuAjudo
+# 📋 Resumo do Projeto VouAjudar
 
 **Status**: ✅ Pronto para Open Source e Crowdsourcing  
 **Data**: 27 de Fevereiro de 2026  
@@ -6,7 +6,7 @@
 
 ## 🎯 Visão Geral
 
-**EuAjudo** é uma plataforma open-source escalável que conecta pessoas que precisam de recursos com aquelas que podem ajudar. Inspirada no conceito **eupreciso.org**, utiliza arquitetura **event-driven** e é preparada para escalar em **microserviços**.
+**VouAjudar** é uma plataforma open-source escalável que conecta pessoas que precisam de recursos com aquelas que podem ajudar. Inspirada no conceito **eupreciso.org**, utiliza arquitetura **event-driven** e é preparada para escalar em **microserviços**.
 
 ## 🏗️ Arquitetura
 

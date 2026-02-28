@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🚀 Setup do Framework de Testes E2E - EuAjudo"
+echo "🚀 Setup do Framework de Testes E2E - VouAjudar"
 echo "=============================================="
 echo ""
 

@@ -1,6 +1,6 @@
 # 🤝 Guia de Contribuição
 
-Obrigado por considerar contribuir com o **EuAjudo**! Este documento fornece diretrizes para contribuir com o projeto.
+Obrigado por considerar contribuir com o **VouAjudar**! Este documento fornece diretrizes para contribuir com o projeto.
 
 ## 📋 Índice
 
@@ -356,7 +356,7 @@ npm test -- --watch
 
 ## 🎉 Reconhecimento
 
-Todos os contribuidores serão reconhecidos no projeto. Obrigado por ajudar a tornar o EuAjudo melhor!
+Todos os contribuidores serão reconhecidos no projeto. Obrigado por ajudar a tornar o VouAjudar melhor!
 
 ---
 

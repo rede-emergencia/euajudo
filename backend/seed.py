@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Seed melhorado EuAjudo - Juiz de Fora
+Seed melhorado VouAjudar - Juiz de Fora
 - 5+ abrigos espalhados pela cidade
 - 3+ abrigos pedindo múltiplos tipos de itens
 - 5 restaurantes espalhados pela cidade

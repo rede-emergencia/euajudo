@@ -1,4 +1,4 @@
-# 🔧 Correções Finais de Lógica - EuAjudo
+# 🔧 Correções Finais de Lógica - VouAjudar
 
 ## ✅ Problemas Identificados e Corrigidos
 
