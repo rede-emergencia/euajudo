@@ -106,9 +106,6 @@ export default function MapView() {
   const [quantityToReserve, setQuantityToReserve] = useState(1);
   const [showModalReserveIngredient, setShowModalReserveIngredient] = useState(false);
   const [selectedIngredientRequest, setSelectedIngredientRequest] = useState(null);
-  const [showModalCommitDelivery, setShowModalCommitDelivery] = useState(false);
-  const [selectedDelivery, setSelectedDelivery] = useState(null);
-  const [deliveryQuantity, setDeliveryQuantity] = useState(1);
   const [mapInstance, setMapInstance] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -546,33 +543,11 @@ export default function MapView() {
             availableDeliveries.forEach(delivery => {
               const label = productTypeLabels[delivery.product_type] || delivery.product_type;
               productsHtml += `<p style="margin: 2px 0; font-size: 12px; color: #374151;">• ${label}: <strong>${delivery.quantity} unidades</strong></p>`;
-              
-              // Adicionar botão para cada delivery disponível
-              const canCommit = isUserIdle() && canUserDoDeliveries();
-              buttonsHtml += `
-                <button 
-                  ${canCommit ? `onclick="window.commitToDelivery(${delivery.id})"` : ''}
-                  style="background: ${canCommit ? '#3b82f6' : '#9ca3af'}; 
-                         color: white; 
-                         border: none; 
-                         padding: 8px 12px; 
-                         border-radius: 6px; 
-                         cursor: ${canCommit ? 'pointer' : 'not-allowed'}; 
-                         font-size: 12px; 
-                         width: 100%; 
-                         margin-top: 6px; 
-                         font-weight: 500;
-                         opacity: ${canCommit ? '1' : '0.6'};"
-                  title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer com entregas' : ''}"
-                >
-                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : (isUserIdle() ? `🤝 Comprometer Entrega` : '⏳ Compromisso em Andamento')}
-                </button>
-              `;
             });
             
-            // Adicionar botão único de comprometer para locais com múltiplos produtos
+            // Adicionar botão único de comprometer para todos os locais com deliveries disponíveis
             const locationDeliveries = deliveries.filter(d => d.location_id === location.id && d.status === 'available');
-            if (locationDeliveries.length > 1) {
+            if (locationDeliveries.length > 0) {
               const canCommit = canUserDoDeliveries() && isUserIdle();
               productsHtml += `
                 <button 
@@ -590,36 +565,9 @@ export default function MapView() {
                     font-weight: 600;
                     opacity: ${canCommit ? '1' : '0.6'};
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
-                  title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer com entregas' : 'Comprometer-se com múltiplos itens'}"
+                  title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer' : 'Comprometer-se com entregas'}"
                 >
                   ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : '🤝 Comprometer Entrega'}
-                </button>
-              `;
-            } else if (locationDeliveries.length === 1) {
-              // Para locais com apenas um produto, usar botão específico
-              const delivery = locationDeliveries[0];
-              const canCommit = canUserDoDeliveries() && isUserIdle();
-              const productInfo = getProductInfo(delivery.product_type);
-              const label = `${productInfo.emoji} ${productInfo.label}`;
-              
-              productsHtml += `
-                <button 
-                  onclick="window.commitToDelivery(${delivery.id})"
-                  style="
-                    background: linear-gradient(135deg, ${productInfo.color}, ${productInfo.color}dd); 
-                    color: white; 
-                    border: none; 
-                    padding: 8px 12px; 
-                    border-radius: 6px; 
-                    cursor: ${canCommit ? 'pointer' : 'not-allowed'}; 
-                    font-size: 12px; 
-                    width: 100%; 
-                    margin-top: 6px; 
-                    font-weight: 500;
-                    opacity: ${canCommit ? '1' : '0.6'};"
-                  title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer com entregas' : ''}"
-                >
-                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : (isUserIdle() ? `🤝 Comprometer - ${label}` : '⏳ Compromisso em Andamento')}
                 </button>
               `;
             }
@@ -955,52 +903,11 @@ export default function MapView() {
         setShowCommitmentModal(true);
       }
     };
-
-    window.commitToDelivery = async (deliveryId) => {
-      if (!user) {
-        showConfirmation(
-          'Login Necessário',
-          'Você precisa estar logado como voluntário para se comprometer com entregas',
-          () => setShowLoginModal(true),
-          'warning'
-        );
-        return;
-      }
-      
-      if (!user.roles.includes('volunteer')) {
-        showConfirmation(
-          'Acesso Restrito',
-          'Apenas voluntários podem se comprometer com entregas',
-          () => {},
-          'error'
-        );
-        return;
-      }
-
-      // Verificar se usuário está ocioso
-      if (!isUserIdle()) {
-        showConfirmation(
-          '⚠️ Compromisso em Andamento',
-          `Você já tem uma operação ativa.\n\nComplete ou cancele antes de aceitar outra.`,
-          () => {},
-          'warning'
-        );
-        return;
-      }
-      
-      // Buscar o delivery completo e mostrar modal de quantidade
-      const delivery = deliveries.find(d => d.id === deliveryId);
-      if (delivery) {
-        setSelectedDelivery(delivery);
-        setDeliveryQuantity(delivery.quantity); // Iniciar com quantidade total disponível
-        setShowModalCommitDelivery(true);
-      }
-    };
     
     return () => {
       delete window.acceptIngredientRequest;
       delete window.reserveBatch;
-      delete window.commitToDelivery;
+      delete window.openSimplifiedCommitment;
     };
   }, [resourceRequests, batches, deliveries, user]);
 
@@ -1025,36 +932,6 @@ export default function MapView() {
     window.dispatchEvent(new CustomEvent('userOperationUpdate', {
       detail: { forceUpdate: true }
     }));
-  };
-
-  const handleDeliveryCommitment = async (deliveryId, quantity) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/deliveries/${deliveryId}/commit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ quantity })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Erro ao comprometer entrega');
-      }
-
-      const delivery = await response.json();
-      setCommittedDeliveryData(delivery);
-      setShowCommitmentSuccess(true);
-      setShowModalCommitDelivery(false);
-      await loadData();
-      await refreshState();
-      
-    } catch (error) {
-      console.error('Erro ao comprometer entrega:', error);
-      showConfirmation('Erro', error.message, 'error');
-    }
   };
 
   const handleSimplifiedCommitment = async (locationId, commitments) => {
@@ -1979,130 +1856,6 @@ export default function MapView() {
             triggerUserStateUpdate(); // Atualizar cores da borda/header
           }}
         />
-      )}
-
-      {/* Modal de Compromisso de Delivery */}
-      {showModalCommitDelivery && selectedDelivery && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 2000
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '90%',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>
-              🤝 Me Comprometer com Entrega
-            </h3>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#374151' }}>
-                <strong>Destino:</strong> {selectedDelivery.location?.name}
-              </p>
-              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#374151' }}>
-                <strong>Produto:</strong> {selectedDelivery.product_type}
-              </p>
-              <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#6b7280' }}>
-                Quantidade disponível: <strong>{selectedDelivery.quantity}</strong>
-              </p>
-            </div>
-            
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
-                fontWeight: '500',
-                color: '#374151'
-              }}>
-                Quantidade que você pode levar:
-              </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <input
-                  type="number"
-                  min="1"
-                  max={selectedDelivery.quantity}
-                  value={deliveryQuantity}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value) || 1;
-                    setDeliveryQuantity(Math.min(Math.max(val, 1), selectedDelivery.quantity));
-                  }}
-                  style={{
-                    width: '100px',
-                    padding: '10px 12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    textAlign: 'center'
-                  }}
-                />
-                <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                  de {selectedDelivery.quantity} disponíveis
-                </span>
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                onClick={() => {
-                  setShowModalCommitDelivery(false);
-                  setSelectedDelivery(null);
-                  setDeliveryQuantity(1);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  background: 'white',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    await handleDeliveryCommitment(selectedDelivery.id, deliveryQuantity);
-                    setShowModalCommitDelivery(false);
-                    setSelectedDelivery(null);
-                    setDeliveryQuantity(1);
-                  } catch (error) {
-                    console.error('Erro ao se comprometer:', error);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  border: 'none',
-                  borderRadius: '8px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Me Comprometer
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Modal de Confirmação */}
