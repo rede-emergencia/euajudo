@@ -317,21 +317,49 @@ export default function VolunteerDashboard() {
               }}>
                 {(delivery.status === 'pending_confirmation' || delivery.status === 'reserved') && (
                   <>
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => handleConfirmarRetirada(delivery.id)}
-                      icon={<CheckCircle size={16} />}
-                    >
-                      Confirmar Retirada
-                    </Button>
+                    {/* Mostrar código em vez de botão de confirmar */}
+                    <div style={{
+                      background: colors.primary[50],
+                      border: `1px solid ${colors.primary[200]}`,
+                      borderRadius: '8px',
+                      padding: spacing.md,
+                      textAlign: 'center',
+                      marginBottom: spacing.sm,
+                    }}>
+                      <div style={{
+                        fontSize: fontSize.sm,
+                        color: colors.primary[600],
+                        fontWeight: fontWeight.semibold,
+                        marginBottom: spacing.xs,
+                      }}>
+                        📋 Código de Retirada
+                      </div>
+                      <div style={{
+                        fontSize: fontSize.xl,
+                        fontWeight: fontWeight.bold,
+                        color: colors.primary[700],
+                        fontFamily: 'monospace',
+                        letterSpacing: '2px',
+                      }}>
+                        {delivery.pickup_code || 'GERAR'}
+                      </div>
+                      <div style={{
+                        fontSize: fontSize.xs,
+                        color: colors.primary[500],
+                        marginTop: spacing.xs,
+                        fontStyle: 'italic',
+                      }}>
+                        Mostre este código ao fornecedor
+                      </div>
+                    </div>
+                    
                     <Button
                       variant="error"
                       size="sm"
                       onClick={() => handleCancelarEntrega(delivery.id)}
                       icon={<X size={16} />}
                     >
-                      Cancelar
+                      Cancelar Compromisso
                     </Button>
                   </>
                 )}

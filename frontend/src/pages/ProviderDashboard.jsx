@@ -75,10 +75,27 @@ export default function ProviderDashboard() {
         // Carregar deliveries pendentes de retirada do fornecedor
         const response = await deliveries.list();
         const myDeliveries = response.data?.filter(d => {
-          // Verificar se o batch desta delivery pertence ao fornecedor
-          return d.batch_id && (d.status === 'reserved' || d.status === 'pending_confirmation');
+          // Incluir deliveries com batch_id (tradicionais) E deliveries diretas (batch_id=null)
+          const isMyDelivery = d.batch_id ? 
+            // Se tem batch_id, verificar se o batch pertence ao fornecedor
+            d.batch && d.batch.provider_id === user.id :
+            // Se não tem batch_id (direct commitment), verificar por product_type
+            // Para deliveries diretas, precisamos identificar qual provider criou originalmente
+            false; // Por enquanto, vamos mostrar apenas as com batch_id
+          
+          return isMyDelivery && (d.status === 'reserved' || d.status === 'pending_confirmation');
         }) || [];
-        setPendingPickups(myDeliveries);
+        
+        // Adicionar deliveries diretas por product_type (temporário até ter provider_id nas deliveries)
+        const directDeliveries = response.data?.filter(d => {
+          if (d.batch_id) return false; // Apenas deliveries diretas
+          
+          // Para deliveries diretas, vamos mostrar para todos os providers por enquanto
+          // TODO: Implementar lógica correta quando tivermos provider_id nas deliveries
+          return (d.status === 'reserved' || d.status === 'pending_confirmation');
+        }) || [];
+        
+        setPendingPickups([...myDeliveries, ...directDeliveries]);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
