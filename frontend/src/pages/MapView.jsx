@@ -68,34 +68,6 @@ const RESOURCE_COLORS = {
 
 // Função para criar ícones Lucide no mapa (consistente com a legenda)
 function makeLucideIcon(iconKey, color, size = 30) {
-  const svgPath = LUCIDE_ICONS[iconKey] || LUCIDE_ICONS.home;
-
-  return L.divIcon({
-    html: `<div style="
-      background: ${color}; 
-      width: ${size}px; 
-      height: ${size}px; 
-      border-radius: 50%; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      border: 2px solid white; 
-      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-      z-index: 1000;
-      position: relative;
-    ">
-      <svg width="${size * 0.5}" height="${size * 0.5}" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-        <path d="${svgPath}"/>
-      </svg>
-    </div>`,
-    className: 'custom-div-icon',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
-
-// Função para criar ícones Lucide no mapa (consistente com a legenda)
-function makeLucideIcon(iconKey, color, size = 30) {
   const svgPath = CUSTOM_ICONS[iconKey] || CUSTOM_ICONS.home;
   
   return L.divIcon({
