@@ -105,14 +105,14 @@ def create_shelters(db: Session):
     shelters = [
         {
             "email": "abrigo.centro@vouajudar.org",
-            "password": "centro123",
+            "password": "123",
             "name": "Abrigo Centro de Operações",
             "phone": "11666666666",
             "address": "Praça Central, 100 - Centro"
         },
         {
             "email": "abrigo.saosebastiao@vouajudar.org",
-            "password": "saosebastiao123", 
+            "password": "123", 
             "name": "Abrigo São Sebastião",
             "phone": "11555555555",
             "address": "Rua São Sebastião, 200"
