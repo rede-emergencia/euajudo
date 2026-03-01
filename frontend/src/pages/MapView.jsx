@@ -412,9 +412,35 @@ export default function MapView() {
 
     window.addEventListener('userStateChange', handleUserStateChange);
     
-    // Limpar flag ao desmontar
+    // Listener para evento de atualização do mapa (cancelamento de entregas)
+    const handleRefreshMap = () => {
+      console.log('🔄 RefreshMap evento recebido - atualizando dados...');
+      
+      if (window.mapViewUpdating) {
+        console.log('⏸️ MapView já está atualizando, ignorando...');
+        return;
+      }
+      
+      window.mapViewUpdating = true;
+      
+      setTimeout(async () => {
+        try {
+          await loadData();
+          console.log('✅ Dados do mapa recarregados via refreshMap');
+        } catch (error) {
+          console.error('❌ Erro ao recarregar dados do mapa:', error);
+        } finally {
+          window.mapViewUpdating = false;
+        }
+      }, 500);
+    };
+    
+    window.addEventListener('refreshMap', handleRefreshMap);
+    
+    // Limpar flags ao desmontar
     return () => {
       window.removeEventListener('userStateChange', handleUserStateChange);
+      window.removeEventListener('refreshMap', handleRefreshMap);
       window.mapViewUpdating = false;
     };
   }, []);

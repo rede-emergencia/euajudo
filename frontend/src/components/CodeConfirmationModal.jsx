@@ -50,6 +50,8 @@ export default function CodeConfirmationModal({
     setError('');
     onConfirm(code);
     setCode('');
+    // Fechar modal após confirmação bem-sucedida
+    setTimeout(() => onClose(), 500);
   };
 
   const handleCopyCode = () => {

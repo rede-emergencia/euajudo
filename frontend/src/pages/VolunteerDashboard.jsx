@@ -245,12 +245,32 @@ export default function VolunteerDashboard() {
       showAlert('Não Permitido', 'Já retirou o item — complete a entrega.', 'warning'); return;
     }
     if (!window.confirm(`Cancelar entrega #${id}?`)) return;
-    const res = await fetch(`/api/deliveries/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    if (res.ok) { loadData(); triggerUserStateUpdate(); showAlert('Sucesso', '✅ Entrega cancelada!', 'success'); }
-    else showAlert('Erro', '❌ Não foi possível cancelar.', 'error');
+    
+    try {
+      const res = await fetch(`/api/deliveries/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      if (res.ok) {
+        // Forçar atualização completa
+        await loadData();
+        triggerUserStateUpdate();
+        
+        // Forçar atualização do mapa se estiver na página principal
+        if (window.location.pathname === '/') {
+          window.dispatchEvent(new CustomEvent('refreshMap'));
+        }
+        
+        showAlert('Sucesso', '✅ Entrega cancelada com sucesso!', 'success');
+      } else {
+        const error = await res.json();
+        showAlert('Erro', `❌ ${error.detail || 'Não foi possível cancelar.'}`, 'error');
+      }
+    } catch (error) {
+      console.error('Erro ao cancelar entrega:', error);
+      showAlert('Erro', '❌ Erro ao cancelar entrega', 'error');
+    }
   };
 
   const handleCancelarDoacao = async (id) => {

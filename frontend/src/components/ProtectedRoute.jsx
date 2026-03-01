@@ -20,12 +20,15 @@ export default function ProtectedRoute({ children, requireRole }) {
   }
 
   if (requireRole) {
+    // Converter requireRole para string se for enum
+    const requiredRoleStr = typeof requireRole === 'string' ? requireRole : requireRole.value;
+    
     // Aceitar volunteer para role "volunteer"
-    if (requireRole === 'volunteer') {
+    if (requiredRoleStr === 'volunteer') {
       if (!user.roles.includes('volunteer')) {
         return <Navigate to="/" replace />;
       }
-    } else if (!user.roles.includes(requireRole)) {
+    } else if (!user.roles.includes(requiredRoleStr)) {
       return <Navigate to="/" replace />;
     }
   }
