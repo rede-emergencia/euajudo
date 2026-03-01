@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import {
   Package, X, User, LogOut, Home,
   MapPin, Store, Truck, UtensilsCrossed, Pill, Droplet, Shirt, Sparkles, Filter as FilterIcon,
-  Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart, LayoutDashboard, Check
+  Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart, LayoutDashboard, Check,
+  Users, Building, HandHeart
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
@@ -11,6 +12,18 @@ import { useCancel } from '../hooks/useCancel';
 import { deliveries, resourceReservations } from '../lib/api';
 import CodeConfirmationModal from './CodeConfirmationModal';
 import { UserRole } from '../shared/enums';
+
+// Função para obter ícone baseado na role do usuário
+const getUserIcon = (roles) => {
+  if (!roles || !Array.isArray(roles)) return User;
+  
+  if (roles.includes('admin')) return Users;
+  if (roles.includes('volunteer')) return HandHeart;
+  if (roles.includes('shelter')) return Building;
+  if (roles.includes('provider')) return Store;
+  
+  return User; // Default
+};
 
 // Adicionar CSS para animação
 const style = document.createElement('style');
@@ -536,11 +549,9 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: 'white',
-                      fontSize: '12px',
-                      fontWeight: 'bold'
+                      color: 'white'
                     }}>
-                      {user.name?.charAt(0).toUpperCase() || user.nome?.charAt(0).toUpperCase() || 'U'}
+                      {React.createElement(getUserIcon(user.roles), { size: 14 })}
                     </div>
                     <span className="user-menu-name" style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {user.name || user.nome || 'Usuário'}
