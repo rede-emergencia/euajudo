@@ -51,7 +51,9 @@ const UserStateWidget = () => {
         position: 'fixed',
         top: '64px',           /* abaixo do header */
         left: '50%',
-        transform: 'translateX(-50%)',
+        transform: isChanging
+          ? 'translateX(-50%) scale(1.04)'
+          : 'translateX(-50%) scale(1)',
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
@@ -63,9 +65,6 @@ const UserStateWidget = () => {
         padding: '5px 12px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         transition: 'all 0.3s ease',
-        transform: isChanging
-          ? 'translateX(-50%) scale(1.04)'
-          : 'translateX(-50%) scale(1)',
       }}>
         {/* Bolinha de status */}
         <span
