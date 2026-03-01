@@ -80,6 +80,10 @@ export default function Login() {
     try {
       const userData = await login(selectedUser, '123');
       
+      // Aguardar um pouco para garantir que o estado seja atualizado em todos os componentes
+      // Isso resolve problemas no iPhone/Safari onde o header não aparece após redirecionamento
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Redirecionar baseado no perfil (usando roles do banco)
       if (userData.roles.includes('admin')) {
         navigate('/dashboard/admin');

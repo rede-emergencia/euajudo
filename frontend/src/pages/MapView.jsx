@@ -20,6 +20,49 @@ import { getProductInfo, getProductText, getProductLocation, getProductAction } 
 import { formatProductWithQuantity } from '../shared/enums';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// CSS para melhorar renderização em dispositivos móveis (iPhone/Safari)
+const mobileMapCSS = `
+  /* Melhorar renderização do mapa em dispositivos móveis */
+  #map {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+  }
+  
+  /* Evitar blurry em iPhone */
+  .leaflet-container {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+  
+  /* Melhorar tiles em retina displays */
+  .leaflet-tile {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+  
+  /* iOS Safari specific */
+  @supports (-webkit-touch-callout: none) {
+    .leaflet-container {
+      -webkit-transform: scale(1) translate3d(0, 0, 0);
+      transform: scale(1) translate3d(0, 0, 0);
+    }
+  }
+`;
+
+// Inserir CSS no documento
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = mobileMapCSS;
+  document.head.appendChild(style);
+}
+
 // Sistema de modal único padronizado implementado
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -543,7 +586,12 @@ export default function MapView() {
       const map = L.map('map', {
         center: [-21.7642, -43.3502],
         zoom: 13,
-        zoomControl: false // Remover controle de zoom padrão
+        zoomControl: false, // Remover controle de zoom padrão
+        // Melhorar renderização em dispositivos móveis (iPhone/Safari)
+        preferCanvas: true,
+        fadeAnimation: false,
+        zoomAnimation: false,
+        markerZoomAnimation: false
       });
 
       // Adicionar tiles do OpenStreetMap

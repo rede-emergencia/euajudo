@@ -53,6 +53,10 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
       
       const userData = await login(loginEmail, loginPassword);
       
+      // Aguardar um pouco para garantir que o estado seja atualizado em todos os componentes
+      // Isso resolve problemas no iPhone/Safari onde o header não aparece após redirecionamento
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Redirecionar baseado no perfil
       if (userData.roles && userData.roles.includes('admin')) {
         navigate('/dashboard/admin');
