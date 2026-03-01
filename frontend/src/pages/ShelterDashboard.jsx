@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Plus, Package, Clock, X, Home, Heart, Check,
-  ArrowLeft, ChevronDown, ChevronUp, Shirt, Pill, UtensilsCrossed, Sparkles, Droplets, AlertCircle, Trash2
+  ArrowLeft, ChevronDown, ChevronUp, Shirt, Pill, UtensilsCrossed, Sparkles, Droplets, Droplet, ShoppingCart, AlertCircle, Trash2
 } from 'lucide-react';
 import { categories as categoriesApi } from '../lib/api';
 import axios from 'axios';
@@ -28,9 +28,10 @@ const PRESETS = [
   { id: 'roupas', label: 'Roupas', Icon: Shirt, unit: 'peças', color: '#8b5cf6' },
   { id: 'medicamentos', label: 'Medicamentos', Icon: Pill, unit: 'unidades', color: '#ef4444' },
   { id: 'alimentos', label: 'Alimentos', Icon: UtensilsCrossed, unit: 'kg/unidades', color: '#f59e0b' },
-  { id: 'refeicoes_prontas', label: 'Refeições Prontas', Icon: UtensilsCrossed, unit: 'porções', color: '#795548' },
+  { id: 'agua', label: 'Água', Icon: Droplet, unit: 'litros', color: '#3b82f6' },
+  { id: 'refeicoes', label: 'Refeições Prontas', Icon: ShoppingCart, unit: 'porções', color: '#ec4899' },
   { id: 'limpeza', label: 'Prod. de Limpeza', Icon: Sparkles, unit: 'unidades', color: '#14b8a6' },
-  { id: 'higiene', label: 'Higiene Pessoal', Icon: Droplets, unit: 'unidades', color: '#3b82f6' },
+  { id: 'higiene', label: 'Higiene Pessoal', Icon: Droplet, unit: 'unidades', color: '#10b981' },
 ];
 
 const STATUS = {
@@ -122,34 +123,6 @@ function ItemRow({ item, onChange, onRemove, categories }) {
         <>
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
-              Categoria *
-            </label>
-            <select
-              value={item.category_id || ''}
-              onChange={e => {
-                const categoryId = e.target.value;
-                const category = categories.find(cat => cat.id === parseInt(categoryId));
-                let metadata = {};
-                if (category && category.attributes) {
-                  category.attributes.forEach(attr => {
-                    metadata[attr.name] = attr.default_value || '';
-                  });
-                }
-                onChange({ ...item, category_id: categoryId, metadata });
-              }}
-              style={{ ...inputStyle, background: '#fff' }}
-            >
-              <option value="">Selecione...</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.icon} {cat.display_name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
               Quantidade * <span style={{ fontWeight: '400' }}>({preset?.unit})</span>
             </label>
             <input
@@ -162,40 +135,184 @@ function ItemRow({ item, onChange, onRemove, categories }) {
             />
           </div>
 
-          {item.category_id && getCategoryAttributes(item.category_id).length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280' }}>
-                Detalhes do Item
+          {/* Atributos específicos por tipo */}
+          {item.type === 'roupas' && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                  Tipo
+                </label>
+                <select
+                  value={item.metadata?.tipo || ''}
+                  onChange={e => onChange({ ...item, metadata: { ...item.metadata, tipo: e.target.value } })}
+                  style={{ ...inputStyle, background: '#fff' }}
+                >
+                  <option value="">Selecione...</option>
+                  <option value="camisetas">Camisetas</option>
+                  <option value="calcas">Calças</option>
+                  <option value="vestidos">Vestidos</option>
+                  <option value="casacos">Casacos</option>
+                  <option value="calcados">Calçados</option>
+                  <option value="outros">Outros</option>
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                  Tamanho
+                </label>
+                <select
+                  value={item.metadata?.tamanho || ''}
+                  onChange={e => onChange({ ...item, metadata: { ...item.metadata, tamanho: e.target.value } })}
+                  style={{ ...inputStyle, background: '#fff' }}
+                >
+                  <option value="">Selecione...</option>
+                  <option value="pp">PP</option>
+                  <option value="p">P</option>
+                  <option value="m">M</option>
+                  <option value="g">G</option>
+                  <option value="gg">GG</option>
+                  <option value="xg">XG</option>
+                  <option value="variados">Variados</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {item.type === 'medicamentos' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                  Nome do medicamento
+                </label>
+                <input
+                  type="text"
+                  value={item.metadata?.nome || ''}
+                  onChange={e => onChange({ ...item, metadata: { ...item.metadata, nome: e.target.value } })}
+                  placeholder="Ex: Dipirona"
+                  style={{ ...inputStyle, background: '#fff' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                  Tipo
+                </label>
+                <select
+                  value={item.metadata?.tipo || ''}
+                  onChange={e => onChange({ ...item, metadata: { ...item.metadata, tipo: e.target.value } })}
+                  style={{ ...inputStyle, background: '#fff' }}
+                >
+                  <option value="">Selecione...</option>
+                  <option value="analgesico">Analgésico</option>
+                  <option value="antibiotico">Antibiótico</option>
+                  <option value="antiinflamatorio">Anti-inflamatório</option>
+                  <option value="vitamina">Vitamina</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {item.type === 'alimentos' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                Tipo
               </label>
-              {getCategoryAttributes(item.category_id).map(attr => (
-                <div key={attr.name}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '500', color: '#9ca3af', marginBottom: '3px' }}>
-                    {attr.display_name} {attr.required && '*'}
-                  </label>
-                  {attr.attribute_type === 'select' ? (
-                    <select
-                      value={item.metadata?.[attr.name] || ''}
-                      onChange={e => onChange({ ...item, metadata: { ...item.metadata, [attr.name]: e.target.value } })}
-                      style={{ ...inputStyle, background: '#fff', fontSize: '13px' }}
-                      required={attr.required}
-                    >
-                      <option value="">Selecione...</option>
-                      {attr.options?.map(opt => (
-                        <option key={opt.value || opt} value={opt.value || opt}>{opt.label || opt}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={item.metadata?.[attr.name] || ''}
-                      onChange={e => onChange({ ...item, metadata: { ...item.metadata, [attr.name]: e.target.value } })}
-                      placeholder={attr.placeholder || ''}
-                      style={{ ...inputStyle, background: '#fff', fontSize: '13px' }}
-                      required={attr.required}
-                    />
-                  )}
-                </div>
-              ))}
+              <select
+                value={item.metadata?.tipo || ''}
+                onChange={e => onChange({ ...item, metadata: { ...item.metadata, tipo: e.target.value } })}
+                style={{ ...inputStyle, background: '#fff' }}
+              >
+                <option value="">Selecione...</option>
+                <option value="nao_perecivel">Não perecível</option>
+                <option value="perecivel">Perecível</option>
+                <option value="bebida">Bebida</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+          )}
+
+          {item.type === 'agua' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                Tipo
+              </label>
+              <select
+                value={item.metadata?.tipo || ''}
+                onChange={e => onChange({ ...item, metadata: { ...item.metadata, tipo: e.target.value } })}
+                style={{ ...inputStyle, background: '#fff' }}
+              >
+                <option value="">Selecione...</option>
+                <option value="potavel">Potável</option>
+                <option value="mineral">Mineral</option>
+                <option value="purificada">Purificada</option>
+              </select>
+            </div>
+          )}
+
+          {item.type === 'refeicoes' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                Tipo
+              </label>
+              <select
+                value={item.metadata?.tipo || ''}
+                onChange={e => onChange({ ...item, metadata: { ...item.metadata, tipo: e.target.value } })}
+                style={{ ...inputStyle, background: '#fff' }}
+              >
+                <option value="">Selecione...</option>
+                <option value="marmita">Marmita</option>
+                <option value="sopa">Sopa</option>
+                <option value="sanduiche">Sanduíche</option>
+                <option value="fruta">Fruta</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+          )}
+
+          {item.type === 'limpeza' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                Tipo de produto
+              </label>
+              <select
+                value={item.metadata?.tipo || ''}
+                onChange={e => onChange({ ...item, metadata: { ...item.metadata, tipo: e.target.value } })}
+                style={{ ...inputStyle, background: '#fff' }}
+              >
+                <option value="">Selecione...</option>
+                <option value="detergente">Detergente</option>
+                <option value="desinfetante">Desinfetante</option>
+                <option value="sabao">Sabão</option>
+                <option value="agua_sanitaria">Água Sanitária</option>
+                <option value="alcool">Álcool</option>
+                <option value="esponja">Esponja</option>
+                <option value="pano">Pano de Limpeza</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+          )}
+
+          {item.type === 'higiene' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#6b7280', marginBottom: '5px' }}>
+                Tipo de produto
+              </label>
+              <select
+                value={item.metadata?.tipo || ''}
+                onChange={e => onChange({ ...item, metadata: { ...item.metadata, tipo: e.target.value } })}
+                style={{ ...inputStyle, background: '#fff' }}
+              >
+                <option value="">Selecione...</option>
+                <option value="sabonete">Sabonete</option>
+                <option value="shampoo">Shampoo</option>
+                <option value="condicionador">Condicionador</option>
+                <option value="papel_higienico">Papel Higiênico</option>
+                <option value="pasta_dental">Pasta Dental</option>
+                <option value="escova_dental">Escova Dental</option>
+                <option value="absorvente">Absorvente</option>
+                <option value="fralda">Fralda</option>
+                <option value="outro">Outro</option>
+              </select>
             </div>
           )}
         </>
@@ -294,13 +411,34 @@ export default function ShelterDashboard() {
   ].includes(r.status));
 
   const addItem = (preset) => {
-    // Encontrar a categoria correspondente ao preset
-    const matchingCategory = categories.find(cat => cat.name === preset.id);
+    // Mapear preset.id para nome de categoria do backend
+    // Categorias do backend: agua, alimentos, refeicoes_prontas, higiene, roupas, medicamentos
+    const presetToCategoryMap = {
+      'roupas': 'roupas',
+      'medicamentos': 'medicamentos',
+      'alimentos': 'alimentos',
+      'agua': 'agua',
+      'refeicoes': 'refeicoes_prontas',
+      'limpeza': 'higiene',  // Limpeza usa categoria higiene no backend
+      'higiene': 'higiene'
+    };
+    
+    const categoryName = presetToCategoryMap[preset.id] || preset.id;
+    const matchingCategory = categories.find(cat => cat.name === categoryName);
+    
+    if (!matchingCategory) {
+      console.error(`❌ Categoria não encontrada para preset: ${preset.id}`);
+      console.log('📋 Categorias disponíveis:', categories.map(c => `${c.id}: ${c.name}`));
+      showAlert('Erro', `Categoria "${preset.label}" não está configurada no sistema. Contate o administrador.`, 'error');
+      return;
+    }
+    
+    console.log(`✅ Adicionando item: ${preset.label} → categoria ${matchingCategory.name} (ID: ${matchingCategory.id})`);
     
     setItems(prev => [...prev, { 
       uid: Date.now(), 
       type: preset.id, 
-      category_id: matchingCategory ? matchingCategory.id.toString() : '', 
+      category_id: matchingCategory.id.toString(), 
       quantity: '', 
       metadata: {} 
     }]);
@@ -317,11 +455,16 @@ export default function ShelterDashboard() {
   };
 
   const validateItems = () => {
+    console.log('🔍 Iniciando validação de itens:', items);
+    
     if (items.length === 0) {
+      console.log('❌ Validação falhou: nenhum item adicionado');
       return false;
     }
     
     for (const item of items) {
+      console.log('🔍 Validando item:', item);
+      
       // Validar categoria
       if (!item.category_id) {
         console.log('❌ Validação falhou: categoria não selecionada', item);
@@ -335,28 +478,32 @@ export default function ShelterDashboard() {
         return false;
       }
       
-      // Validar atributos obrigatórios da categoria
-      const category = categories.find(cat => cat.id === parseInt(item.category_id));
-      if (category && category.attributes) {
-        for (const attr of category.attributes) {
-          if (attr.required && (!item.metadata?.[attr.name] || item.metadata[attr.name].trim() === '')) {
-            console.log('❌ Validação falhou: atributo obrigatório não preenchido', { attr, metadata: item.metadata });
-            return false;
-          }
-        }
-      }
+      // Não validar atributos do backend - deixar o backend validar
+      // Apenas garantir que category_id e quantity estão preenchidos
     }
-    console.log('✅ Validação passou para todos os itens');
+    
+    console.log('✅ Validação passou com sucesso!');
     return true;
   };
 
   const handleCreate = async () => {
+    console.log('📝 Criando solicitação...');
     if (items.length === 0) {
+      console.log('❌ Nenhum item adicionado');
       showAlert('Sem itens', 'Adicione pelo menos um produto.', 'warning');
       return;
     }
+    
+    // Verificar se todos os itens têm quantidade preenchida
+    const itemsWithoutQuantity = items.filter(item => !item.quantity || parseInt(item.quantity) <= 0);
+    if (itemsWithoutQuantity.length > 0) {
+      console.log('❌ Itens sem quantidade:', itemsWithoutQuantity);
+      showAlert('Quantidade obrigatória', 'Preencha a quantidade de todos os itens antes de criar a solicitação.', 'warning');
+      return;
+    }
+    
     if (!validateItems()) {
-      showAlert('Campos obrigatórios', 'Preencha categoria, quantidade e campos obrigatórios.', 'warning');
+      showAlert('Campos obrigatórios', 'Verifique se todos os campos estão preenchidos corretamente.', 'warning');
       return;
     }
 
@@ -395,6 +542,27 @@ export default function ShelterDashboard() {
       loadData();
     } catch (error) {
       showAlert('Erro', error.message || 'Erro ao cancelar', 'error');
+    }
+  };
+
+  const handleConfirmPickup = async (id, pickupCode) => {
+    const code = prompt(`Digite o código de retirada para confirmar:`);
+    if (!code) return;
+    
+    if (code !== pickupCode) {
+      showAlert('Erro', 'Código incorreto!', 'error');
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${API_URL}/api/deliveries/${id}/confirm-pickup`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showAlert('Sucesso', 'Retirada confirmada! Voluntário já pode entregar.', 'success');
+      loadData();
+    } catch (error) {
+      showAlert('Erro', error.response?.data?.detail || 'Erro ao confirmar retirada', 'error');
     }
   };
 
@@ -661,7 +829,103 @@ export default function ShelterDashboard() {
                       </div>
                     )}
 
-                    {['available', 'pending_confirmation'].includes(r.status) && (
+                    {r.status === 'pending_confirmation' && r.pickup_code && (
+                      <div style={{
+                        background: '#fef3c7', borderRadius: '8px', padding: '12px',
+                        border: '2px solid #fde047',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <AlertCircle size={16} color="#d97706" />
+                          <p style={{ margin: 0, fontSize: '12px', color: '#92400e', fontWeight: '600' }}>
+                            Voluntário comprometido - Aguardando retirada
+                          </p>
+                        </div>
+                        <div style={{
+                          background: '#fff', borderRadius: '6px', padding: '8px 12px',
+                          border: '1px solid #fde047',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '10px', color: '#92400e', fontWeight: '600', marginBottom: '4px' }}>
+                            CÓDIGO DE RETIRADA
+                          </div>
+                          <div style={{
+                            fontSize: '18px',
+                            fontWeight: '700',
+                            color: '#92400e',
+                            letterSpacing: '2px',
+                            fontFamily: 'monospace'
+                          }}>
+                            {r.pickup_code}
+                          </div>
+                        </div>
+                        <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#92400e' }}>
+                          Confirme este código quando o voluntário chegar
+                        </p>
+                      </div>
+                    )}
+
+                    {r.status === 'reserved' && r.pickup_code && (
+                      <div style={{
+                        background: '#dbeafe', borderRadius: '8px', padding: '12px',
+                        border: '2px solid #93c5fd',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                          <Check size={16} color="#1e40af" />
+                          <p style={{ margin: 0, fontSize: '12px', color: '#1e40af', fontWeight: '600' }}>
+                            Voluntário confirmado - Aguardando entrega
+                          </p>
+                        </div>
+                        <div style={{
+                          background: '#fff', borderRadius: '6px', padding: '8px 12px',
+                          border: '1px solid #93c5fd',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: '10px', color: '#1e40af', fontWeight: '600', marginBottom: '4px' }}>
+                            CÓDIGO DE RETIRADA
+                          </div>
+                          <div style={{
+                            fontSize: '18px',
+                            fontWeight: '700',
+                            color: '#1e40af',
+                            letterSpacing: '2px',
+                            fontFamily: 'monospace'
+                          }}>
+                            {r.pickup_code}
+                          </div>
+                        </div>
+                        <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#1e40af' }}>
+                          Voluntário já confirmou presença
+                        </p>
+                      </div>
+                    )}
+
+                    {r.status === 'pending_confirmation' && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          onClick={() => handleConfirmPickup(r.id, r.pickup_code)} 
+                          style={{
+                            ...btnStyle('#10b981', '#d1fae5', '#065f46'),
+                            border: '1.5px solid #86efac',
+                            fontWeight: '700',
+                            flex: 1,
+                          }}
+                        >
+                          <Check size={16} /> Confirmar Retirada
+                        </button>
+                        <button 
+                          onClick={() => handleCancel(r.id)} 
+                          style={{
+                            ...btnStyle('#fff', '#fecaca', '#dc2626'),
+                            border: '1.5px solid #fecaca',
+                            fontWeight: '700',
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+
+                    {r.status === 'available' && (
                       <button 
                         onClick={() => handleCancel(r.id)} 
                         style={{

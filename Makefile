@@ -97,11 +97,11 @@ seed-status: ## Verifica status do banco de dados
 	cd .. && \
 	$(PYTHON) check_db_status.py
 
-backend: ## Inicia apenas o backend FastAPI
-	@echo "$(YELLOW)🚀 Iniciando backend FastAPI...$(NC)"
+backend: ## Inicia apenas o backend FastAPI com logs detalhados
+	@echo "$(YELLOW)🚀 Iniciando backend FastAPI com logs detalhados...$(NC)"
 	cd $(BACKEND_DIR) && \
 	source venv/bin/activate && \
-	uvicorn app.main:app --reload --host 0.0.0.0 --port $(BACKEND_PORT)
+	uvicorn app.main:app --reload --host 0.0.0.0 --port $(BACKEND_PORT) --log-level debug
 
 frontend: ## Inicia apenas o frontend React
 	@echo "$(YELLOW)🎨 Iniciando frontend React...$(NC)"
@@ -253,11 +253,29 @@ format: ## Formata código automaticamente
 	@echo "$(GREEN)✅ Código formatado$(NC)"
 
 logs: ## Exibe logs dos serviços em tempo real
-	@echo "$(YELLOW)📋 Exibindo logs...$(NC)"
+	@echo "$(YELLOW)📋 Exibindo logs em tempo real...$(NC)"
 	@if [ -f backend.log ] || [ -f frontend.log ]; then \
 		tail -f backend.log frontend.log; \
 	else \
 		echo "$(RED)❌ Nenhum arquivo de log encontrado$(NC)"; \
+		echo "$(CYAN)Use 'make backend' para ver logs em tempo real no terminal$(NC)"; \
+	fi
+
+logs-backend: ## Exibe apenas logs do backend em tempo real
+	@echo "$(YELLOW)📋 Exibindo logs do backend...$(NC)"
+	@if [ -f backend.log ]; then \
+		tail -f backend.log; \
+	else \
+		echo "$(RED)❌ Arquivo backend.log não encontrado$(NC)"; \
+		echo "$(CYAN)Use 'make backend' para ver logs em tempo real no terminal$(NC)"; \
+	fi
+
+logs-frontend: ## Exibe apenas logs do frontend em tempo real
+	@echo "$(YELLOW)📋 Exibindo logs do frontend...$(NC)"
+	@if [ -f frontend.log ]; then \
+		tail -f frontend.log; \
+	else \
+		echo "$(RED)❌ Arquivo frontend.log não encontrado$(NC)"; \
 	fi
 
 status: ## Verifica status dos serviços

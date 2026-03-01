@@ -14,6 +14,20 @@ from app.enums import (
 )
 
 # ============================================================================
+# CATEGORY SCHEMAS
+# ============================================================================
+
+class CategoryResponse(BaseModel):
+    id: int
+    name: str
+    display_name: str
+    icon: Optional[str] = None
+    active: bool = True
+    
+    class Config:
+        from_attributes = True
+
+# ============================================================================
 # AUTH SCHEMAS
 # ============================================================================
 
@@ -254,6 +268,7 @@ class DeliveryResponse(BaseModel):
     batch: Optional[ProductBatchResponse] = None
     location: Optional[DeliveryLocationResponse] = None
     volunteer: Optional[UserResponse] = None
+    category: Optional['CategoryResponse'] = None
     
     class Config:
         from_attributes = True

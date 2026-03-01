@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Package, X, User, LogOut, Home,
   MapPin, Store, Truck, UtensilsCrossed, Pill, Droplet, Shirt, Sparkles, Filter as FilterIcon,
-  Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart, LayoutDashboard
+  Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart, LayoutDashboard, Check
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
@@ -421,35 +421,42 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
             {user ? (
               <>
 
-                {/* Botão Dashboard — escondido em mobile, visível no desktop */}
-                <button
-                  className="dashboard-desktop-only"
-                  onClick={() => navigate(getDashboardRoute())}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '8px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: '#eff6ff',
-                    color: '#2563eb',
-                    cursor: 'pointer',
-                    fontWeight: '500',
-                    transition: 'background 0.2s',
-                    gap: '4px'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = '#dbeafe';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = '#eff6ff';
-                  }}
-                  title="Ir para Dashboard"
-                >
-                  <LayoutDashboard style={{ width: '18px', height: '18px' }} />
-                  <span style={{ fontSize: '13px' }}>Dashboard</span>
-                </button>
+                {/* Botão Dashboard — escondido em mobile, visível no desktop (apenas não-voluntários) */}
+                {!user?.roles?.includes('volunteer') && (
+                  <button
+                    className="dashboard-desktop-only"
+                    onClick={() => navigate(getDashboardRoute())}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      background: '#eff6ff',
+                      color: '#2563eb',
+                      border: '1px solid #dbeafe',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      textDecoration: 'none'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#dbeafe';
+                      e.currentTarget.style.borderColor = '#2563eb';
+                      e.currentTarget.style.color = '#2563eb';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#eff6ff';
+                      e.currentTarget.style.borderColor = '#dbeafe';
+                      e.currentTarget.style.color = '#2563eb';
+                    }}
+                    title="Ir para Dashboard"
+                  >
+                    <LayoutDashboard style={{ width: '18px', height: '18px' }} />
+                    <span style={{ fontSize: '13px' }}>Dashboard</span>
+                  </button>
+                )}
 
                 {/* Botão Ações — escondido em mobile, visível no desktop */}
                 <button
@@ -570,31 +577,34 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                           <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{user.nome}</p>
                           <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6b7280' }}>{user.email}</p>
                         </div>
-                        <button
-                          onClick={() => {
-                            navigate(getDashboardRoute() || '/');
-                            setShowUserMenu(false);
-                          }}
-                          style={{
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            padding: '12px 16px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            color: '#374151',
-                            borderRadius: '6px',
-                            transition: 'background 0.2s'
-                          }}
-                          onMouseOver={(e) => e.currentTarget.style.background = '#f9fafb'}
-                          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                          <Home size={16} />
-                          Dashboard
-                        </button>
+                        {/* Dashboard apenas para não-voluntários */}
+                        {!user.roles.includes('volunteer') && (
+                          <button
+                            onClick={() => {
+                              navigate(getDashboardRoute() || '/');
+                              setShowUserMenu(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              padding: '12px 16px',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#374151',
+                              borderRadius: '6px',
+                              transition: 'background 0.2s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#f9fafb'}
+                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <Home size={16} />
+                            Dashboard
+                          </button>
+                        )}
                         <button
                           onClick={handleLogout}
                           style={{
@@ -824,29 +834,28 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
             {/* Content */}
             <div style={{ padding: '24px' }}>
 
-              {/* Ir para Dashboard — visível para todos os usuários logados */}
-              {user && (
+              {/* Ir para Dashboard — visível apenas para não-voluntários */}
+              {user && !user.roles.includes('volunteer') && (
                 <button
                   onClick={() => {
                     navigate(getDashboardRoute());
                     setShowActionsModal(false);
                   }}
                   style={{
+                    width: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    padding: '12px 16px',
-                    marginBottom: '16px',
-                    border: '1.5px solid #e5e7eb',
-                    borderRadius: '12px',
+                    gap: '12px',
+                    padding: '16px',
                     background: '#f9fafb',
-                    color: '#1f2937',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
                     fontSize: '14px',
-                    fontWeight: '600',
+                    fontWeight: '500',
+                    color: '#1f2937',
                     cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.2s',
+                    textAlign: 'left'
                   }}
                   onMouseOver={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.color = '#2563eb'; }}
                   onMouseOut={e => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#1f2937'; }}
@@ -876,26 +885,6 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                   <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#6b7280' }}>
                     Você não tem nenhuma operação em andamento no momento
                   </p>
-                  {user && user.roles.includes('admin') && (
-                  <button
-                    onClick={() => {
-                      navigate(getDashboardRoute() || '/');
-                      setShowActionsModal(false);
-                    }}
-                    style={{
-                      background: '#16a34a',
-                      color: 'white',
-                      border: 'none',
-                      padding: '10px 20px',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Ver Dashboard
-                  </button>
-                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -926,40 +915,158 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                         }} />
                       </div>
 
-                      {/* Código de Retirada - para deliveries pending_confirmation */}
+                      {/* Confirmação de Retirada - APENAS FLUXO 2 (com batch/fornecedor) */}
                       {operation.type === 'delivery' &&
-                        (operation.status === 'pending_confirmation' || operation.status === 'reserved') &&
-                        operation.pickup_code && (
+                        operation.status === 'pending_confirmation' &&
+                        operation.metadata?.batch_id && (
                           <div style={{
-                            marginTop: '8px',
-                            padding: '8px',
                             background: '#fef3c7',
-                            borderRadius: '6px',
-                            border: '1px solid #f59e0b'
+                            border: '1px solid #f59e0b',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            marginTop: '8px'
                           }}>
-                            <p style={{ margin: '0', fontSize: '11px', color: '#92400e', fontWeight: '500' }}>
-                              📋 Código de Retirada
+                            <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#92400e', fontWeight: '600' }}>
+                              📋 Confirmar Retirada no Fornecedor
                             </p>
-                            <p style={{
-                              margin: '2px 0 0 0',
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              color: '#92400e',
-                              fontFamily: 'monospace',
-                              letterSpacing: '1px'
-                            }}>
-                              {operation.pickup_code}
-                            </p>
-                            <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#92400e' }}>
-                              Mostre ao fornecedor
-                            </p>
+                            <input
+                              type="text"
+                              placeholder="Digite o código do fornecedor"
+                              style={{
+                                width: '100%',
+                                padding: '8px 12px',
+                                border: '1px solid #d97706',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                marginBottom: '8px',
+                                outline: 'none'
+                              }}
+                              id={`pickup-code-${operation.id}`}
+                            />
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={async () => {
+                                  const input = document.getElementById(`pickup-code-${operation.id}`);
+                                  const code = input.value.trim();
+                                  if (!code) {
+                                    alert('Digite o código de retirada');
+                                    return;
+                                  }
+
+                                  try {
+                                    const response = await fetch(`/api/deliveries/${operation.id}/confirm-pickup`, {
+                                      method: 'POST',
+                                      headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                        'Content-Type': 'application/json'
+                                      },
+                                      body: JSON.stringify({ pickup_code: code })
+                                    });
+
+                                    if (response.ok) {
+                                      window.dispatchEvent(new CustomEvent('refreshUserState', {
+                                        detail: { forceUpdate: true }
+                                      }));
+                                      setShowActionsModal(false);
+                                    } else {
+                                      const err = await response.json();
+                                      let errorMsg = 'Erro ao confirmar retirada';
+                                      
+                                      if (err.detail) {
+                                        if (err.detail.includes('must be PENDING_CONFIRMATION')) {
+                                          errorMsg = 'Esta entrega não está pronta para retirada';
+                                        } else if (err.detail.includes('Invalid pickup code')) {
+                                          errorMsg = 'Código de retirada inválido';
+                                        } else {
+                                          errorMsg = err.detail;
+                                        }
+                                      }
+                                      
+                                      alert(errorMsg);
+                                    }
+                                  } catch (error) {
+                                    console.error('Erro ao confirmar retirada:', error);
+                                    alert('Erro de conexão. Tente novamente.');
+                                  }
+                                }}
+                                style={{
+                                  flex: 1,
+                                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '8px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Confirmar
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Deseja cancelar esta entrega?')) {
+                                    return;
+                                  }
+
+                                  try {
+                                    const response = await fetch(`/api/deliveries/${operation.id}`, {
+                                      method: 'DELETE',
+                                      headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                        'Content-Type': 'application/json'
+                                      }
+                                    });
+
+                                    if (response.ok) {
+                                      window.dispatchEvent(new CustomEvent('refreshUserState', {
+                                        detail: { forceUpdate: true }
+                                      }));
+                                      setShowActionsModal(false);
+                                      alert('Entrega cancelada com sucesso');
+                                    } else {
+                                      const err = await response.json();
+                                      console.error('Erro ao cancelar entrega:', err);
+                                      let errorMsg = 'Erro ao cancelar entrega';
+                                      
+                                      if (err.detail) {
+                                        if (err.detail.includes('Not authorized')) {
+                                          errorMsg = 'Você não tem permissão para cancelar esta entrega';
+                                        } else if (err.detail.includes('Cannot cancel after pickup')) {
+                                          errorMsg = 'Não é possível cancelar após retirada';
+                                        } else {
+                                          errorMsg = err.detail;
+                                        }
+                                      }
+                                      
+                                      alert(errorMsg);
+                                    }
+                                  } catch (error) {
+                                    console.error('Erro ao cancelar entrega:', error);
+                                    alert('Erro de conexão. Tente novamente.');
+                                  }
+                                }}
+                                style={{
+                                  flex: 1,
+                                  background: '#fff',
+                                  color: '#dc2626',
+                                  border: '1px solid #dc2626',
+                                  padding: '8px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Cancelar Entrega
+                              </button>
+                            </div>
                           </div>
                         )}
 
-                      {/* Código de Entrega - quando em trânsito */}
+                      {/* Aviso de entrega - quando em trânsito, abrigo tem o código */}
                       {(operation.status === 'picked_up' ||
-                        operation.status === 'in_transit') &&
-                        operation.delivery_code && (
+                        operation.status === 'in_transit') && (
                           <div style={{
                             marginTop: '8px',
                             padding: '8px',
@@ -968,81 +1075,60 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                             border: '1px solid #3b82f6'
                           }}>
                             <p style={{ margin: '0', fontSize: '11px', color: '#1e40af', fontWeight: '500' }}>
-                              📋 Código de Entrega
+                              📋 Entregue no destino?
                             </p>
-                            <p style={{
-                              margin: '2px 0 0 0',
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              color: '#1e40af',
-                              fontFamily: 'monospace',
-                              letterSpacing: '1px'
-                            }}>
-                              {operation.delivery_code}
-                            </p>
-                            <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#1e40af' }}>
-                              Peça este código ao abrigo
+                            <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#1e40af' }}>
+                              O abrigo tem o código — peça para confirmar
                             </p>
                           </div>
                         )}
 
-                      {/* Botões de Ação */}
-                      <div style={{
-                        display: 'flex',
-                        gap: '8px',
-                        marginTop: '12px'
-                      }}>
-                        {operation.type === 'delivery' &&
-                          (operation.status === 'pending_confirmation' || operation.status === 'reserved') && (
+                      {/* Confirmação de Entrega - FLUXO 1 (direct, sem batch) ou FLUXO 2 (após pickup) */}
+                      {operation.type === 'delivery' && 
+                        ((operation.status === 'pending_confirmation' && !operation.metadata?.batch_id) || 
+                         operation.status === 'picked_up') && (
+                        <div style={{
+                          background: '#dbeafe',
+                          border: '1px solid #3b82f6',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          marginTop: '8px'
+                        }}>
+                          <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#1e40af', fontWeight: '600' }}>
+                            ✅ Confirmar Entrega no Abrigo
+                          </p>
+                          <input
+                            type="text"
+                            placeholder="Digite o código do abrigo"
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              border: '1px solid #3b82f6',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              marginBottom: '8px',
+                              outline: 'none'
+                            }}
+                            id={`delivery-code-${operation.id}`}
+                          />
+                          <div style={{ display: 'flex', gap: '8px' }}>
                             <button
-                              onClick={() => handleCancelClick(operation)}
-                              style={{
-                                flex: 1,
-                                background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-                                color: 'white',
-                                border: '1px solid #b91c1c',
-                                padding: '8px 16px',
-                                borderRadius: '8px',
-                                fontSize: '13px',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
-                                transition: 'all 0.2s ease'
-                              }}
-                              onMouseOver={(e) => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)';
-                                e.currentTarget.style.transform = 'translateY(-1px)';
-                                e.currentTarget.style.boxShadow = '0 4px 8px rgba(220, 38, 38, 0.3)';
-                              }}
-                              onMouseOut={(e) => {
-                                e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 2px 4px rgba(220, 38, 38, 0.2)';
-                              }}
-                            >
-                              Cancelar Entrega
-                            </button>
-                          )}
+                              onClick={async () => {
+                                const input = document.getElementById(`delivery-code-${operation.id}`);
+                                const code = input.value.trim();
+                                if (!code) {
+                                  alert('Digite o código de entrega');
+                                  return;
+                                }
 
-                        {operation.type === 'delivery' && operation.status === 'picked_up' && (
-                          <button
-                            onClick={() => openConfirmCodeModal(
-                              'Confirmar Entrega',
-                              'Digite o código de entrega fornecido pelo abrigo:',
-                              operation.delivery_code,
-                              {
-                                'Delivery': `#${operation.id}`,
-                                'Destino': operation.metadata?.location?.name || 'Local não especificado'
-                              },
-                              async (code) => {
                                 try {
-                                  const response = await fetch(`/api/deliveries/${operation.id}/confirm`, {
+                                  const response = await fetch(`/api/deliveries/${operation.id}/validate-delivery`, {
                                     method: 'POST',
                                     headers: {
                                       'Authorization': `Bearer ${localStorage.getItem('token')}`,
                                       'Content-Type': 'application/json'
                                     },
-                                    body: JSON.stringify({ delivery_code: code })
+                                    body: JSON.stringify({ code: code })
                                   });
 
                                   if (response.ok) {
@@ -1050,40 +1136,90 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                       detail: { forceUpdate: true }
                                     }));
                                     setShowActionsModal(false);
+                                  } else {
+                                    const err = await response.json();
+                                    let errorMsg = 'Erro ao confirmar entrega';
+                                    
+                                    if (err.detail) {
+                                      if (err.detail.includes('Only the volunteer can validate')) {
+                                        errorMsg = 'Apenas o voluntário pode confirmar esta entrega';
+                                      } else if (err.detail.includes('must be PENDING_CONFIRMATION or PICKED_UP')) {
+                                        errorMsg = 'Esta entrega não está pronta para confirmação';
+                                      } else if (err.detail.includes('Invalid delivery code')) {
+                                        errorMsg = 'Código de entrega inválido';
+                                      } else {
+                                        errorMsg = err.detail;
+                                      }
+                                    }
+                                    
+                                    alert(errorMsg);
                                   }
                                 } catch (error) {
                                   console.error('Erro ao confirmar entrega:', error);
+                                  alert('Erro de conexão. Tente novamente.');
                                 }
-                              }
-                            )}
-                            style={{
-                              flex: 1,
-                              background: 'linear-gradient(135deg, #059669 0%, #16a34a 100%)',
-                              color: 'white',
-                              border: '1px solid #047857',
-                              padding: '8px 16px',
-                              borderRadius: '8px',
-                              fontSize: '13px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)',
-                              transition: 'all 0.2s ease'
-                            }}
-                            onMouseOver={(e) => {
-                              e.currentTarget.style.background = 'linear-gradient(135deg, #047857 0%, #059669 100%)';
-                              e.currentTarget.style.transform = 'translateY(-1px)';
-                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(5, 150, 105, 0.3)';
-                            }}
-                            onMouseOut={(e) => {
-                              e.currentTarget.style.background = 'linear-gradient(135deg, #059669 0%, #16a34a 100%)';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(5, 150, 105, 0.2)';
-                            }}
-                          >
-                            ✅ Confirmar Entrega
-                          </button>
-                        )}
-                      </div>
+                              }}
+                              style={{
+                                flex: 1,
+                                background: 'linear-gradient(135deg, #059669 0%, #16a34a 100%)',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Confirmar
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm('Deseja cancelar esta entrega?')) {
+                                  return;
+                                }
+
+                                try {
+                                  const response = await fetch(`/api/deliveries/${operation.id}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                      'Content-Type': 'application/json'
+                                    }
+                                  });
+
+                                  if (response.ok) {
+                                    window.dispatchEvent(new CustomEvent('refreshUserState', {
+                                      detail: { forceUpdate: true }
+                                    }));
+                                    setShowActionsModal(false);
+                                    alert('Entrega cancelada com sucesso');
+                                  } else {
+                                    const err = await response.json();
+                                    alert(err.detail || 'Erro ao cancelar entrega');
+                                  }
+                                } catch (error) {
+                                  console.error('Erro ao cancelar entrega:', error);
+                                  alert('Erro de conexão. Tente novamente.');
+                                }
+                              }}
+                              style={{
+                                flex: 1,
+                                background: '#fff',
+                                color: '#dc2626',
+                                border: '1px solid #dc2626',
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Cancelar Entrega
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1091,33 +1227,41 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
             </div>
 
             {/* Footer */}
-            {userState.activeOperation && user && user.roles.includes('admin') && (
-              <div style={{
-                marginTop: '24px',
-                paddingTop: '16px',
-                borderTop: '1px solid #e5e7eb'
-              }}>
-                <button
-                  onClick={() => {
-                    navigate(getDashboardRoute() || '/');
-                    setShowActionsModal(false);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    background: '#3b82f6',
-                    color: 'white',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Ver no Dashboard
-                </button>
-              </div>
-            )}
+            {/* Ver no Dashboard — apenas para não-voluntários */}
+              {user && !user.roles.includes('volunteer') && (
+                <div style={{
+                  marginTop: '24px',
+                  padding: '16px',
+                  background: '#f9fafb',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <button
+                    onClick={() => {
+                      navigate(getDashboardRoute() || '/');
+                      setShowActionsModal(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '12px 16px',
+                      background: '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <LayoutDashboard size={18} />
+                    Ver no Dashboard
+                  </button>
+                </div>
+              )}
           </div>
         </div>
       )}

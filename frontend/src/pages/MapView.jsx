@@ -12,7 +12,7 @@ import RegisterModal from '../components/RegisterModal';
 import IngredientReservationModal from '../components/IngredientReservationModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import CommitmentSuccessModal from '../components/CommitmentSuccessModal';
-import CommitmentModal from '../components/CommitmentModal';
+import DeliveryCommitmentModal from '../components/DeliveryCommitmentModal';
 import UserStateWidget from '../components/UserStateWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
@@ -267,6 +267,7 @@ export default function MapView() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [categories, setCategories] = useState([]);
   const [showCommitmentSuccess, setShowCommitmentSuccess] = useState(false);
   const [committedDeliveryData, setCommittedDeliveryData] = useState(null);
   const [showCommitmentModal, setShowCommitmentModal] = useState(false);
@@ -415,6 +416,14 @@ export default function MapView() {
   const loadData = async () => {
     try {
       console.log('🔄 Carregando dados...');
+
+      // Carregar categorias
+      const responseCategories = await fetch(`${API_URL}/api/categories/?active_only=true`);
+      if (responseCategories.ok) {
+        const categoriesData = await responseCategories.json();
+        console.log('📦 Categorias carregadas:', categoriesData.length);
+        setCategories(categoriesData);
+      }
 
       // Carregar locais de entrega (agora usando locations)
       const responseEntrega = await fetch(`${API_URL}/api/locations/?active_only=true`);
@@ -764,8 +773,20 @@ export default function MapView() {
             );
 
             availableDeliveries.forEach(delivery => {
-              const label = productTypeLabels[delivery.product_type] || delivery.product_type;
-              const name = label.replace(/[^\w\s]/gi, '').trim(); // Remove emojis
+              // Usar categoria do backend diretamente
+              const categoryName = delivery.category?.name || '';
+              const displayName = delivery.category?.display_name || 'Produto';
+              
+              // Mapear unidade por categoria
+              const categoryToUnitMap = {
+                'agua': 'litros',
+                'alimentos': 'kg',
+                'refeicoes_prontas': 'porções',
+                'higiene': 'unidades',
+                'roupas': 'peças',
+                'medicamentos': 'unidades'
+              };
+              const unit = categoryToUnitMap[categoryName] || 'unidades';
               
               productsHtml += `
                 <div style="
@@ -776,10 +797,10 @@ export default function MapView() {
                   border-bottom: 1px solid #fecaca;
                 ">
                   <span style="font-size: 13px; color: #374151; font-weight: 500;">
-                    ${name}
+                    ${displayName}
                   </span>
                   <span style="font-size: 14px; color: #dc2626; font-weight: 600;">
-                    ${delivery.quantity}
+                    ${delivery.quantity} ${unit}
                   </span>
                 </div>
               `;
@@ -1293,93 +1314,89 @@ export default function MapView() {
     }));
   };
 
-  const handleSimplifiedCommitment = async (locationId, commitments) => {
-    try {
-      const token = localStorage.getItem('token');
+  const handleSimplifiedCommitment = async (commitments) => {
+    const token = localStorage.getItem('token');
+    console.log('📦 Commitments recebidos:', commitments);
 
-      // Verificar se voluntário já tem compromissos ativos
-      const activeDeliveries = deliveries.filter(d =>
-        d.volunteer_id === user.id &&
-        d.status === 'pending_confirmation'
-      );
+    // Fazer commits sequencialmente para evitar conflitos
+    const results = [];
+    let pickupCode = '------';
+    let hasError = false;
 
-      console.log('🔍 DEBUG - MapView handleSimplifiedCommitment:', {
-        userId: user.id,
-        totalDeliveries: deliveries.length,
-        activeDeliveries: activeDeliveries.length,
-        allDeliveries: deliveries.map(d => ({
-          id: d.id,
-          volunteer_id: d.volunteer_id,
-          status: d.status,
-          isMatch: d.volunteer_id === user.id && d.status === 'pending_confirmation'
-        }))
-      });
-
-      if (activeDeliveries.length > 0) {
-        console.log('❌ Usuário tem compromissos ativos, ignorando nova solicitação');
-        return; // Apenas ignora, não mostra modal
-      }
-
-      // Para cada compromisso, criar um delivery (mantido assim por enquanto)
-      const promises = commitments.map(async (commitment) => {
-        // Encontrar deliveries disponíveis para este local e tipo
-        const availableDeliveries = deliveries.filter(
-          d => d.location_id === locationId &&
-            d.product_type === commitment.product_type &&
-            d.status === 'available'
-        );
-
-        if (availableDeliveries.length === 0) {
-          throw new Error(`Não há deliveries disponíveis para ${commitment.product_type}`);
-        }
-
-        // Distribuir quantidade entre os deliveries disponíveis
-        let remainingQuantity = commitment.quantity;
-        const results = [];
-
-        for (const delivery of availableDeliveries) {
-          if (remainingQuantity <= 0) break;
-
-          const quantityToCommit = Math.min(remainingQuantity, delivery.quantity);
-
-          const response = await fetch(`/api/deliveries/${delivery.id}/commit`, {
+    for (let i = 0; i < commitments.length; i++) {
+      const commitment = commitments[i];
+      
+      try {
+        console.log(`🔄 Fazendo commit ${i + 1}/${commitments.length}: delivery_id=${commitment.delivery_id}, quantity=${commitment.quantity}`);
+        
+        try {
+          const response = await fetch(`${API_URL}/api/deliveries/${commitment.delivery_id}/commit`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ quantity: quantityToCommit })
+            body: JSON.stringify({ quantity: commitment.quantity })
           });
 
+          console.log(`📡 Resposta do servidor: status=${response.status}`);
+          
           if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.detail || 'Erro ao comprometer entrega');
+            console.error(`❌ Erro no commit ${i + 1}:`, error);
+            hasError = true;
+            // Não fazer throw aqui - continuar mesmo com erro
+            continue;
           }
 
-          results.push(await response.json());
-          remainingQuantity -= quantityToCommit;
+          const result = await response.json();
+          results.push(result);
+          
+          // Usar o código do primeiro resultado
+          if (i === 0 && result.pickup_code) {
+            pickupCode = result.pickup_code;
+          }
+          
+          console.log(`✅ Commit ${i + 1} realizado com sucesso:`, result);
+          
+          // Pequeno delay entre commits para evitar conflitos
+          if (i < commitments.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
+        } catch (fetchError) {
+          console.error(`❌ Erro de fetch no commit ${i + 1}:`, fetchError);
+          hasError = true;
+          continue;
         }
+        
+      } catch (error) {
+        console.error(`❌ Falha no commit ${i + 1}:`, error);
+        hasError = true;
+        // Não fazer throw aqui - continuar mesmo com erro
+      }
+    }
 
-        return results;
-      });
+    console.log(`📊 Resultado final: ${results.length} commits bem-sucedidos, hasError=${hasError}`);
 
-      await Promise.all(promises);
-
-      // Mostrar sucesso
-      setCommittedDeliveryData({
-        location: { name: selectedLocationForCommitment?.name },
-        quantity: commitments.reduce((sum, c) => sum + c.quantity, 0),
-        product_type: commitments.length > 1 ? 'mixed' : commitments[0].product_type
-      });
-      setShowCommitmentSuccess(true);
-      setShowCommitmentModal(false);
-
+    // Recarregar dados mesmo que tenha erro
+    try {
       await loadData();
       await refreshState();
-    } catch (error) {
-      console.error('Erro ao comprometer:', error);
-      showConfirmation('Erro', error.message, 'error');
+      
+      // Atualizar estado do usuário imediatamente
+      triggerUserStateUpdate();
+    } catch (loadError) {
+      console.error('❌ Erro ao recarregar dados:', loadError);
     }
+
+    // Retornar resultado mesmo que tenha erro
+    return {
+      pickup_code: pickupCode,  // Mapear pickupCode (variável) para pickup_code (chave)
+      results,
+      hasError,
+      error: hasError ? 'Alguns commits falharam, mas as entregas foram criadas' : null
+    };
   };
 
   // Função para calcular distância entre dois pontos (fórmula de Haversine)
@@ -2513,17 +2530,18 @@ export default function MapView() {
         delivery={committedDeliveryData}
       />
 
-      {/* Modal Simplificado de Compromisso */}
-      <CommitmentModal
-        isOpen={showCommitmentModal}
-        onClose={() => {
-          setShowCommitmentModal(false);
-          setSelectedLocationForCommitment(null);
-        }}
-        location={selectedLocationForCommitment}
-        deliveries={deliveries.filter(d => d.location_id === selectedLocationForCommitment?.id && d.status === 'available')}
-        onCommit={handleSimplifiedCommitment}
-      />
+      {/* Modal de Compromisso de Entrega */}
+      {showCommitmentModal && selectedLocationForCommitment && (
+        <DeliveryCommitmentModal
+          location={selectedLocationForCommitment}
+          deliveries={deliveries.filter(d => d.location_id === selectedLocationForCommitment?.id && d.status === 'available')}
+          onClose={() => {
+            setShowCommitmentModal(false);
+            setSelectedLocationForCommitment(null);
+          }}
+          onCommit={handleSimplifiedCommitment}
+        />
+      )}
 
       {/* Widget de Estado do Usuário */}
       <UserStateWidget />

@@ -29,7 +29,9 @@ const getProductNameInPortuguese = (productType) => {
   }
 };
 
-export function UserStateProvider({ children }) {
+export const UserStateProvider = ({ children }) => {
+  console.log('🚀 DEBUG UserStateContext: Iniciando UserStateProvider');
+  
   const { user } = useAuth();
   
   // Estado centralizado do usuário
@@ -185,14 +187,114 @@ export function UserStateProvider({ children }) {
         }) || [];
         
         console.log('✅ UserStateContext: Active deliveries encontradas:', activeDeliveries.length);
+        console.log('📋 UserStateContext: IDs das deliveries:', activeDeliveries.map(d => d.id));
         
         activeDeliveries.forEach(delivery => {
+          console.log('🔍 DEBUG UserStateContext - Delivery:', {
+            id: delivery.id,
+            category: delivery.category,
+            category_id: delivery.category_id,
+            product_type: delivery.product_type,
+            quantity: delivery.quantity,
+            location: delivery.location?.name
+          });
+          
+          // Mapear categoria para nome do produto (mais flexível)
+          const categoryToProductMap = {
+            'agua': 'Água',
+            'alimentos': 'Alimentos', 
+            'refeicoes_prontas': 'Refeições',
+            'higiene': 'Higiene',
+            'roupas': 'Roupas',
+            'medicamentos': 'Medicamentos',
+            'Água': 'Água',
+            'Alimentos': 'Alimentos',
+            'Refeições Prontas': 'Refeições',
+            'Higiene': 'Higiene', 
+            'Roupas': 'Roupas',
+            'Medicamentos': 'Medicamentos'
+          };
+          
+          // Mapear categoria para unidade
+          const categoryToUnitMap = {
+            'agua': 'litros',
+            'alimentos': 'kg',
+            'refeicoes_prontas': 'porções',
+            'higiene': 'unidades',
+            'roupas': 'peças',
+            'medicamentos': 'unidades',
+            'Água': 'litros',
+            'Alimentos': 'kg',
+            'Refeições Prontas': 'porções',
+            'Higiene': 'unidades',
+            'Roupas': 'peças',
+            'Medicamentos': 'unidades'
+          };
+          
+          // Tentar diferentes formas de obter o nome da categoria
+          const categoryName = delivery.category?.display_name || 
+                              delivery.category?.name || 
+                              delivery.category_name || 
+                              '';
+          
+          // Debug completo da categoria
+          console.log('🔍 DEBUG UserStateContext - Categoria completa:', {
+            category: delivery.category,
+            display_name: delivery.category?.display_name,
+            name: delivery.category?.name,
+            category_name: delivery.category_name,
+            category_id: delivery.category_id
+          });
+          
+          // Fallback melhor: usar display_name da categoria se existir
+          let productName = delivery.category?.display_name || 
+                          categoryToProductMap[categoryName] || 
+                          delivery.category?.name || 
+                          'Item'; // Mudar fallback para "Item" em vez de "Produto"
+          
+          // Se ainda for "Item", tentar usar o category_id como fallback
+          if (productName === 'Item') {
+            // Fallback 1: Usar category_id se existir
+            if (delivery.category_id) {
+              const categoryIdMap = {
+                1: 'Água',
+                2: 'Alimentos', 
+                3: 'Refeições',
+                4: 'Higiene',
+                5: 'Roupas',
+                6: 'Medicamentos'
+              };
+              productName = categoryIdMap[delivery.category_id] || 'Item';
+            }
+            // Fallback 2: Usar product_type legado se existir
+            else if (delivery.product_type) {
+              const productTypeMap = {
+                'water': 'Água',
+                'food': 'Alimentos',
+                'ready_meals': 'Refeições',
+                'hygiene': 'Higiene',
+                'clothing': 'Roupas',
+                'medicine': 'Medicamentos'
+              };
+              productName = productTypeMap[delivery.product_type] || 'Item';
+            }
+          }
+          
+          const unit = categoryToUnitMap[categoryName] || 'unidades';
+          
+          console.log('🎯 DEBUG UserStateContext - Mapeamento:', {
+            categoryName,
+            productName,
+            unit,
+            description: `${delivery.quantity} ${unit} de ${productName} para ${delivery.location?.name}`
+          });
+          
           operations.push({
             type: 'delivery',
             id: delivery.id,
             status: delivery.status,
             title: delivery.status === 'pending_confirmation' || delivery.status === 'reserved' ? 'Entrega em Andamento' : 'Entrega em Andamento',
-            description: `${delivery.quantity} ${getProductNameInPortuguese(delivery.product_type)} para ${delivery.location?.name}`,
+            description: `${delivery.quantity} ${unit} de ${productName} para ${delivery.location?.name}`,
             createdAt: delivery.created_at,
             pickup_code: delivery.pickup_code,
             delivery_code: delivery.delivery_code,
@@ -241,6 +343,13 @@ export function UserStateProvider({ children }) {
         activeOperation: activeOperation ? { id: activeOperation.id, type: activeOperation.type, status: activeOperation.status } : null,
         currentState 
       });
+      
+      console.log('📋 UserStateContext: Todas as operações:', operations.map(op => ({
+        id: op.id,
+        type: op.type,
+        status: op.status,
+        description: op.description
+      })));
 
       setUserState({
         currentState,
