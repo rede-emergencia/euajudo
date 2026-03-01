@@ -153,9 +153,11 @@ class UserResponse(UserBase):
     
     @validator('roles', pre=True)
     def parse_roles(cls, v):
-        """Converter string de roles separadas por vírgula para array"""
+        """Converter string de roles para array"""
         if isinstance(v, str):
-            return [role.strip() for role in v.split(',')]
+            # Remover chaves se existirem e dividir por vírgula
+            cleaned = v.replace('{', '').replace('}', '')
+            return [role.strip() for role in cleaned.split(',') if role.strip()]
         return v
     
     class Config:
