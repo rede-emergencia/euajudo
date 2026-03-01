@@ -3,7 +3,7 @@ import {
   Package, X, User, LogOut, Home,
   MapPin, Store, Truck, UtensilsCrossed, Pill, Droplet, Shirt, Sparkles, Filter as FilterIcon,
   Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart, LayoutDashboard, Check,
-  Users, Building, HeartHand
+  Users, Building, HelpingHand
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
@@ -18,7 +18,7 @@ const getUserIcon = (roles) => {
   if (!roles || !Array.isArray(roles)) return User;
   
   if (roles.includes('admin')) return Users;
-  if (roles.includes('volunteer')) return HeartHand;
+  if (roles.includes('volunteer')) return HelpingHand;
   if (roles.includes('shelter')) return Building;
   if (roles.includes('provider')) return Store;
   
