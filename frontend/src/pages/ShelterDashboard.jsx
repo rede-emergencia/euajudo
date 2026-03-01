@@ -545,27 +545,7 @@ export default function ShelterDashboard() {
     }
   };
 
-  const handleConfirmPickup = async (id, pickupCode) => {
-    const code = prompt(`Digite o código de retirada para confirmar:`);
-    if (!code) return;
-    
-    if (code !== pickupCode) {
-      showAlert('Erro', 'Código incorreto!', 'error');
-      return;
-    }
-    
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/api/deliveries/${id}/confirm-pickup`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      showAlert('Sucesso', 'Retirada confirmada! Voluntário já pode entregar.', 'success');
-      loadData();
-    } catch (error) {
-      showAlert('Erro', error.response?.data?.detail || 'Erro ao confirmar retirada', 'error');
-    }
-  };
-
+  
   const formatMetadata = (metadata) => {
     if (!metadata || typeof metadata !== 'object') return '';
     return Object.entries(metadata)
@@ -859,7 +839,7 @@ export default function ShelterDashboard() {
                           </div>
                         </div>
                         <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#92400e' }}>
-                          Confirme este código quando o voluntário chegar
+                          Forneça este código ao voluntário quando ele chegar
                         </p>
                       </div>
                     )}
@@ -902,25 +882,15 @@ export default function ShelterDashboard() {
                     {r.status === 'pending_confirmation' && (
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button 
-                          onClick={() => handleConfirmPickup(r.id, r.pickup_code)} 
-                          style={{
-                            ...btnStyle('#10b981', '#d1fae5', '#065f46'),
-                            border: '1.5px solid #86efac',
-                            fontWeight: '700',
-                            flex: 1,
-                          }}
-                        >
-                          <Check size={16} /> Confirmar Retirada
-                        </button>
-                        <button 
                           onClick={() => handleCancel(r.id)} 
                           style={{
                             ...btnStyle('#fff', '#fecaca', '#dc2626'),
                             border: '1.5px solid #fecaca',
                             fontWeight: '700',
+                            flex: 1,
                           }}
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={16} /> Cancelar Pedido
                         </button>
                       </div>
                     )}
