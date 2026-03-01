@@ -107,15 +107,15 @@ def create_shelters(db: Session):
             "email": "abrigo.centro@vouajudar.org",
             "password": "123",
             "name": "Abrigo Centro de Operações",
-            "phone": "11666666666",
-            "address": "Praça Central, 100 - Centro"
+            "phone": "2133335555",
+            "address": "Praça da República, 100 - Centro, Juiz de Fora - MG"
         },
         {
             "email": "abrigo.saosebastiao@vouajudar.org",
             "password": "123", 
             "name": "Abrigo São Sebastião",
-            "phone": "11555555555",
-            "address": "Rua São Sebastião, 200"
+            "phone": "2133336666",
+            "address": "Rua São Sebastião, 200 - São Sebastião, Juiz de Fora - MG"
         }
     ]
     
@@ -138,8 +138,8 @@ def create_shelters(db: Session):
         location = DeliveryLocation(
             name=shelter["name"],
             address=shelter["address"],
-            latitude=-23.5505,
-            longitude=-46.6333,
+            latitude=-21.7642 if "centro" in shelter["email"].lower() else -21.7842,
+            longitude=-43.3505 if "centro" in shelter["email"].lower() else -43.3705,
             phone=shelter["phone"],
             user_id=user.id,
             active=True

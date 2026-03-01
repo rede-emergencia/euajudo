@@ -149,6 +149,14 @@ class UserResponse(UserBase):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     tipos_produtos: Optional[List[str]] = None
+    roles: List[str]  # Adicionar roles para identificação no frontend
+    
+    @validator('roles', pre=True)
+    def parse_roles(cls, v):
+        """Converter string de roles separadas por vírgula para array"""
+        if isinstance(v, str):
+            return [role.strip() for role in v.split(',')]
+        return v
     
     class Config:
         from_attributes = True
