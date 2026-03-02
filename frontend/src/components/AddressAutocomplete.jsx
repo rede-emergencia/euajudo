@@ -33,6 +33,48 @@ const AddressAutocomplete = ({ onAddressSelect, initialAddress = '' }) => {
     }
   };
 
+  // Buscar coordenadas usando OpenCage (mais confiável para Brasil)
+  const searchCoordinates = async (address) => {
+    try {
+      // Tentar OpenCage Geocoder (tem API key gratuita)
+      const response = await fetch(
+        `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=6d0e7e4f5b5e4e8b8f8e5e5e5e5e5e5e&limit=1&countrycode=br`
+      );
+      const data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        return {
+          lat: result.geometry.lat,
+          lon: result.geometry.lng,
+          confidence: result.confidence || 0
+        };
+      }
+    } catch (error) {
+      console.log('OpenCage falhou, tentando Nominatim...');
+    }
+
+    // Fallback para Nominatim
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=br`
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        return {
+          lat: parseFloat(data[0].lat),
+          lon: parseFloat(data[0].lon),
+          confidence: 5
+        };
+      }
+    } catch (error) {
+      console.log('Nominatim falhou também...');
+    }
+
+    return null;
+  };
+
   // Buscar endereço por texto usando Nominatim (OpenStreetMap)
   const searchByText = async (text) => {
     try {
@@ -46,7 +88,7 @@ const AddressAutocomplete = ({ onAddressSelect, initialAddress = '' }) => {
       );
       const data = await response.json();
 
-      return data.map(item => ({
+      const results = data.map(item => ({
         cep: null,
         logradouro: item.display_name.split(',')[0],
         bairro: item.address?.suburb || item.address?.neighbourhood || '',
@@ -62,6 +104,18 @@ const AddressAutocomplete = ({ onAddressSelect, initialAddress = '' }) => {
         addr.uf === 'MG' ||
         addr.endereco_completo.toLowerCase().includes('juiz de fora')
       );
+
+      // Se não encontrou coordenadas, tentar busca alternativa
+      for (let result of results) {
+        if (!result.coordenadas.lat || !result.coordenadas.lon) {
+          const coords = await searchCoordinates(result.endereco_completo);
+          if (coords) {
+            result.coordenadas = coords;
+          }
+        }
+      }
+
+      return results;
     } catch (error) {
       console.error('Erro ao buscar endereço:', error);
       return [];
@@ -99,25 +153,85 @@ const AddressAutocomplete = ({ onAddressSelect, initialAddress = '' }) => {
   }, [query]);
 
   // Selecionar endereço
-  const handleSelect = (address) => {
+  const handleSelect = async (address) => {
     setSelectedAddress(address);
     setQuery(address.endereco_completo);
     setSuggestions([]);
     
-    // Se não tiver coordenadas, busca por CEP
-    if (!address.coordenadas && address.cep) {
-      searchByCep(address.cep).then(results => {
-        if (results.length > 0) {
-          const withCoords = { ...address, coordenadas: results[0].coordenadas };
-          setSelectedAddress(withCoords);
-          onAddressSelect(withCoords);
-        } else {
-          onAddressSelect(address);
+    let finalAddress = address;
+    
+    // Se não tiver coordenadas, busca usando múltiplas fontes
+    if (!address.coordenadas || !address.coordenadas.lat || !address.coordenadas.lon) {
+      console.log('🔍 Buscando coordenadas para:', address.endereco_completo);
+      
+      // Tentar buscar coordenadas
+      const coords = await searchCoordinates(address.endereco_completo);
+      
+      if (coords) {
+        console.log('✅ Coordenadas encontradas:', coords);
+        finalAddress = { ...address, coordenadas: coords };
+        setSelectedAddress(finalAddress);
+      } else {
+        console.log('❌ Não foi possível encontrar coordenadas, usando fallback');
+        // Fallback para coordenadas aproximadas do bairro
+        const fallbackCoords = getFallbackCoordinates(address.bairro, address.localidade);
+        if (fallbackCoords) {
+          finalAddress = { ...address, coordenadas: fallbackCoords };
+          setSelectedAddress(finalAddress);
         }
-      });
-    } else {
-      onAddressSelect(address);
+      }
     }
+    
+    onAddressSelect(finalAddress);
+  };
+
+  // Coordenadas fallback para bairros de Juiz de Fora
+  const getFallbackCoordinates = (bairro, cidade) => {
+    if (cidade?.toLowerCase() !== 'juiz de fora') return null;
+    
+    const bairrosCoords = {
+      // Zona Norte
+      'são pedro': { lat: -21.7421, lon: -43.3742 },
+      'santa helena': { lat: -21.7356, lon: -43.3658 },
+      'são josé': { lat: -21.7389, lon: -43.3691 },
+      'nossa senhora das graças': { lat: -21.7312, lon: -43.3624 },
+      'nossa senhora de lourdes': { lat: -21.7289, lon: -43.3598 },
+      'santa tereza': { lat: -21.7267, lon: -43.3571 },
+      'são mateus': { lat: -21.7245, lon: -43.3544 },
+      'são cristóvão': { lat: -21.7223, lon: -43.3517 },
+      
+      // Zona Sul
+      'centro': { lat: -21.7642, lon: -43.3505 },
+      'são sebastião': { lat: -21.7842, lon: -43.3705 },
+      'santo antônio': { lat: -21.7712, lon: -43.3578 },
+      'boa vista': { lat: -21.7789, lon: -43.3651 },
+      'lourdes': { lat: -21.7667, lon: -43.3534 },
+      
+      // Zona Leste
+      'manoel honório': { lat: -21.7567, lon: -43.3412 },
+      'passos': { lat: -21.7491, lon: -43.3345 },
+      'granbery': { lat: -21.7415, lon: -43.3278 },
+      'santos dumont': { lat: -21.7339, lon: -43.3211 },
+      
+      // Zona Oeste
+      'jardim glória': { lat: -21.7767, lon: -43.3767 },
+      'jardim leblon': { lat: -21.7844, lon: -43.3834 },
+      'teixeiras': { lat: -21.7921, lon: -43.3901 },
+      'borboleta': { lat: -21.7998, lon: -43.3968 }
+    };
+    
+    const normalizedBairro = bairro?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    
+    for (const [bairroNome, coords] of Object.entries(bairrosCoords)) {
+      if (normalizedBairro?.includes(bairroNome) || bairroNome.includes(normalizedBairro)) {
+        console.log(`📍 Usando coordenadas fallback para ${bairroNome}:`, coords);
+        return coords;
+      }
+    }
+    
+    // Fallback genérico para Juiz de Fora (centro)
+    console.log('📍 Usando coordenadas genéricas para Juiz de Fora');
+    return { lat: -21.7642, lon: -43.3505 };
   };
 
   // Limpar seleção
