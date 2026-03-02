@@ -4,6 +4,7 @@ import { auth as authApi } from '../lib/api';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  console.log('🚀 AuthProvider: Inicializando AuthContext');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
