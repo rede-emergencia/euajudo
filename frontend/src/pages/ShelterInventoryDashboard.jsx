@@ -593,7 +593,7 @@ export default function ShelterInventoryDashboard() {
       <div style={{
         maxWidth: '1400px',
         margin: '0 auto',
-        padding: '24px',
+        padding: '80px 24px 24px', // padding top de 80px para compensar header fixo
         minHeight: '100vh',
         background: '#f9fafb',
         position: 'relative',
