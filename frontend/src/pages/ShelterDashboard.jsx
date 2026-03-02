@@ -9,6 +9,7 @@ import { categories as categoriesApi } from '../lib/api';
 import axios from 'axios';
 import AlertModal from '../components/AlertModal';
 import { useAlert } from '../hooks/useAlert';
+import useModal from '../hooks/useModal';
 import Header from '../components/Header';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -343,6 +344,7 @@ export default function ShelterDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { alert, showAlert, closeAlert } = useAlert();
+  const { showConfirm, ModalComponent } = useModal();
   
   const [tab, setTab] = useState('ativas');
   const [allRequests, setAllRequests] = useState([]);
@@ -532,23 +534,28 @@ export default function ShelterDashboard() {
   };
 
   const handleCancel = async (id) => {
-    // Modal de confirmação bonito
-    const confirmed = window.confirm(`Tem certeza que deseja cancelar a solicitação #${id}?\n\nOs itens não entregues retornarão para o estoque.`);
-    if (!confirmed) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_URL}/api/deliveries/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      // Modal de sucesso bonito
-      showAlert('Sucesso!', `Solicitação #${id} cancelada com sucesso!\n\nOs itens retornaram para o estoque e estão disponíveis para novos voluntários.`, 'success');
-      loadData();
-    } catch (error) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Erro ao cancelar solicitação';
-      showAlert('Erro ao Cancelar', `Não foi possível cancelar a solicitação #${id}.\n\n${errorMessage}`, 'error');
-    }
+    // Modal de confirmação bonito usando nosso sistema de modais
+    showConfirm(
+      'Confirmar Cancelamento',
+      `Tem certeza que deseja cancelar a solicitação #${id}?\n\nOs itens não entregues retornarão para o estoque.`,
+      async () => {
+        try {
+          const token = localStorage.getItem('token');
+          await axios.delete(`${API_URL}/api/deliveries/${id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          // Modal de sucesso bonito
+          showAlert('Sucesso!', `Solicitação #${id} cancelada com sucesso!\n\nOs itens retornaram para o estoque e estão disponíveis para novos voluntários.`, 'success');
+          loadData();
+        } catch (error) {
+          const errorMessage = error.response?.data?.detail || error.message || 'Erro ao cancelar solicitação';
+          showAlert('Erro ao Cancelar', `Não foi possível cancelar a solicitação #${id}.\n\n${errorMessage}`, 'error');
+        }
+      },
+      'Sim, cancelar',
+      'Não'
+    );
   };
 
   
@@ -1237,6 +1244,7 @@ export default function ShelterDashboard() {
       )}
 
       <AlertModal show={alert.show} onClose={closeAlert} title={alert.title} message={alert.message} type={alert.type} />
+      {ModalComponent}
     </>
   );
 }
