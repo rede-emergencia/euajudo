@@ -341,7 +341,7 @@ function btnStyle(bg, border, color, filled = false) {
 }
 
 export default function ShelterDashboard() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const navigate = useNavigate();
   const { alert, showAlert, closeAlert } = useAlert();
   const { showConfirm, ModalComponent } = useModal();
@@ -732,11 +732,13 @@ export default function ShelterDashboard() {
               </div>
             )}
             
-            <button
-              onClick={openForm}
-              style={{
-                width: '100%',
-                marginTop: '12px',
+            {/* Apenas voluntários podem criar solicitações */}
+            {hasRole('volunteer') && (
+              <button
+                onClick={openForm}
+                style={{
+                  width: '100%',
+                  marginTop: '12px',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                 background: 'linear-gradient(135deg, #ef4444 0%, #ec4899 100%)',
                 color: '#fff',
@@ -746,8 +748,9 @@ export default function ShelterDashboard() {
                 boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
               }}
             >
-              <Plus size={18} /> Nova Solicitação
-            </button>
+                <Plus size={18} /> Nova Solicitação
+              </button>
+            )}
           </div>
 
           <div style={{
@@ -819,12 +822,15 @@ export default function ShelterDashboard() {
                   Nenhuma solicitação ativa
                 </p>
                 <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#6b7280', lineHeight: 1.6 }}>
-                  Crie uma solicitação de doação e aguarde<br/>
-                  voluntários se comprometerem a ajudar
+                  {hasRole('volunteer') 
+                    ? 'Crie uma solicitação de doação e aguarde<br/>voluntários se comprometerem a ajudar'
+                    : 'Como abrigo, você gerencia solicitações através do dashboard'
+                  }
                 </p>
-                <button
-                  onClick={openForm}
-                  style={{
+                {hasRole('volunteer') && (
+                  <button
+                    onClick={openForm}
+                    style={{
                     display: 'inline-flex', alignItems: 'center', gap: '8px',
                     padding: '12px 24px',
                     background: 'linear-gradient(135deg, #ef4444 0%, #ec4899 100%)',
@@ -834,8 +840,9 @@ export default function ShelterDashboard() {
                     boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
                   }}
                 >
-                  <Plus size={18} /> Criar Primeira Solicitação
-                </button>
+                    <Plus size={18} /> Criar Primeira Solicitação
+                  </button>
+                )}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '48px 24px' }}>
