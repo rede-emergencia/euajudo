@@ -8,7 +8,7 @@ import MapView from './pages/MapView';
 import ProviderDashboard from './pages/ProviderDashboard';
 import VolunteerDashboard from './pages/VolunteerDashboard';
 import ShelterDashboard from './pages/ShelterDashboard';
-import ShelterInventoryComplete from './pages/ShelterInventoryComplete';
+import ShelterInventoryTest from './pages/ShelterInventoryTest';
 import UnifiedDashboard from './pages/UnifiedDashboard';
 import Admin from './pages/Admin';
 import PerfilFornecedor from './pages/PerfilFornecedor';
@@ -242,7 +242,7 @@ function App() {
             path="/shelter/inventory"
             element={
               <ProtectedRoute requireRole={UserRole.SHELTER}>
-                <ShelterInventoryComplete />
+                <ShelterInventoryTest />
               </ProtectedRoute>
             }
           />
