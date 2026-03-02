@@ -115,6 +115,20 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
     type: 'success' // 'success' | 'error' | 'info'
   });
 
+  // Estados para modais de erro e sucesso
+  const [errorModal, setErrorModal] = useState({
+    show: false,
+    title: 'Erro',
+    message: '',
+    details: ''
+  });
+
+  const [successModal, setSuccessModal] = useState({
+    show: false,
+    title: 'Sucesso',
+    message: ''
+  });
+
   // Função para mostrar modal de confirmação
   const showConfirmationModal = (title, message) => {
     return new Promise((resolve) => {
@@ -138,10 +152,26 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
   // Função para mostrar notificação
   const showNotification = (message, type = 'success') => {
     setNotification({ show: true, message, type });
-    // Esconder após 3 segundos
-    setTimeout(() => {
-      setNotification({ show: false, message: '', type: 'success' });
-    }, 3000);
+    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+  };
+
+  // Função para mostrar modal de erro
+  const showErrorModal = (title, message, details = '') => {
+    setErrorModal({
+      show: true,
+      title,
+      message,
+      details
+    });
+  };
+
+  // Função para mostrar modal de sucesso
+  const showSuccessModal = (title, message) => {
+    setSuccessModal({
+      show: true,
+      title,
+      message
+    });
   };
 
   const handleLogout = () => {
@@ -966,7 +996,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                   const input = document.getElementById(`pickup-code-${operation.id}`);
                                   const code = input.value.trim();
                                   if (!code) {
-                                    alert('Digite o código de retirada');
+                                    showErrorModal('Código Obrigatório', 'Por favor, digite o código de retirada para continuar.');
                                     return;
                                   }
 
@@ -985,6 +1015,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                         detail: { forceUpdate: true }
                                       }));
                                       setShowActionsModal(false);
+                                      showSuccessModal('Retirada Confirmada!', 'A retirada foi confirmada com sucesso. O voluntário já pode entregar.');
                                     } else {
                                       const err = await response.json();
                                       let errorMsg = 'Erro ao confirmar retirada';
@@ -999,11 +1030,11 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                         }
                                       }
                                       
-                                      alert(errorMsg);
+                                      showErrorModal('Erro na Confirmação', errorMsg, 'Verifique o código e tente novamente.');
                                     }
                                   } catch (error) {
                                     console.error('Erro ao confirmar retirada:', error);
-                                    alert('Erro de conexão. Tente novamente.');
+                                    showErrorModal('Erro de Conexão', 'Não foi possível conectar ao servidor. Tente novamente.');
                                   }
                                 }}
                                 style={{
@@ -1404,6 +1435,138 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
         expectedCode={codeModal.code}
         itemDetails={codeModal.itemDetails}
       />
+
+      {/* Modal de Erro */}
+      {errorModal.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: '#fef2f2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+              border: '2px solid #fecaca'
+            }}>
+              <X size={32} color="#ef4444" />
+            </div>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '20px', fontWeight: '700', color: '#1f2937' }}>
+              {errorModal.title}
+            </h3>
+            <p style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#6b7280', lineHeight: 1.5 }}>
+              {errorModal.message}
+            </p>
+            {errorModal.details && (
+              <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#9ca3af', lineHeight: 1.4 }}>
+                {errorModal.details}
+              </p>
+            )}
+            <button
+              onClick={() => setErrorModal({ show: false, title: 'Erro', message: '', details: '' })}
+              style={{
+                width: '100%',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Entendi
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Sucesso */}
+      {successModal.show && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: '#f0fdf4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+              border: '2px solid #86efac'
+            }}>
+              <Check size={32} color="#22c55e" />
+            </div>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '20px', fontWeight: '700', color: '#1f2937' }}>
+              {successModal.title}
+            </h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '16px', color: '#6b7280', lineHeight: 1.5 }}>
+              {successModal.message}
+            </p>
+            <button
+              onClick={() => setSuccessModal({ show: false, title: 'Sucesso', message: '' })}
+              style={{
+                width: '100%',
+                background: '#22c55e',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* FAB — Ações (somente mobile) */}
       <button
         className="actions-mobile-fab"
