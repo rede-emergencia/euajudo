@@ -21,7 +21,7 @@ def reset_production_database():
     if env != "production":
         print(f"⚠️ Ambiente atual: {env}")
         response = input("🔒 Tem certeza que deseja continuar? (s/N): ")
-        if response.lower() != 's':
+        if response.lower() not in ['s', 'y']:
             print("❌ Operação cancelada")
             return False
     
