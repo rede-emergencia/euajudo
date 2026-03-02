@@ -532,16 +532,22 @@ export default function ShelterDashboard() {
   };
 
   const handleCancel = async (id) => {
-    if (!window.confirm(`Cancelar #${id}?`)) return;
+    // Modal de confirmação bonito
+    const confirmed = window.confirm(`Tem certeza que deseja cancelar a solicitação #${id}?\n\nOs itens não entregues retornarão para o estoque.`);
+    if (!confirmed) return;
+    
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_URL}/api/deliveries/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      showAlert('Sucesso', 'Cancelada!', 'success');
+      
+      // Modal de sucesso bonito
+      showAlert('Sucesso!', `Solicitação #${id} cancelada com sucesso!\n\nOs itens retornaram para o estoque e estão disponíveis para novos voluntários.`, 'success');
       loadData();
     } catch (error) {
-      showAlert('Erro', error.message || 'Erro ao cancelar', 'error');
+      const errorMessage = error.response?.data?.detail || error.message || 'Erro ao cancelar solicitação';
+      showAlert('Erro ao Cancelar', `Não foi possível cancelar a solicitação #${id}.\n\n${errorMessage}`, 'error');
     }
   };
 
