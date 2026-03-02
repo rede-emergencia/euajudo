@@ -18,7 +18,8 @@ from app.routers import (
     dashboard,
     cancel,
     categories,
-    admin_unified as admin
+    admin_unified as admin,
+    shelter_inventory
 )
 
 # Create tables
@@ -110,6 +111,7 @@ app.include_router(product_config.router)
 app.include_router(dashboard.router)
 app.include_router(cancel.router)
 app.include_router(categories.router)
+app.include_router(shelter_inventory.router)  # Sistema de Inventário para Abrigos
 
 @app.get("/")
 def read_root():

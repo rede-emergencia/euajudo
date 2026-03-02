@@ -343,6 +343,17 @@ function btnStyle(bg, border, color, filled = false) {
 export default function ShelterDashboard() {
   const { user, hasRole } = useAuth();
   const navigate = useNavigate();
+  
+  // Redirecionar para o novo dashboard de inventário
+  useEffect(() => {
+    if (hasRole && hasRole('shelter')) {
+      navigate('/shelter/inventory', { replace: true });
+    }
+  }, [hasRole, navigate]);
+  
+  return null; // Componente será substituído pelo redirecionamento
+  
+  /* CÓDIGO ANTIGO - MANTIDO PARA REFERÊNCIA
   const { alert, showAlert, closeAlert } = useAlert();
   const { showConfirm, ModalComponent } = useModal();
   
@@ -362,6 +373,7 @@ export default function ShelterDashboard() {
     }
     return false; // Não foi erro de auth
   };
+  */
   
   const [tab, setTab] = useState('ativas');
   const [allRequests, setAllRequests] = useState([]);
