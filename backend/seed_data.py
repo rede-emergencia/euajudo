@@ -78,11 +78,11 @@ PROVIDERS = [
 CATEGORIES = [
     {
         "name": "Água",
-        "description": "Água potável e garrafões",
+        "description": "Água mineral em litros",
         "icon": "💧",
         "color": "#3b82f6",
         "attributes": [
-            {"name": "quantidade_ml", "type": "number", "required": True, "min_value": 100}
+            {"name": "quantidade_litros", "type": "number", "required": True, "min_value": 1}
         ]
     },
     {
