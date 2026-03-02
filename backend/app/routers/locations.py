@@ -25,6 +25,7 @@ def list_locations(
     filters = {}
     if active_only:
         filters['active'] = True
+        filters['approved'] = True  # Apenas locations aprovadas devem aparecer no mapa
     if city_id:
         filters['city_id'] = city_id
     
