@@ -21,14 +21,24 @@ export default function ProtectedRoute({ children, requireRole }) {
 
   if (requireRole) {
     // Converter requireRole para string se for enum
-    const requiredRoleStr = typeof requireRole === 'string' ? requireRole : requireRole.value;
+    let requiredRoleStr;
+    if (typeof requireRole === 'string') {
+      requiredRoleStr = requireRole;
+    } else {
+      // Para enums UserRole, usar o valor diretamente
+      requiredRoleStr = requireRole;
+    }
     
-    // Aceitar volunteer para role "volunteer"
-    if (requiredRoleStr === 'volunteer') {
-      if (!user.roles.includes('volunteer')) {
-        return <Navigate to="/" replace />;
-      }
-    } else if (!user.roles.includes(requiredRoleStr)) {
+    console.log('🔍 ProtectedRoute:', {
+      requireRole,
+      requiredRoleStr,
+      userRoles: user.roles,
+      hasRequiredRole: user.roles.includes(requiredRoleStr)
+    });
+    
+    // Verificar se o usuário tem a role requerida
+    if (!user.roles.includes(requiredRoleStr)) {
+      console.log('❌ ProtectedRoute: Redirecting to / - missing role');
       return <Navigate to="/" replace />;
     }
   }

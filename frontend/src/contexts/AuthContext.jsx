@@ -11,8 +11,12 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
     
+    console.log('🔍 AuthContext useEffect:', { token: !!token, savedUser: !!savedUser });
+    
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      console.log('🔍 AuthContext: Setting user from localStorage:', parsedUser);
+      setUser(parsedUser);
       authApi.getMe()
         .then(response => {
           // Converter roles de string para array se necessário
@@ -23,16 +27,22 @@ export function AuthProvider({ children }) {
               : response.data.roles
           };
           
+          console.log('🔍 AuthContext: Updated user from API:', userData);
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
         })
-        .catch(() => {
+        .catch((error) => {
+          console.log('❌ AuthContext: API error, clearing auth:', error);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setUser(null);
         })
-        .finally(() => setLoading(false));
+        .finally(() => {
+          console.log('🔍 AuthContext: Loading finished');
+          setLoading(false);
+        });
     } else {
+      console.log('🔍 AuthContext: No token found, loading=false');
       setLoading(false);
     }
   }, []);
