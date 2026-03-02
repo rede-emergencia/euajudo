@@ -30,9 +30,7 @@ export default function ShelterInventoryTest() {
       const dashboardResponse = await axios.get(`${API_URL}/api/shelter/inventory/dashboard-test`);
       
       // Carregar categorias
-      const categoriesResponse = await axios.get(`${API_URL}/api/categories`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const categoriesResponse = await axios.get(`${API_URL}/api/categories/test`);
       
       setDashboard(dashboardResponse.data);
       setCategories(categoriesResponse.data);
