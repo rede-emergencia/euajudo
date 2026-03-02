@@ -9,7 +9,7 @@ Sistema de modais reutilizáveis para substituir `alert()` e `confirm()` nativos
 ### 1. **Modal Component** (`/src/components/Modal.jsx`)
 Componente base para renderizar modais com diferentes variantes visuais.
 
-### 2. **useModal Hook** (`/src/hooks/useModal.js`)
+### 2. **useModal Hook** (`/src/hooks/useModal.jsx`)
 Hook customizado que simplifica o gerenciamento de estado e exibição de modais.
 
 ## 🚀 Como Usar
@@ -17,7 +17,7 @@ Hook customizado que simplifica o gerenciamento de estado e exibição de modais
 ### Setup Básico
 
 ```jsx
-import useModal from '../hooks/useModal';
+import useModal from '../hooks/useModal.jsx';
 
 function MeuComponente() {
   const { showSuccess, showError, showWarning, showInfo, showConfirm, ModalComponent } = useModal();
@@ -270,7 +270,7 @@ frontend/
 │   ├── components/
 │   │   └── Modal.jsx           # Componente base
 │   ├── hooks/
-│   │   └── useModal.js         # Hook customizado
+│   │   └── useModal.jsx        # Hook customizado
 │   └── pages/
 │       └── Admin.jsx           # Exemplo de uso
 ```

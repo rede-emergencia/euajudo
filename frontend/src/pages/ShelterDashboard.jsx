@@ -9,7 +9,7 @@ import { categories as categoriesApi } from '../lib/api';
 import axios from 'axios';
 import AlertModal from '../components/AlertModal';
 import { useAlert } from '../hooks/useAlert';
-import useModal from '../hooks/useModal';
+import useModal from '../hooks/useModal.jsx';
 import Header from '../components/Header';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';

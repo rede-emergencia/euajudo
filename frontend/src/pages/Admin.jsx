@@ -12,7 +12,7 @@ import LocationPicker from '../components/LocationPicker';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import ImprovedLocationPicker from '../components/ImprovedLocationPicker';
 import { UserRole } from '../shared/enums';
-import useModal from '../hooks/useModal';
+import useModal from '../hooks/useModal.jsx';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
