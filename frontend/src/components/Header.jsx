@@ -507,10 +507,11 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                   </button>
                 )}
 
-                {/* Botão Ações — escondido em mobile, visível no desktop */}
-                <button
-                  className="actions-desktop-only"
-                  onClick={() => setShowActionsModal(!showActionsModal)}
+                {/* Botão Ações — escondido em mobile, visível no desktop (apenas voluntários) */}
+                {user?.roles?.includes('volunteer') && (
+                  <button
+                    className="actions-desktop-only"
+                    onClick={() => setShowActionsModal(!showActionsModal)}
                   style={{
                     position: 'relative',
                     display: 'flex',
@@ -558,6 +559,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                     </span>
                   )}
                 </button>
+                )}
 
                 {/* User Menu */}
                 <div style={{ position: 'relative' }}>
@@ -1567,10 +1569,11 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
         </div>
       )}
 
-      {/* FAB — Ações (somente mobile) */}
-      <button
-        className="actions-mobile-fab"
-        onClick={() => setShowActionsModal(!showActionsModal)}
+      {/* FAB — Ações (somente mobile, apenas voluntários) */}
+      {user?.roles?.includes('volunteer') && (
+        <button
+          className="actions-mobile-fab"
+          onClick={() => setShowActionsModal(!showActionsModal)}
         style={{
           position: 'fixed',
           bottom: '24px',
@@ -1606,6 +1609,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
           </span>
         )}
       </button>
+      )}
 
     </header>
   );
