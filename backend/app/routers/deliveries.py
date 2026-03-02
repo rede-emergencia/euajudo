@@ -438,82 +438,111 @@ def cancel_delivery(
     current_user: User = Depends(get_current_active_user)
 ):
     """Cancel a delivery - only allowed before pickup"""
-    delivery = db.query(Delivery).filter(Delivery.id == delivery_id).first()
-    if not delivery:
-        raise HTTPException(status_code=404, detail="Delivery not found")
-    
-    print(f"🔍 DEBUG CANCEL: Delivery ID={delivery_id}, status={delivery.status}, volunteer_id={delivery.volunteer_id}")
-    print(f"🔍 DEBUG CANCEL: User ID={current_user.id}, User roles={current_user.roles}")
-    
-    # Check authorization - allow multiple user types to cancel
-    can_cancel = False
-    cancel_reason = ""
-    
-    # 1. Volunteer can cancel their own deliveries
-    if delivery.volunteer_id == current_user.id:
-        can_cancel = True
-        cancel_reason = "volunteer_own_delivery"
-        print(f"✅ DEBUG CANCEL: Volunteer {current_user.id} can cancel own delivery {delivery_id}")
-    
-    # 2. Provider can cancel their batch deliveries
-    elif delivery.batch_id:
-        batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
-        if batch and batch.provider_id == current_user.id:
+    try:
+        print(f"🚀 START CANCEL: Delivery {delivery_id} by User {current_user.id}")
+        
+        delivery = db.query(Delivery).filter(Delivery.id == delivery_id).first()
+        if not delivery:
+            print(f"❌ CANCEL ERROR: Delivery {delivery_id} not found")
+            raise HTTPException(status_code=404, detail="Delivery not found")
+        
+        print(f"🔍 DEBUG CANCEL: Delivery ID={delivery_id}, status={delivery.status}, volunteer_id={delivery.volunteer_id}")
+        print(f"🔍 DEBUG CANCEL: User ID={current_user.id}, User roles={current_user.roles}")
+        
+        # Check authorization - allow multiple user types to cancel
+        can_cancel = False
+        cancel_reason = ""
+        
+        # 1. Volunteer can cancel their own deliveries
+        if delivery.volunteer_id == current_user.id:
             can_cancel = True
-            cancel_reason = "provider_batch_delivery"
-            print(f"✅ DEBUG CANCEL: Provider {current_user.id} can cancel batch delivery {delivery_id}")
-    
-    # 3. Shelter can cancel deliveries to their location
-    else:
-        location = db.query(DeliveryLocation).filter(DeliveryLocation.id == delivery.location_id).first()
-        if location and location.user_id == current_user.id and "shelter" in current_user.roles:
-            can_cancel = True
-            cancel_reason = "shelter_location_delivery"
-            print(f"✅ DEBUG CANCEL: Shelter {current_user.id} can cancel delivery {delivery_id}")
-    
-    if not can_cancel:
-        print(f"❌ DEBUG CANCEL: User {current_user.id} cannot cancel delivery {delivery_id}")
-        raise HTTPException(status_code=403, detail="Not authorized to cancel this delivery")
-    
-    print(f"✅ DEBUG CANCEL: User {current_user.id} can cancel delivery {delivery_id} as {cancel_reason}")
-    
-    # Can only cancel if not yet picked up
-    if delivery.status not in [DeliveryStatus.AVAILABLE, DeliveryStatus.PENDING_CONFIRMATION, DeliveryStatus.RESERVED]:
-        print(f"❌ DEBUG CANCEL: Cannot cancel - status {delivery.status} not allowed")
-        raise HTTPException(
-            status_code=400, 
-            detail="Cannot cancel delivery after pickup. You must complete the delivery."
-        )
-    
-    print(f"✅ DEBUG CANCEL: Status {delivery.status} allows cancellation")
-    
-    # Return quantity based on delivery type
-    quantity_returned = 0
-    
-    if delivery.batch_id:
-        # Has batch - return to batch.quantity_available
-        batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
-        if batch:
-            batch.quantity_available += delivery.quantity
-            quantity_returned = delivery.quantity
-            print(f"🔄 DEBUG CANCEL: Returned {quantity_returned} to batch {batch.id}")
-    elif delivery.parent_delivery_id:
-        # This is a split delivery - return quantity to parent delivery
-        parent_delivery = db.query(Delivery).filter(Delivery.id == delivery.parent_delivery_id).first()
-        if parent_delivery:
-            parent_delivery.quantity += delivery.quantity
-            quantity_returned = delivery.quantity
-            print(f"🔄 DEBUG CANCEL: Returned {quantity_returned} to parent delivery {parent_delivery.id}")
+            cancel_reason = "volunteer_own_delivery"
+            print(f"✅ DEBUG CANCEL: Volunteer {current_user.id} can cancel own delivery {delivery_id}")
+        
+        # 2. Provider can cancel their batch deliveries
+        elif delivery.batch_id:
+            batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
+            if batch and batch.provider_id == current_user.id:
+                can_cancel = True
+                cancel_reason = "provider_batch_delivery"
+                print(f"✅ DEBUG CANCEL: Provider {current_user.id} can cancel batch delivery {delivery_id}")
+        
+        # 3. Shelter can cancel deliveries to their location
         else:
-            # Parent not found (shouldn't happen) - just delete
+            print(f"🔍 DEBUG CANCEL: Checking shelter permissions for delivery {delivery_id}")
+            print(f"🔍 DEBUG CANCEL: delivery.location_id={delivery.location_id}")
+            
+            if not delivery.location_id:
+                print(f"❌ DEBUG CANCEL: Delivery {delivery_id} has no location_id - cannot identify shelter")
+                raise HTTPException(status_code=400, detail="Delivery has no associated location")
+                
+            location = db.query(DeliveryLocation).filter(DeliveryLocation.id == delivery.location_id).first()
+            print(f"🔍 DEBUG CANCEL: Found location={location}")
+            if location:
+                print(f"🔍 DEBUG CANCEL: location.user_id={location.user_id}, current_user.id={current_user.id}")
+                print(f"🔍 DEBUG CANCEL: current_user.roles={current_user.roles}")
+                
+            if location and location.user_id == current_user.id and "shelter" in current_user.roles:
+                can_cancel = True
+                cancel_reason = "shelter_location_delivery"
+                print(f"✅ DEBUG CANCEL: Shelter {current_user.id} can cancel delivery {delivery_id}")
+            else:
+                print(f"❌ DEBUG CANCEL: Shelter permission check failed")
+        
+        if not can_cancel:
+            print(f"❌ DEBUG CANCEL: User {current_user.id} cannot cancel delivery {delivery_id}")
+            raise HTTPException(status_code=403, detail="Not authorized to cancel this delivery")
+        
+        print(f"✅ DEBUG CANCEL: User {current_user.id} can cancel delivery {delivery_id} as {cancel_reason}")
+        
+        # Can only cancel if not yet picked up
+        if delivery.status not in [DeliveryStatus.AVAILABLE, DeliveryStatus.PENDING_CONFIRMATION, DeliveryStatus.RESERVED]:
+            print(f"❌ DEBUG CANCEL: Cannot cancel - status {delivery.status} not allowed")
+            raise HTTPException(
+                status_code=400, 
+                detail="Cannot cancel delivery after pickup. You must complete the delivery."
+            )
+        
+        print(f"✅ DEBUG CANCEL: Status {delivery.status} allows cancellation")
+        
+        # Return quantity based on delivery type
+        quantity_returned = 0
+        
+        if delivery.batch_id:
+            # Has batch - return to batch.quantity_available
+            batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
+            if batch:
+                batch.quantity_available += delivery.quantity
+                quantity_returned = delivery.quantity
+                print(f"🔄 DEBUG CANCEL: Returned {quantity_returned} to batch {batch.id}")
+        elif delivery.parent_delivery_id:
+            # This is a split delivery - return quantity to parent delivery
+            parent_delivery = db.query(Delivery).filter(Delivery.id == delivery.parent_delivery_id).first()
+            if parent_delivery:
+                parent_delivery.quantity += delivery.quantity
+                quantity_returned = delivery.quantity
+                print(f"🔄 DEBUG CANCEL: Returned {quantity_returned} to parent delivery {parent_delivery.id}")
+            else:
+                # Parent not found (shouldn't happen) - just delete
+                quantity_returned = delivery.quantity
+                print(f"⚠️ DEBUG CANCEL: Parent not found, just deleting")
+        else:
+            # Direct delivery without parent - just delete
             quantity_returned = delivery.quantity
-            print(f"⚠️ DEBUG CANCEL: Parent not found, just deleting")
-    else:
-        # Direct delivery without parent - just delete
-        quantity_returned = delivery.quantity
-        print(f"🗑️ DEBUG CANCEL: Direct delivery, just deleting")
-    
-    db.delete(delivery)
-    db.commit()
-    print(f"✅ DEBUG CANCEL: Successfully cancelled delivery {delivery_id}, returned {quantity_returned}")
-    return {"message": "Delivery cancelled successfully", "quantity_returned": quantity_returned}
+            print(f"🗑️ DEBUG CANCEL: Direct delivery, just deleting")
+        
+        db.delete(delivery)
+        db.commit()
+        print(f"✅ DEBUG CANCEL: Successfully cancelled delivery {delivery_id}, returned {quantity_returned}")
+        return {"message": "Delivery cancelled successfully", "quantity_returned": quantity_returned}
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        print(f"💥 CANCEL EXCEPTION: Unexpected error cancelling delivery {delivery_id}: {str(e)}")
+        print(f"💥 CANCEL EXCEPTION: Error type: {type(e).__name__}")
+        import traceback
+        print(f"💥 CANCEL EXCEPTION: Traceback: {traceback.format_exc()}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
