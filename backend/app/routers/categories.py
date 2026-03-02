@@ -16,26 +16,7 @@ from app.category_schemas import (
     CategoryAttributeResponse
 )
 
-router = APIRouter(prefix="/api/categories", tags=["categories"])
-
-# ============================================================================
-# TEMPORARY DEBUG ENDPOINTS
-# ============================================================================
-
-@router.get("/test")
-def test_categories_endpoint(db: Session = Depends(get_db)):
-    """Endpoint de teste para debug"""
-    categories = db.query(Category).filter(Category.active == True).all()
-    return [
-        {
-            "id": cat.id,
-            "name": cat.name,
-            "display_name": cat.display_name,
-            "icon": cat.icon,
-            "color": cat.color
-        }
-        for cat in categories
-    ]
+router = APIRouter(prefix="/categories", tags=["categories"])
 
 # ============================================================================
 # CATEGORY ENDPOINTS

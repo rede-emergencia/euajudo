@@ -11,6 +11,8 @@ from sqlalchemy import create_engine, text
 
 # Configurar ambiente para produção
 os.environ["DATABASE_URL"] = "postgresql://euajudo_user:niHQGFxb2EClbnS6Rvq86GDFS6fuexNM@dpg-d6h6fj0gjchc73cidakg-a.oregon-postgres.render.com/euajudo"
+from app.database import Base
+from app.models import User, DeliveryLocation, Category, CategoryAttribute
 from app.auth import get_password_hash
 from app.enums import UserRole
 from sqlalchemy.orm import Session
@@ -182,7 +184,7 @@ def main():
         
         try:
             # Criar dados
-            create_admin_user(db)
+            create_admin(db)
             create_volunteers(db)
             create_shelters(db)
             categories = create_categories(db)
