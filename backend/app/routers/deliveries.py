@@ -557,6 +557,13 @@ def cancel_delivery(
                 
                 # Delete the parent delivery - children remain as completed deliveries
                 print(f"🗑️ DEBUG CANCEL: Deleting parent delivery {delivery_id} (keeping split deliveries)")
+                
+                # IMPORTANT: Remove parent reference from children BEFORE deleting parent
+                for child in child_deliveries:
+                    child.parent_delivery_id = None
+                    print(f"🔄 DEBUG CANCEL: Removed parent reference from child {child.id}")
+                
+                print(f"🗑️ DEBUG CANCEL: Safe to delete parent delivery {delivery_id} now")
             else:
                 # No split deliveries - regular direct delivery
                 quantity_returned = delivery.quantity
