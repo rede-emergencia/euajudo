@@ -85,7 +85,7 @@ export default function Login() {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // Redirecionar baseado no perfil (usando roles do banco)
-      if (userData.roles.includes('admin')) {
+      if (userData.roles.includes(UserRole.ADMIN)) {
         navigate('/dashboard/admin');
       } else if (userData.roles.includes(UserRole.PROVIDER)) {
         navigate('/dashboard/fornecedor');

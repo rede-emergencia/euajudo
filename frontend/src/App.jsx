@@ -156,7 +156,7 @@ function App() {
             <Route 
               path="/minhas-entregas" 
               element={
-                <ProtectedRoute requireRole="volunteer">
+                <ProtectedRoute requireRole={UserRole.VOLUNTEER}>
                   <MinhasEntregas />
                 </ProtectedRoute>
               } 
@@ -186,7 +186,7 @@ function App() {
           <Route
             path="/dashboard/fornecedor"
             element={
-              <ProtectedRoute requireRole="provider">
+              <ProtectedRoute requireRole={UserRole.PROVIDER}>
                 <Layout>
                   <ProviderDashboard />
                 </Layout>
@@ -197,7 +197,7 @@ function App() {
           <Route
             path="/perfil/fornecedor"
             element={
-              <ProtectedRoute requireRole="provider">
+              <ProtectedRoute requireRole={UserRole.PROVIDER}>
                 <Layout>
                   <PerfilFornecedor />
                 </Layout>
@@ -208,7 +208,7 @@ function App() {
           <Route
             path="/dashboard/voluntario"
             element={
-              <ProtectedRoute requireRole="volunteer">
+              <ProtectedRoute requireRole={UserRole.VOLUNTEER}>
                 <Layout>
                   <VolunteerDashboard />
                 </Layout>
@@ -219,7 +219,7 @@ function App() {
           <Route
             path="/dashboard/admin"
             element={
-              <ProtectedRoute requireRole="admin">
+              <ProtectedRoute requireRole={UserRole.ADMIN}>
                 <Layout>
                   <Admin />
                 </Layout>
