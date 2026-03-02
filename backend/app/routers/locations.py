@@ -31,7 +31,7 @@ def list_locations(
     
     return repo.filter_by(**filters)
 
-@router.get("/debug", response_model=List[dict])
+@router.get("/debug-locations", response_model=List[dict])
 def debug_locations(
     db: Session = Depends(get_db)
 ):
