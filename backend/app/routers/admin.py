@@ -10,7 +10,7 @@ from app.auth import require_admin
 from app.models import User, DeliveryLocation
 from app.schemas import UserResponse, DeliveryLocationResponse
 from app.repositories import BaseRepository
-from app.enums import UserRole
+from app.shared.enums import UserRole
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 

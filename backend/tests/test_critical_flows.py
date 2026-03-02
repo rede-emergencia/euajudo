@@ -27,8 +27,22 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
+
+
+def setup_module():
+    app.dependency_overrides[get_db] = override_get_db
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    from app.application.services.pickup_service import PickupCodeModel
+    PickupCodeModel.metadata.create_all(bind=engine)
+
+
+def teardown_module():
+    Base.metadata.drop_all(bind=engine)
+    from app.application.services.pickup_service import PickupCodeModel
+    PickupCodeModel.metadata.drop_all(bind=engine)
+    app.dependency_overrides.pop(get_db, None)
 
 
 def setup_users_and_location():
@@ -402,7 +416,7 @@ def test_edge_cases_and_security():
         print("   ⏳ Test: Short password rejection...")
         r = client.post("/api/auth/register", json={
             "email": "short@test.com",
-            "password": "123",  # Too short
+            "password": "123456",  # Too short
             "name": "Short Pass",
             "roles": "volunteer",
             "city_id": "test"

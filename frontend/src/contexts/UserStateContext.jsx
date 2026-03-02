@@ -289,12 +289,19 @@ export const UserStateProvider = ({ children }) => {
             description: `${delivery.quantity} ${unit} de ${productName} para ${delivery.location?.name}`
           });
           
+          // Obter nome do abrigo de diferentes formas possíveis
+          const shelterName = delivery.delivery_location?.owner?.name || 
+                             delivery.shelter?.name || 
+                             delivery.location?.name || 
+                             delivery.shelter_name ||
+                             'o abrigo';
+          
           operations.push({
             type: 'delivery',
             id: delivery.id,
             status: delivery.status,
             title: delivery.status === 'pending_confirmation' || delivery.status === 'reserved' ? 'Entrega em Andamento' : 'Entrega em Andamento',
-            description: `${delivery.quantity} ${unit} de ${productName} para ${delivery.location?.name}`,
+            description: `${delivery.quantity} ${unit} de ${productName} para ${shelterName}`,
             createdAt: delivery.created_at,
             pickup_code: delivery.pickup_code,
             delivery_code: delivery.delivery_code,

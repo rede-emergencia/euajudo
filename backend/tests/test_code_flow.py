@@ -26,7 +26,6 @@ def override_get_db():
     finally:
         db.close()
 
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
@@ -43,8 +42,11 @@ def test_code_flow():
     print("="*70)
     
     # Setup database
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    from app.application.services.pickup_service import PickupCodeModel
+    PickupCodeModel.metadata.create_all(bind=engine)
     
     try:
         # 1. Create users
@@ -205,7 +207,7 @@ def test_code_flow():
         print(f"   🔑 DELIVERY CODE: {delivery_code}")
         print(f"   📋 Status: {data['status']}")
         
-        # 6. Volunteer confirms delivery with delivery code
+        # 6. Volunteer confirms delivery with delivery_code
         print("\n📍 Step 6: Volunteer confirming delivery (with DELIVERY CODE)...")
         r = client.post(f"/api/deliveries/{delivery_id}/confirm-delivery",
             headers={"Authorization": f"Bearer {volunteer_token}"},
@@ -307,7 +309,11 @@ def test_code_flow():
         traceback.print_exc()
         return False
     finally:
+        # Cleanup
         Base.metadata.drop_all(bind=engine)
+        from app.application.services.pickup_service import PickupCodeModel
+        PickupCodeModel.metadata.drop_all(bind=engine)
+        app.dependency_overrides.pop(get_db, None)
 
 
 if __name__ == "__main__":

@@ -8,17 +8,92 @@ from typing import List
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.models import User, ProductBatch, Delivery, DeliveryLocation, Category
-from app.enums import DeliveryStatus, BatchStatus, ProductType
+from app.shared.enums import DeliveryStatus, BatchStatus, ProductType
 from app.schemas import DeliveryCreate, DirectDeliveryCreate, DeliveryResponse
 from app.auth import get_current_active_user, require_approved
-from app.validators import ConfirmationCodeValidator, StatusTransitionValidator
+from app.shared.validators import ProductValidatorManagerCodeValidator, StatusTransitionValidator, ConfirmationCodeValidator
+from app.services.inventory_service import (
+    on_delivery_created, on_volunteer_committed,
+    on_delivery_confirmed, on_delivery_cancelled
+)
 
 router = APIRouter(prefix="/api/deliveries", tags=["deliveries"])
 
 @router.get("/", response_model=List[DeliveryResponse])
 def list_all_deliveries(db: Session = Depends(get_db)):
     """List all deliveries for map view"""
-    return db.query(Delivery).order_by(Delivery.created_at.desc()).all()
+    return db.query(Delivery)\
+        .options(joinedload(Delivery.delivery_location).joinedload(DeliveryLocation.owner))\
+        .options(joinedload(Delivery.category))\
+        .order_by(Delivery.created_at.desc()).all()
+
+@router.get("/shelter", response_model=List[DeliveryResponse])
+def list_shelter_deliveries(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """List deliveries for current shelter"""
+    if "shelter" not in current_user.roles:
+        raise HTTPException(status_code=403, detail="Only shelters can view their deliveries")
+    
+    # Get shelter's location
+    from app.repositories.location_repository import LocationRepository
+    location_repo = LocationRepository(db)
+    shelter_location = location_repo.find_primary_by_user(current_user.id)
+    
+    if not shelter_location:
+        return []
+    
+    # Get deliveries for this shelter's location
+    deliveries = db.query(Delivery).filter(
+        Delivery.delivery_location_id == shelter_location.id,
+        Delivery.status.in_([
+            DeliveryStatus.AVAILABLE,
+            DeliveryStatus.PENDING_CONFIRMATION,
+            DeliveryStatus.RESERVED,
+            DeliveryStatus.PICKED_UP,
+            DeliveryStatus.DELIVERED,
+            DeliveryStatus.CANCELLED,
+            DeliveryStatus.EXPIRED
+        ])
+    ).order_by(Delivery.created_at.desc()).all()
+    
+    return deliveries
+
+@router.get("/debug/shelter-deliveries")
+def debug_shelter_deliveries(db: Session = Depends(get_db)):
+    """Debug endpoint to check shelter deliveries"""
+    from app.repositories.location_repository import LocationRepository
+    
+    # Get shelter user_id=4 (Abrigo Centro)
+    location_repo = LocationRepository(db)
+    shelter_location = location_repo.find_primary_by_user(4)
+    
+    if not shelter_location:
+        return {"error": "Shelter location not found"}
+    
+    # Get deliveries for this shelter
+    deliveries = db.query(Delivery).filter(
+        Delivery.delivery_location_id == shelter_location.id
+    ).order_by(Delivery.created_at.desc()).all()
+    
+    result = {
+        "shelter_location_id": shelter_location.id,
+        "shelter_user_id": 4,
+        "deliveries": [
+            {
+                "id": d.id,
+                "status": d.status,
+                "pickup_code": d.pickup_code,
+                "quantity": d.quantity,
+                "volunteer_id": d.volunteer_id,
+                "delivery_location_id": d.delivery_location_id
+            }
+            for d in deliveries
+        ]
+    }
+    
+    return result
 
 @router.post("/", response_model=DeliveryResponse, status_code=201)
 def create_delivery(
@@ -68,10 +143,10 @@ def create_delivery(
     # Create delivery with RESERVED status
     new_delivery = Delivery(
         batch_id=delivery.batch_id,
-        location_id=delivery.location_id,
+        delivery_location_id=delivery.location_id,
         volunteer_id=current_user.id,
         product_type=batch.product_type,
-        category_id=batch.category_id,  # Adicionar categoria!
+        category_id=batch.category_id,
         quantity=quantity_to_reserve,
         status=DeliveryStatus.RESERVED,
         accepted_at=datetime.utcnow(),
@@ -108,7 +183,7 @@ def create_direct_delivery(
         print(f"❌ ERROR: No DeliveryLocation found for user_id={current_user.id}")
         raise HTTPException(status_code=404, detail="No delivery location found for this user")
     
-    print(f"🔍 DEBUG: Usando location_id={location.id} para user_id={current_user.id}")
+    print(f"🔍 DEBUG: Usando delivery_location_id={location.id} para user_id={current_user.id}")
     
     # Verify category exists
     category = db.query(Category).filter(Category.id == delivery.category_id).first()
@@ -121,7 +196,7 @@ def create_direct_delivery(
     # Create direct delivery (no batch_id)
     new_delivery = Delivery(
         batch_id=None,  # Direct delivery
-        location_id=location.id,  # Usar o ID da location encontrada
+        delivery_location_id=location.id,  # Usar o ID da location encontrada
         category_id=delivery.category_id,
         product_type=ProductType.MEAL,  # Default for compatibility
         quantity=delivery.quantity,
@@ -131,6 +206,11 @@ def create_direct_delivery(
     )
     
     db.add(new_delivery)
+    db.flush()
+    
+    # Hook: notify inventory service
+    on_delivery_created(db, new_delivery, current_user.id)
+    
     db.commit()
     db.refresh(new_delivery)
     print(f"✅ SUCCESS: Delivery created with id={new_delivery.id}")
@@ -163,9 +243,13 @@ def confirm_pickup(
     # Only FLUXO 2 (with batch) uses this endpoint
     if not delivery.batch_id:
         raise HTTPException(status_code=400, detail="This is a direct delivery, no pickup needed")
-    
-    if delivery.status != DeliveryStatus.PENDING_CONFIRMATION:
-        raise HTTPException(status_code=400, detail=f"Delivery must be PENDING_CONFIRMATION. Current: {delivery.status}")
+
+    allowed_statuses = [DeliveryStatus.PENDING_CONFIRMATION, DeliveryStatus.RESERVED]
+    if delivery.status not in allowed_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Delivery must be PENDING_CONFIRMATION or RESERVED. Current: {delivery.status}"
+        )
     
     if code != delivery.pickup_code:
         raise HTTPException(status_code=422, detail="Invalid pickup code")
@@ -214,15 +298,19 @@ def confirm_delivery(
     delivery.status = DeliveryStatus.DELIVERED
     delivery.delivered_at = datetime.utcnow()
     
-    # Check if all deliveries from batch are complete
-    batch = delivery.batch
-    all_delivered = all(
-        d.status == DeliveryStatus.DELIVERED
-        for d in batch.deliveries
-    )
+    # Hook: notify inventory service — add to shelter stock
+    on_delivery_confirmed(db, delivery, current_user.id)
     
-    if all_delivered:
-        batch.status = BatchStatus.COMPLETED
+    # Check if all deliveries from batch are complete
+    if delivery.batch_id:
+        batch = delivery.batch
+        if batch:
+            all_delivered = all(
+                d.status == DeliveryStatus.DELIVERED
+                for d in batch.deliveries
+            )
+            if all_delivered:
+                batch.status = BatchStatus.COMPLETED
     
     db.commit()
     db.refresh(delivery)
@@ -238,7 +326,7 @@ def list_my_deliveries(
     
     deliveries = db.query(Delivery).options(
         joinedload(Delivery.category),
-        joinedload(Delivery.location),
+        joinedload(Delivery.delivery_location),
         joinedload(Delivery.volunteer)
     ).filter(
         Delivery.volunteer_id == current_user.id
@@ -353,7 +441,7 @@ def commit_to_delivery(
     # Create new delivery for the committed portion
     committed_delivery = Delivery(
         batch_id=delivery.batch_id,
-        location_id=delivery.location_id,
+        delivery_location_id=delivery.delivery_location_id,
         volunteer_id=current_user.id,
         parent_delivery_id=delivery.id,  # Track the original delivery
         product_type=delivery.product_type,
@@ -376,6 +464,11 @@ def commit_to_delivery(
         # Don't delete - keep it for potential restoration
     
     db.add(committed_delivery)
+    db.flush()
+    
+    # Hook: notify inventory service about volunteer commitment
+    on_volunteer_committed(db, committed_delivery, quantity_to_commit)
+    
     db.commit()
     db.refresh(committed_delivery)
     
@@ -414,16 +507,33 @@ def validate_delivery_code(
     
     # Validate code
     code = request.get("code")
-    print(f"🔑 DEBUG: Código recebido={code}, código esperado={delivery.delivery_code}")
     
-    if not code or delivery.delivery_code != code:
+    # Direct donations (batch_id=null) use delivery_code
+    # Pickup deliveries (batch_id!=null) use pickup_code for PENDING_CONFIRMATION, delivery_code for PICKED_UP
+    is_direct_donation = delivery.batch_id is None
+    
+    if is_direct_donation:
+        # Direct donation: always use delivery_code
+        expected_code = delivery.delivery_code
+        code_type = "delivery_code (doação direta)"
+    else:
+        # Pickup delivery: pickup_code for PENDING_CONFIRMATION, delivery_code for PICKED_UP
+        expected_code = delivery.pickup_code if delivery.status == DeliveryStatus.PENDING_CONFIRMATION else delivery.delivery_code
+        code_type = "pickup_code" if delivery.status == DeliveryStatus.PENDING_CONFIRMATION else "delivery_code"
+    
+    print(f"🔑 DEBUG: Código recebido={code}, código esperado={expected_code} (tipo: {code_type})")
+    
+    if not code or expected_code != code:
         print(f"❌ DEBUG: Código inválido!")
-        raise HTTPException(status_code=400, detail="Invalid delivery code")
+        raise HTTPException(status_code=400, detail="Código inválido!")
     
     # Update status
     print(f"🔄 DEBUG: Atualizando status para DELIVERED")
     delivery.status = DeliveryStatus.DELIVERED
     delivery.delivered_at = datetime.utcnow()
+    
+    # Hook: notify inventory service — add to shelter stock
+    on_delivery_confirmed(db, delivery, current_user.id)
     
     db.commit()
     db.refresh(delivery)
@@ -470,13 +580,13 @@ def cancel_delivery(
         # 3. Shelter can cancel deliveries to their location
         else:
             print(f"🔍 DEBUG CANCEL: Checking shelter permissions for delivery {delivery_id}")
-            print(f"🔍 DEBUG CANCEL: delivery.location_id={delivery.location_id}")
+            print(f"🔍 DEBUG CANCEL: delivery.delivery_location_id={delivery.delivery_location_id}")
             
-            if not delivery.location_id:
-                print(f"❌ DEBUG CANCEL: Delivery {delivery_id} has no location_id - cannot identify shelter")
+            if not delivery.delivery_location_id:
+                print(f"❌ DEBUG CANCEL: Delivery {delivery_id} has no delivery_location_id - cannot identify shelter")
                 raise HTTPException(status_code=400, detail="Delivery has no associated location")
                 
-            location = db.query(DeliveryLocation).filter(DeliveryLocation.id == delivery.location_id).first()
+            location = db.query(DeliveryLocation).filter(DeliveryLocation.id == delivery.delivery_location_id).first()
             print(f"🔍 DEBUG CANCEL: Found location={location}")
             if location:
                 print(f"🔍 DEBUG CANCEL: location.user_id={location.user_id}, current_user.id={current_user.id}")
@@ -568,6 +678,9 @@ def cancel_delivery(
                 # No split deliveries - regular direct delivery
                 quantity_returned = delivery.quantity
                 print(f"🗑️ DEBUG CANCEL: Direct delivery with no splits, returning {quantity_returned}")
+        
+        # Hook: notify inventory service about cancellation
+        on_delivery_cancelled(db, delivery, current_user.id)
         
         db.delete(delivery)
         db.commit()

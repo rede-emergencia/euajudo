@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from app.database import get_db
 from app.auth import require_approved
 from app.models import User, ResourceRequest, ResourceItem, ResourceReservation, ReservationItem
-from app.enums import OrderStatus, UserRole
+from app.shared.enums import OrderStatus, UserRole
 from app.schemas import (
     ResourceRequestCreate,
     ResourceRequestResponse,
@@ -17,7 +17,7 @@ from app.schemas import (
     ResourceReservationResponse
 )
 from app.auth import get_current_active_user, require_approved
-from app.validators import ConfirmationCodeValidator
+from app.shared.validators import ProductValidatorManagerCodeValidator, ConfirmationCodeValidator
 from app.repositories import BaseRepository
 from app.services.transaction_service import get_transaction_service, TransactionError
 

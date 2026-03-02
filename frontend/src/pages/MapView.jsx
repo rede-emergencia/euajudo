@@ -13,11 +13,13 @@ import IngredientReservationModal from '../components/IngredientReservationModal
 import ConfirmationModal from '../components/ConfirmationModal';
 import CommitmentSuccessModal from '../components/CommitmentSuccessModal';
 import DeliveryCommitmentModal from '../components/DeliveryCommitmentModal';
+import DonationCommitmentModal from '../components/DonationCommitmentModal';
 import UserStateWidget from '../components/UserStateWidget';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
 import { getProductInfo, getProductText, getProductLocation, getProductAction } from '../lib/productUtils';
 import { formatProductWithQuantity } from '../shared/enums';
+import { inventory } from '../lib/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -187,13 +189,123 @@ function getStateColor(hasActiveOrder, isInTransit) {
   return STATE_COLORS.available;
 }
 
+// ============================================================================
+// SISTEMA ESCALÁVEL DE AGREGAÇÃO DE NECESSIDADES
+// ============================================================================
+
+// Configuração de tipos de necessidades (escalável para futuro)
+const NEED_TYPES = {
+  DONATION: {
+    key: 'donations',
+    icon: '🆘',
+    color: '#ef4444',
+    label: 'Doações',
+    priority: 1
+  },
+  SERVICE: {
+    key: 'services',
+    icon: '🟣',
+    color: '#a855f7',
+    label: 'Serviços',
+    priority: 2
+  },
+  DELIVERY: {
+    key: 'deliveries',
+    icon: '🔵',
+    color: '#3b82f6',
+    label: 'Entregas',
+    priority: 3
+  },
+  AVAILABLE: {
+    key: 'available',
+    icon: '🟢',
+    color: '#10b981',
+    label: 'Disponível',
+    priority: 4
+  }
+};
+
+// Função para agregar TODAS as necessidades de um shelter
+function aggregateShelterNeeds(location, shelterRequests, deliveries) {
+  // 1. DOAÇÕES - Shelter Requests ativos
+  const activeDonationRequests = shelterRequests?.filter(r => 
+    r.shelter_id === location.user_id && 
+    ['pending', 'partial', 'active'].includes(r.status)
+  ) || [];
+  
+  // 2. SERVIÇOS - Futuro: service_requests
+  const activeServiceRequests = []; // TODO: adicionar quando backend tiver service_requests
+  
+  // 3. ENTREGAS - Deliveries disponíveis para este location
+  const activeDeliveries = deliveries?.filter(d =>
+    d.delivery_location_id === location.id &&
+    d.status === 'available' &&
+    !d.volunteer_id
+  ) || [];
+  
+  // Agregar contadores
+  return {
+    donations: activeDonationRequests.length,
+    services: activeServiceRequests.length,
+    deliveries: activeDeliveries.length,
+    total: activeDonationRequests.length + activeServiceRequests.length + activeDeliveries.length,
+    
+    // Listas detalhadas para o modal
+    donationsList: activeDonationRequests,
+    servicesList: activeServiceRequests,
+    deliveriesList: activeDeliveries,
+    
+    // Flags de conveniência
+    hasDonations: activeDonationRequests.length > 0,
+    hasServices: activeServiceRequests.length > 0,
+    hasDeliveries: activeDeliveries.length > 0,
+    hasAnyNeeds: (activeDonationRequests.length + activeServiceRequests.length + activeDeliveries.length) > 0
+  };
+}
+
+// Função para determinar ícone e cor baseado em necessidades (priorização)
+function getShelterIconAndColor(needs) {
+  // Prioridade: Doações > Serviços > Entregas > Disponível
+  if (needs.donations > 0) return NEED_TYPES.DONATION;
+  if (needs.services > 0) return NEED_TYPES.SERVICE;
+  if (needs.deliveries > 0) return NEED_TYPES.DELIVERY;
+  return NEED_TYPES.AVAILABLE;
+}
+
 // Função escalável para calcular estado baseado no usuário
-function getUserBasedState(location, user, filteredDeliveries) {
+function getUserBasedState(location, user, filteredDeliveries, shelterRequests) {
   // Verificar se há deliveries disponíveis (sem volunteer)
   const availableDeliveries = filteredDeliveries.filter(d => d.status === 'available' && !d.volunteer_id);
   const hasActiveOrder = filteredDeliveries.length > 0;
   const hasAvailableItems = availableDeliveries.length > 0;
   const isCompletelyReserved = hasActiveOrder && !hasAvailableItems;
+  
+  // NOVO: Agregar todas as necessidades do shelter
+  const shelterNeeds = aggregateShelterNeeds(location, shelterRequests, filteredDeliveries);
+  
+  // NOVO: Determinar ícone e cor baseado em necessidades
+  const needType = getShelterIconAndColor(shelterNeeds);
+  
+  // Manter compatibilidade com código existente
+  const activeShelterRequests = shelterNeeds.donationsList;
+  const hasShelterRequests = shelterNeeds.hasDonations;
+  
+  // Debug detalhado para shelter requests
+  if (location.user?.roles?.includes('shelter')) {
+    console.log(`🏠 DEBUG SHELTER - Location ${location.id}:`, {
+      locationUserId: location.user_id,
+      locationUser: location.user,
+      totalShelterRequests: shelterRequests?.length || 0,
+      shelterRequestsData: shelterRequests?.map(r => ({
+        id: r.id,
+        shelter_id: r.shelter_id,
+        status: r.status,
+        matches: r.shelter_id === location.user_id
+      })),
+      activeShelterRequests: activeShelterRequests.length,
+      hasShelterRequests
+    });
+  }
   
   // Verificar se o usuário atual tem reserva neste local
   const userDeliveries = filteredDeliveries.filter(d => d.volunteer_id === user?.id);
@@ -207,8 +319,35 @@ function getUserBasedState(location, user, filteredDeliveries) {
     userDeliveries: userDeliveries.length,
     hasUserReservation,
     hasUserCompletedDelivery,
-    userDeliveryDetails: userDeliveries.map(d => ({ id: d.id, status: d.status, quantity: d.quantity }))
+    hasActiveOrder,
+    hasAvailableItems,
+    isCompletelyReserved,
+    hasShelterRequests,
+    activeShelterRequests: activeShelterRequests.length
   });
+
+  // NOVO: Se tem qualquer necessidade ativa, usar sistema escalável
+  if (shelterNeeds.hasAnyNeeds) {
+    console.log(`${needType.icon} NECESSIDADES ATIVAS - Location ${location.id}:`, {
+      donations: shelterNeeds.donations,
+      services: shelterNeeds.services,
+      deliveries: shelterNeeds.deliveries,
+      total: shelterNeeds.total,
+      needType: needType.label
+    });
+    
+    return {
+      color: needType.color,
+      icon: needType.icon,
+      statusIcon: needType.icon,
+      statusText: `${needType.icon} ${needType.label}`,
+      size: 32,
+      isCompletelyReserved: false,
+      hasAvailableItems: true,
+      hasShelterRequests: shelterNeeds.hasDonations,
+      shelterNeeds: shelterNeeds  // NOVO: passar necessidades agregadas
+    };
+  }
   
   // Retornar estado baseado na prioridade do usuário
   if (hasUserReservation && !hasUserCompletedDelivery) {
@@ -295,6 +434,7 @@ export default function MapView() {
   const [locationsWithStatus, setLocationsWithStatus] = useState([]);
   const [providers, setProviders] = useState([]);
   const [resourceRequests, setResourceRequests] = useState([]);
+  const [shelterRequests, setShelterRequests] = useState([]);
   const [deliveries, setDeliveries] = useState([]);
   const [batches, setBatches] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState(null);
@@ -315,6 +455,8 @@ export default function MapView() {
   const [committedDeliveryData, setCommittedDeliveryData] = useState(null);
   const [showCommitmentModal, setShowCommitmentModal] = useState(false);
   const [selectedLocationForCommitment, setSelectedLocationForCommitment] = useState(null);
+  const [showDonationCommitmentModal, setShowDonationCommitmentModal] = useState(false);
+  const [selectedShelterForDonation, setSelectedShelterForDonation] = useState(null);
   const [confirmationData, setConfirmationData] = useState({
     title: '',
     message: '',
@@ -412,6 +554,15 @@ export default function MapView() {
 
     window.addEventListener('userStateChange', handleUserStateChange);
     
+    // Listener para evento de criação de pedido de abrigo
+    const handleShelterRequestCreated = (event) => {
+      console.log('📋 Pedido de abrigo criado, atualizando mapa:', event.detail);
+      console.log('📋 Shelter requests atuais:', shelterRequests);
+      loadData(); // Recarregar dados do mapa
+    };
+    
+    window.addEventListener('shelterRequestCreated', handleShelterRequestCreated);
+    
     // Listener para evento de atualização do mapa (cancelamento de entregas)
     const handleRefreshMap = () => {
       console.log('🔄 RefreshMap evento recebido - atualizando dados...');
@@ -440,6 +591,7 @@ export default function MapView() {
     // Limpar flags ao desmontar
     return () => {
       window.removeEventListener('userStateChange', handleUserStateChange);
+      window.removeEventListener('shelterRequestCreated', handleShelterRequestCreated);
       window.removeEventListener('refreshMap', handleRefreshMap);
       window.mapViewUpdating = false;
     };
@@ -523,22 +675,48 @@ export default function MapView() {
       }
 
       // Carregar deliveries para shelters (pedidos de marmita)
-      const responseDeliveries = await fetch(`${API_URL}/api/deliveries/`);
-      if (responseDeliveries.ok) {
-        const pedidos = await responseDeliveries.json();
-        console.log('🚚 Deliveries carregados:', pedidos.length);
-        setDeliveries(pedidos);
+      try {
+        const responseDeliveries = await fetch(`${API_URL}/api/deliveries/`);
+        if (responseDeliveries.ok) {
+          const pedidos = await responseDeliveries.json();
+          console.log('🚚 Deliveries carregados:', pedidos.length);
+          setDeliveries(pedidos);
 
-        // Debug: verificar se as deliveries do João estão vindo
-        if (user) {
-          const joaoDeliveries = pedidos.filter(d => d.volunteer_id === user.id);
-          console.log(`🔍 DEBUG - Deliveries do usuário ${user.id}:`, joaoDeliveries.length);
-          joaoDeliveries.forEach(d => {
-            console.log(`  - ID: ${d.id}, Status: ${d.status}, Product: ${d.product_type}`);
-          });
+          // Debug: verificar se as deliveries do João estão vindo
+          if (user) {
+            const joaoDeliveries = pedidos.filter(d => d.volunteer_id === user.id);
+            console.log('🚚 Deliveries do João:', joaoDeliveries.length);
+          }
+        } else {
+          console.error('❌ Erro ao carregar deliveries:', responseDeliveries.status);
+          setDeliveries([]); // Set empty array to prevent crashes
         }
-      } else {
-        console.error('Erro ao carregar deliveries:', responseDeliveries.status);
+      } catch (error) {
+        console.error('❌ Erro ao carregar deliveries:', error);
+        setDeliveries([]); // Set empty array to prevent crashes
+      }
+
+      // Carregar shelter requests (pedidos de doação dos abrigos)
+      // Usar endpoint público se não estiver logado, autenticado se estiver
+      try {
+        let requests = [];
+        if (user) {
+          // Usuário logado - usar endpoint autenticado
+          const responseShelterRequests = await inventory.getRequests();
+          requests = responseShelterRequests.data || [];
+        } else {
+          // Usuário não logado - usar endpoint público
+          const responseShelterRequests = await fetch(`${API_URL}/api/inventory/requests/public`);
+          if (responseShelterRequests.ok) {
+            requests = await responseShelterRequests.json();
+          }
+        }
+        console.log('📋 Shelter requests carregados:', requests.length);
+        console.log('📋 Shelter requests data:', requests);
+        setShelterRequests(requests);
+      } catch (error) {
+        console.error('❌ Erro ao carregar shelter requests:', error);
+        setShelterRequests([]); // Set empty array to prevent crashes
       }
 
       // Carregar lotes de marmitas disponíveis para retirada (agora usando batches)
@@ -787,7 +965,7 @@ export default function MapView() {
           const filteredDeliveries = activeDeliveries;
 
           // Calcular estado baseado no usuário de forma escalável
-          const state = getUserBasedState(location, user, filteredDeliveries);
+          const state = getUserBasedState(location, user, filteredDeliveries, shelterRequests);
           const { color, size, titleColor, statusIcon, statusText } = state;
           
           // Debug log para verificar a cor
@@ -826,9 +1004,41 @@ export default function MapView() {
 
           let productsHtml = '';
           let buttonsHtml = '';
+          
+          // NOVO: Usar sistema escalável de necessidades
+          const needs = state.shelterNeeds || aggregateShelterNeeds(location, shelterRequests, filteredDeliveries);
+          
+          // Badges de resumo (se houver múltiplas necessidades)
+          if (needs.total > 1) {
+            const badges = [];
+            if (needs.donations > 0) badges.push(`🔴 ${needs.donations} Doações`);
+            if (needs.services > 0) badges.push(`🟣 ${needs.services} Serviços`);
+            if (needs.deliveries > 0) badges.push(`🔵 ${needs.deliveries} Entregas`);
+            
+            productsHtml += `
+              <div style="
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+                margin-bottom: 10px;
+              ">
+                ${badges.map(badge => `
+                  <span style="
+                    background: #f3f4f6;
+                    color: #374151;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                    font-weight: 600;
+                  ">${badge}</span>
+                `).join('')}
+              </div>
+            `;
+          }
 
-          if (filteredDeliveries.length > 0) {
-            productsHtml = `
+          // SEÇÃO 1: DOAÇÕES
+          if (needs.donations > 0) {
+            productsHtml += `
               <div style="
                 background: #fef2f2;
                 border: 1px solid #fecaca;
@@ -837,21 +1047,15 @@ export default function MapView() {
                 margin-bottom: 10px;
               ">
                 <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #dc2626;">
-                  Precisa de:
+                  🔴 Doações Necessárias
                 </p>
             `;
 
-            // Mostrar deliveries disponíveis (sem voluntário)
-            const availableDeliveries = filteredDeliveries.filter(d =>
-              d.status === 'available' && !d.volunteer_id
-            );
-
-            availableDeliveries.forEach(delivery => {
-              // Usar categoria do backend diretamente
-              const categoryName = delivery.category?.name || '';
-              const displayName = delivery.category?.display_name || 'Produto';
+            needs.donationsList.forEach(request => {
+              const category = categories.find(c => c.id === request.category_id);
+              const displayName = category?.display_name || 'Produto';
+              const categoryName = category?.name || '';
               
-              // Mapear unidade por categoria
               const categoryToUnitMap = {
                 'agua': 'litros',
                 'alimentos': 'kg',
@@ -861,6 +1065,7 @@ export default function MapView() {
                 'medicamentos': 'unidades'
               };
               const unit = categoryToUnitMap[categoryName] || 'unidades';
+              const quantityNeeded = request.quantity_requested - (request.quantity_received || 0);
               
               productsHtml += `
                 <div style="
@@ -874,45 +1079,122 @@ export default function MapView() {
                     ${displayName}
                   </span>
                   <span style="font-size: 14px; color: #dc2626; font-weight: 600;">
-                    ${delivery.quantity} ${unit}
+                    ${quantityNeeded} ${unit}
                   </span>
                 </div>
               `;
             });
 
-            // Remover última borda
-            productsHtml = productsHtml.replace(/border-bottom: 1px solid #fecaca;<\/div>$/, 'border-bottom: none;</div>');
-
-            // Adicionar botão (apenas se usuário não tiver reserva ativa e houver itens disponíveis)
-            if (!state.hasUserReservation && state.hasAvailableItems) {
-              const locationDeliveries = deliveries.filter(d => d.location_id === location.id && d.status === 'available');
-              if (locationDeliveries.length > 0) {
-                const canCommit = canUserDoDeliveries() && isUserIdle();
-                productsHtml += `
-                  <button 
-                    onclick="window.openSimplifiedCommitment(${location.id})"
-                    style="
-                      background: ${canCommit ? '#10b981' : '#d1d5db'};
+            productsHtml += '</div>';
+          }
+          
+          // SEÇÃO 2: SERVIÇOS (futuro)
+          if (needs.services > 0) {
+            productsHtml += `
+              <div style="
+                background: #faf5ff;
+                border: 1px solid #e9d5ff;
+                border-radius: 6px;
+                padding: 10px;
+                margin-bottom: 10px;
+              ">
+                <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #a855f7;">
+                  🟣 Serviços Necessários
+                </p>
+                ${needs.servicesList.map(service => `
+                  <div style="padding: 6px 0; border-bottom: 1px solid #e9d5ff;">
+                    <span style="font-size: 13px; color: #374151;">${service.service_type}</span>
+                    <span style="font-size: 12px; color: #6b7280;">${service.duration_hours}h</span>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
+          
+          // SEÇÃO 3: ENTREGAS (futuro)
+          if (needs.deliveries > 0) {
+            productsHtml += `
+              <div style="
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+                border-radius: 6px;
+                padding: 10px;
+                margin-bottom: 10px;
+              ">
+                <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #3b82f6;">
+                  🔵 Entregas Disponíveis
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #6b7280;">
+                  ${needs.deliveries} itens aguardando entrega
+                </p>
+              </div>
+            `;
+          }
+          
+          // Botão de ação - sempre mostrar se houver necessidades
+          if (needs.total > 0) {
+            if (!user) {
+              // Usuário NÃO logado - abrir modal de cadastro
+              productsHtml += `
+                <button 
+                  onclick="window.openRegisterFromMap()"
+                  style="
+                    background: #10b981;
                     color: white; 
                     border: none; 
                     padding: 8px 12px; 
                     border-radius: 6px; 
-                    cursor: ${canCommit ? 'pointer' : 'not-allowed'}; 
+                    cursor: pointer; 
                     font-size: 13px; 
                     width: 100%; 
                     margin-top: 8px; 
                     font-weight: 500;
                   "
-                  title="${!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer' : 'Comprometer-se com entregas'}"
                 >
-                  ${!canUserDoDeliveries() ? '🚫 Apenas Voluntários' : '🤝 Ajudar'}
+                  🤝 Quero Ajudar
                 </button>
-                ${!canUserDoDeliveries() || !isUserIdle() ? '<p style="margin: 4px 0 0 0; font-size: 10px; color: #6b7280; font-style: italic;">' + (!canUserDoDeliveries() ? 'Apenas voluntários podem se comprometer' : 'Finalize sua entrega atual para ajudar') + '</p>' : ''}
-                `;
-              }
+                <p style="margin: 4px 0 0 0; font-size: 10px; color: #6b7280; text-align: center; font-style: italic;">
+                  Faça seu cadastro para ajudar
+                </p>
+              `;
+            } else if (user.roles?.includes('volunteer')) {
+              // Usuário logado como VOLUNTÁRIO - abrir sistema de compromisso
+              productsHtml += `
+                <button 
+                  onclick="window.openDonationCommitment(${location.id}, ${location.user_id})"
+                  style="
+                    background: #10b981;
+                    color: white; 
+                    border: none; 
+                    padding: 8px 12px; 
+                    border-radius: 6px; 
+                    cursor: pointer; 
+                    font-size: 13px; 
+                    width: 100%; 
+                    margin-top: 8px; 
+                    font-weight: 500;
+                  "
+                >
+                  🤝 Quero Ajudar
+                </button>
+              `;
+            } else {
+              // Usuário logado mas NÃO é voluntário - mostrar mensagem
+              productsHtml += `
+                <div style="
+                  background: #f3f4f6;
+                  border: 1px solid #d1d5db;
+                  border-radius: 6px;
+                  padding: 8px;
+                  text-align: center;
+                  margin-top: 8px;
+                ">
+                  <p style="margin: 0; font-size: 11px; color: #6b7280; font-style: italic;">
+                    Apenas voluntários podem se comprometer com doações
+                  </p>
+                </div>
+              `;
             }
-
-            productsHtml += '</div>';
           }
 
           marker.bindPopup(`
@@ -933,7 +1215,7 @@ export default function MapView() {
                 color: white;
               ">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 18px;">${statusIcon}</span>
+                  <span style="font-size: 18px;">${statusIcon || (hasShelterRequests ? '🆘' : '🏠')}</span>
                   <div style="flex: 1;">
                     <h3 style="margin: 0; font-size: 16px; font-weight: 600;">
                       ${location.name}
@@ -996,7 +1278,7 @@ export default function MapView() {
                   </div>
                 ` : ''}
                 
-                ${filteredDeliveries.length === 0 ? `
+                ${needs.total === 0 ? `
                   <div style="
                     background: #f0fdf4;
                     border: 1px solid #bbf7d0;
@@ -1005,7 +1287,7 @@ export default function MapView() {
                     text-align: center;
                   ">
                     <p style="margin: 0; font-size: 12px; color: #166534; font-weight: 500;">
-                      Sem necessidades no momento
+                      ✅ Sem necessidades no momento
                     </p>
                   </div>
                 ` : ''}
@@ -1281,6 +1563,35 @@ export default function MapView() {
         setSelectedBatch(batchId);
         setShowModalChooseLocation(true);
       }
+    };
+
+    // Função global para abrir cadastro a partir do mapa (usuários não logados)
+    window.openRegisterFromMap = () => {
+      console.log('📝 Abrindo modal de cadastro a partir do mapa');
+      setShowRegisterModal(true);
+    };
+
+    // Função global para abrir modal de compromisso com doações
+    window.openDonationCommitment = (locationId, shelterId) => {
+      console.log('🤝 Abrindo modal de compromisso com doações', { locationId, shelterId });
+      
+      // Encontrar o shelter e suas necessidades
+      const location = locations.find(l => l.id === locationId);
+      const shelterDonationRequests = shelterRequests.filter(r => 
+        r.shelter_id === shelterId && 
+        ['pending', 'partial', 'active'].includes(r.status)
+      );
+      
+      if (!location || shelterDonationRequests.length === 0) {
+        console.error('❌ Shelter ou necessidades não encontrados');
+        return;
+      }
+      
+      setSelectedShelterForDonation({
+        ...location,
+        donationRequests: shelterDonationRequests
+      });
+      setShowDonationCommitmentModal(true);
     };
 
     window.openSimplifiedCommitment = (locationId) => {
@@ -2580,6 +2891,46 @@ export default function MapView() {
             loadData(); // Recarregar dados para atualizar o mapa
             refreshState(); // Atualizar estado do usuário
             triggerUserStateUpdate(); // Atualizar cores da borda/header
+          }}
+        />
+      )}
+
+      {/* Modal de Compromisso com Doações */}
+      {showDonationCommitmentModal && selectedShelterForDonation && (
+        <DonationCommitmentModal
+          isOpen={showDonationCommitmentModal}
+          onClose={() => {
+            setShowDonationCommitmentModal(false);
+            setSelectedShelterForDonation(null);
+          }}
+          shelter={selectedShelterForDonation}
+          donationRequests={selectedShelterForDonation.donationRequests}
+          categories={categories}
+          onCommit={async (commitmentData) => {
+            console.log('📝 Criando compromisso:', commitmentData);
+            
+            try {
+              // Chamar API real de compromisso
+              const { donations } = await import('../lib/api');
+              const response = await donations.createCommitment({
+                shelter_id: selectedShelterForDonation.user_id,
+                items: commitmentData
+              });
+              
+              console.log('✅ Compromisso criado:', response.data);
+              
+              // Recarregar dados do mapa
+              await loadData();
+              refreshState();
+              
+              return {
+                success: true,
+                code: response.data.code
+              };
+            } catch (error) {
+              console.error('❌ Erro ao criar compromisso:', error);
+              throw error;
+            }
           }}
         />
       )}

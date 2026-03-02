@@ -6,7 +6,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enu
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
-from app.enums import (
+from app.shared.enums import (
     ProductType,
     OrderType,
     OrderStatus,
@@ -150,8 +150,9 @@ class DeliveryLocation(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    # Relationships
-    deliveries = relationship("Delivery", back_populates="location")
+    # Relationships - support both pickup and delivery
+    deliveries_as_pickup = relationship("Delivery", foreign_keys="Delivery.pickup_location_id", back_populates="pickup_location")
+    deliveries_as_destination = relationship("Delivery", foreign_keys="Delivery.delivery_location_id", back_populates="delivery_location")
     owner = relationship("User", foreign_keys=[user_id])
 
 # ============================================================================
@@ -199,20 +200,33 @@ class ProductBatch(Base):
 
 class Delivery(Base):
     """
-    Generic delivery of products from provider to location
-    Can be linked to a batch (traditional flow) or direct commitment (batch_id=None)
+    Generic delivery of products from provider to location OR service provision
+    
+    Supports multiple scenarios:
+    1. Direct donation: volunteer_id buys/has items, delivers to delivery_location_id
+       (pickup_location_id = NULL, batch_id = NULL)
+    
+    2. Logistics: volunteer picks up at pickup_location_id, delivers to delivery_location_id
+       (pickup_location_id = provider/donor location, delivery_location_id = shelter/beneficiary)
+    
+    3. Service provision: volunteer provides service at delivery_location_id
+       (category = service type, status includes IN_PROGRESS, COMPLETED)
     """
     __tablename__ = "deliveries"
     
     id = Column(Integer, primary_key=True, index=True)
     batch_id = Column(Integer, ForeignKey("product_batches.id"), nullable=True)  # Optional - None for direct commitments
-    location_id = Column(Integer, ForeignKey("delivery_locations.id"), nullable=False)
+    
+    # LOGISTICS SUPPORT: Two-location model
+    pickup_location_id = Column(Integer, ForeignKey("delivery_locations.id"), nullable=True)    # Where to pick up (NULL for direct donations)
+    delivery_location_id = Column(Integer, ForeignKey("delivery_locations.id"), nullable=False) # Where to deliver/provide service
+    
     volunteer_id = Column(Integer, ForeignKey("users.id"))
     parent_delivery_id = Column(Integer, ForeignKey("deliveries.id"), nullable=True)  # Reference to original delivery if this was split
     
     # Delivery info
     product_type = Column(Enum(ProductType), nullable=False)  # Mantido para compatibilidade
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)  # Novo sistema
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)  # Novo sistema (products OR services)
     quantity = Column(Integer, nullable=False)
     status = Column(Enum(DeliveryStatus), default=DeliveryStatus.AVAILABLE)
     
@@ -223,12 +237,17 @@ class Delivery(Base):
     pickup_code = Column(String)      # Provider generates, volunteer confirms pickup
     delivery_code = Column(String)    # Generated after pickup, receiver confirms delivery
     
-    # Timestamps
+    # Timestamps for products/logistics
     created_at = Column(DateTime, default=datetime.utcnow)
     accepted_at = Column(DateTime)
     picked_up_at = Column(DateTime)
     delivered_at = Column(DateTime)
     expires_at = Column(DateTime)
+    
+    # SERVICE SUPPORT: Additional timestamps for service provision
+    service_started_at = Column(DateTime, nullable=True)      # When volunteer started providing service
+    service_completed_at = Column(DateTime, nullable=True)    # When service was completed
+    requires_skills = Column(JSON, nullable=True)             # Required skills: ["limpeza", "carpintaria", "eletrica"]
     
     # Optional metadata
     estimated_time = Column(DateTime)
@@ -236,7 +255,8 @@ class Delivery(Base):
     
     # Relationships
     batch = relationship("ProductBatch", back_populates="deliveries")
-    location = relationship("DeliveryLocation", back_populates="deliveries")
+    pickup_location = relationship("DeliveryLocation", foreign_keys=[pickup_location_id])
+    delivery_location = relationship("DeliveryLocation", foreign_keys=[delivery_location_id])
     volunteer = relationship("User", back_populates="deliveries", foreign_keys=[volunteer_id])
     category = relationship("Category", back_populates="deliveries")
 

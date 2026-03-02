@@ -25,7 +25,7 @@ from app.models import (
     ProductType, DeliveryStatus
 )
 from app.auth import get_password_hash
-from app.enums import UserRole
+from app.shared.enums import UserRole
 
 def clear_database(db: Session):
     """Limpa todas as tabelas na ordem correta"""

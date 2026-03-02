@@ -7,8 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import MapView from './pages/MapView';
 import ProviderDashboard from './pages/ProviderDashboard';
 import VolunteerDashboard from './pages/VolunteerDashboard';
-import ShelterDashboard from './pages/ShelterDashboard';
-import ShelterInventoryTest from './pages/ShelterInventoryTest';
+import ShelterDashboard from './pages/ShelterDashboardV2';
 import UnifiedDashboard from './pages/UnifiedDashboard';
 import Admin from './pages/Admin';
 import PerfilFornecedor from './pages/PerfilFornecedor';
@@ -229,8 +228,9 @@ function App() {
             }
           />
           
+          {/* Shelter Dashboard with Inventory Management */}
           <Route
-            path="/dashboard/abrigo"
+            path="/shelter-dashboard-v2"
             element={
               <ProtectedRoute requireRole={UserRole.SHELTER}>
                 <ShelterDashboard />
@@ -239,10 +239,10 @@ function App() {
           />
           
           <Route
-            path="/shelter/inventory"
+            path="/dashboard/abrigo"
             element={
               <ProtectedRoute requireRole={UserRole.SHELTER}>
-                <ShelterInventoryTest />
+                <Navigate to="/shelter-dashboard-v2" replace />
               </ProtectedRoute>
             }
           />

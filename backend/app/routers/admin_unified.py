@@ -16,7 +16,7 @@ from app.models import (
 )
 from app.schemas import UserResponse, DeliveryLocationResponse
 from app.category_schemas import CategoryResponse, CategoryAttributeResponse
-from app.enums import UserRole
+from app.shared.enums import UserRole
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 

@@ -84,7 +84,7 @@ function FilterChip({ icon: Icon, label, active, color, onClick, count }) {
 }
 
 export default function Header({ showFilters = false, onFilterChange, currentFilter, onLoginClick = () => { }, onRegisterClick = () => { }, onOperationStatusChange }) {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { userState, colors, refreshState, activeOperations } = useUserState();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -507,8 +507,8 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                   </button>
                 )}
 
-                {/* Botão Ações — escondido em mobile, visível no desktop (apenas voluntários) */}
-                {user?.roles?.includes('volunteer') && (
+                {/* Botão Ações — escondido em mobile, visível no desktop, apenas para voluntários */}
+                {hasRole('volunteer') && (
                   <button
                     className="actions-desktop-only"
                     onClick={() => setShowActionsModal(!showActionsModal)}
@@ -1186,6 +1186,15 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                       detail: { forceUpdate: true }
                                     }));
                                     setShowActionsModal(false);
+                                    // Recarregar mapa se estiver na página MapView
+                                    window.dispatchEvent(new CustomEvent('refreshMap', {
+                                      detail: { forceUpdate: true }
+                                    }));
+                                    // Forçar limpeza de qualquer overlay residual
+                                    setTimeout(() => {
+                                      document.body.style.overflow = '';
+                                      document.body.classList.remove('modal-open');
+                                    }, 100);
                                   } else {
                                     const err = await response.json();
                                     let errorMsg = 'Erro ao confirmar entrega';
@@ -1569,8 +1578,8 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
         </div>
       )}
 
-      {/* FAB — Ações (somente mobile, apenas voluntários) */}
-      {user?.roles?.includes('volunteer') && (
+      {/* FAB — Ações (somente mobile, apenas para voluntários) */}
+      {hasRole('volunteer') && (
         <button
           className="actions-mobile-fab"
           onClick={() => setShowActionsModal(!showActionsModal)}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Loading Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        iframe { width: 100%; height: 600px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Dashboard Loading Test</h1>
+    <div id="status"></div>
+    
+    <h2>Dashboard Preview:</h2>
+    <iframe id="dashboard" src="http://localhost:3000/shelter-dashboard-v2"></iframe>
+    
+    <script>
+        const status = document.getElementById('status');
+        
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            status.appendChild(div);
+        }
+        
+        addStatus('🚀 Starting dashboard test...', 'info');
+        
+        // Test backend connectivity
+        fetch('http://localhost:8000/api/auth/me')
+            .then(response => {
+                if (response.status === 401) {
+                    addStatus('✅ Backend is running (401 = expected, no auth token)', 'success');
+                } else {
+                    addStatus(`⚠️ Backend returned ${response.status}`, 'error');
+                }
+            })
+            .catch(error => {
+                addStatus(`❌ Backend error: ${error.message}`, 'error');
+            });
+        
+        // Test frontend
+        fetch('http://localhost:3000')
+            .then(response => {
+                if (response.ok) {
+                    addStatus('✅ Frontend is running', 'success');
+                } else {
+                    addStatus(`⚠️ Frontend returned ${response.status}`, 'error');
+                }
+            })
+            .catch(error => {
+                addStatus(`❌ Frontend error: ${error.message}`, 'error');
+            });
+        
+        // Monitor iframe loading
+        const iframe = document.getElementById('dashboard');
+        iframe.onload = function() {
+            addStatus('✅ Dashboard page loaded in iframe', 'success');
+        };
+        
+        iframe.onerror = function() {
+            addStatus('❌ Failed to load dashboard in iframe', 'error');
+        };
+        
+        // Check for console errors after load
+        setTimeout(() => {
+            addStatus('🔍 Test completed - Check iframe for dashboard functionality', 'info');
+            addStatus('📝 Next: Login with test.shelter@inventory.com / test123', 'info');
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -150,8 +150,31 @@ export const dashboard = {
 };
 
 export const categories = {
-  list: (activeOnly = true) => api.get('/categories/', { params: { active_only: activeOnly } }),
-  getById: (id) => api.get(`/categories/${id}/`),
+  list: (activeOnly = true) => api.get('/api/categories/', { params: { active_only: activeOnly } }),
+  getById: (id) => api.get(`/api/categories/${id}/`),
+};
+
+export const inventory = {
+  getDashboard: () => api.get('/api/inventory/dashboard'),
+  getItems: (params) => api.get('/api/inventory/items', { params }),
+  createItem: (data) => api.post('/api/inventory/items', data),
+  updateItem: (id, data) => api.patch(`/api/inventory/items/${id}`, data),
+  getRequests: (params) => api.get('/api/inventory/requests', { params }),
+  createRequest: (data) => api.post('/api/inventory/requests', data),
+  adjustRequest: (id, data) => api.post(`/api/inventory/requests/adjust/${id}`, data),
+  cancelRequest: (id) => api.post(`/api/inventory/requests/${id}/cancel`),
+  distribute: (data) => api.post('/api/inventory/distribute', data),
+  getDistributions: (params) => api.get('/api/inventory/distributions', { params }),
+  updateDistribution: (id, data) => api.patch(`/api/inventory/distributions/${id}`, data),
+  cancelDistribution: (id, reason) => api.post(`/api/inventory/distributions/${id}/cancel`, { reason }),
+  getShelterDeliveries: (params) => api.get('/api/inventory/shelter-deliveries', { params }),
+  createDirectDelivery: (data) => api.post('/api/deliveries/direct', data),
+};
+
+export const donations = {
+  createCommitment: (data) => api.post('/api/donations/commitments', data),
+  cancelCommitment: (deliveryId) => api.delete(`/api/donations/commitments/${deliveryId}`),
+  listMyCommitments: () => api.get('/api/donations/commitments/my'),
 };
 
 // Legacy compatibility layer - maps old names to new generic API

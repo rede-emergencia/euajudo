@@ -8,10 +8,10 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.models import User, ProductBatch
-from app.enums import BatchStatus, ProductType
+from app.shared.enums import BatchStatus, ProductType
 from app.schemas import ProductBatchCreate, ProductBatchResponse
 from app.auth import get_current_active_user, require_approved
-from app.validators import ValidatorFactory
+from app.shared.validators import ProductValidatorManager, ValidatorFactory
 
 router = APIRouter(prefix="/api/batches", tags=["batches"])
 

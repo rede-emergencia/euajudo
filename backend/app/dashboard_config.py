@@ -5,7 +5,7 @@ Defines widget types and dashboard layouts for different user roles
 from typing import Dict, List, Optional, Any
 from enum import Enum
 from dataclasses import dataclass, field
-from app.enums import UserRole
+from app.shared.enums import UserRole
 
 class WidgetType(str, Enum):
     """Types of dashboard widgets"""

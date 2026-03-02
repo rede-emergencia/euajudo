@@ -5,7 +5,7 @@ Garante consistência ACID nas operações de reserva/cancelamento
 
 from sqlalchemy.orm import Session
 from app.models import ResourceRequest, ResourceItem, ResourceReservation, ReservationItem
-from app.enums import OrderStatus
+from app.shared.enums import OrderStatus
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 import logging

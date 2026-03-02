@@ -12,7 +12,7 @@ from app.auth import get_current_user
 from app.models import User, ProductBatch, Delivery, ResourceRequest, ResourceReservation
 from app.schemas import UserResponse
 from app.dashboard_config import get_dashboard_config, get_widget_config, WidgetDataSource
-from app.enums import BatchStatus, DeliveryStatus, OrderStatus, UserRole
+from app.shared.enums import BatchStatus, DeliveryStatus, OrderStatus, UserRole
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -369,7 +369,7 @@ def load_deliveries_data(
         {
             "id": d.id,
             "batch_id": d.batch_id,
-            "location_id": d.location_id,
+            "location_id": d.delivery_location_id,
             "product_type": d.product_type,
             "quantity": d.quantity,
             "status": d.status,
@@ -389,10 +389,10 @@ def load_deliveries_data(
                 } if d.batch.provider else None,
             } if d.batch else None,
             "location": {
-                "id": d.location.id,
-                "name": d.location.name,
-                "address": d.location.address,
-            } if d.location else None,
+                "id": d.delivery_location.id,
+                "name": d.delivery_location.name,
+                "address": d.delivery_location.address,
+            } if d.delivery_location else None,
             "volunteer": {
                 "id": d.volunteer.id,
                 "name": d.volunteer.name,

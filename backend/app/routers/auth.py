@@ -12,7 +12,7 @@ from app.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
     get_current_active_user
 )
-from app.enums import UserRole
+from app.shared.enums import UserRole
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 

@@ -16,7 +16,7 @@ from app.category_schemas import (
     CategoryAttributeResponse
 )
 
-router = APIRouter(prefix="/categories", tags=["categories"])
+router = APIRouter(prefix="/api/categories", tags=["categories"])
 
 # ============================================================================
 # CATEGORY ENDPOINTS
@@ -30,7 +30,7 @@ def list_categories(
 ):
     """
     Lista todas as categorias.
-    Por padrão retorna apenas categorias ativas.
+    Por padrão retorna apenas categorias ativas e inclui atributos.
     """
     query = db.query(Category)
     
@@ -38,6 +38,7 @@ def list_categories(
         query = query.filter(Category.active == True)
     
     categories = query.order_by(Category.sort_order, Category.display_name).all()
+    
     return categories
 
 @router.get("/{category_id}", response_model=CategoryWithHierarchy)

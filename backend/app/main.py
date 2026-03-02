@@ -16,13 +16,21 @@ from app.routers import (
     locations,
     product_config,
     dashboard,
-    cancel,
     categories,
-    admin_unified as admin
+    admin_unified as admin,
+    inventory
 )
+
+# Setup centralized logging
+from app.core.logging_config import setup_logging
+setup_logging(log_level="INFO", log_dir="logs")
 
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# Register event handlers
+from app.core.events import get_event_bus, register_handlers
+register_handlers(get_event_bus())
 
 app = FastAPI(
     title="VouAjudar - Generic Order Management System",
@@ -82,7 +90,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://vouajudar.org", "http://localhost:3000", "http://localhost:5173"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -108,8 +116,12 @@ app.include_router(locations.router)
 app.include_router(admin.router)  # Admin V2 Unificado
 app.include_router(product_config.router)
 app.include_router(dashboard.router)
-app.include_router(cancel.router)
 app.include_router(categories.router)
+app.include_router(inventory.router)
+
+# Import and register donations router
+from .routers import donations
+app.include_router(donations.router)
 
 @app.get("/")
 def read_root():
@@ -269,7 +281,7 @@ def run_seed():
 @app.get("/api/product-types")
 def list_product_types():
     """List supported product types"""
-    from app.enums import ProductType
+    from app.shared.enums import ProductType
     return {
         "product_types": [pt.value for pt in ProductType]
     }
@@ -277,7 +289,7 @@ def list_product_types():
 @app.get("/api/status-types")
 def list_status_types():
     """List available status types"""
-    from app.enums import OrderStatus, DeliveryStatus, BatchStatus
+    from app.shared.enums import OrderStatus, DeliveryStatus, BatchStatus
     return {
         "order_status": [s.value for s in OrderStatus],
         "delivery_status": [s.value for s in DeliveryStatus],

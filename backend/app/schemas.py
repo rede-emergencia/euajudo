@@ -4,7 +4,7 @@ Generic Pydantic schemas for API validation
 from pydantic import BaseModel, EmailStr, Field, validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-from app.enums import (
+from app.shared.enums import (
     ProductType,
     OrderType,
     OrderStatus,
@@ -259,7 +259,7 @@ class DirectDeliveryCreate(BaseModel):
 class DeliveryResponse(BaseModel):
     id: int
     batch_id: Optional[int] = None
-    location_id: int
+    delivery_location_id: int
     volunteer_id: Optional[int] = None
     parent_delivery_id: Optional[int] = None
     product_type: Optional[ProductType] = None
