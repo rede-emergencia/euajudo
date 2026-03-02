@@ -247,9 +247,13 @@ export default function VolunteerDashboard() {
     if (!window.confirm(`Cancelar entrega #${id}?`)) return;
     
     try {
-      const res = await fetch(`/api/deliveries/${id}`, {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${API_URL}/api/deliveries/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}` 
+        }
       });
       
       if (res.ok) {
@@ -275,9 +279,13 @@ export default function VolunteerDashboard() {
 
   const handleCancelarDoacao = async (id) => {
     if (!window.confirm(`Cancelar doação #${id}?`)) return;
-    const res = await fetch(`/api/resource-reservations/${id}/cancel`, {
+    const API_URL = import.meta.env.VITE_API_URL || '';
+    const res = await fetch(`${API_URL}/api/resource-reservations/${id}/cancel`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { 
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}` 
+      }
     });
     if (res.ok) { loadData(); triggerUserStateUpdate(); showAlert('Sucesso', '✅ Doação cancelada!', 'success'); }
     else showAlert('Erro', '❌ Não foi possível cancelar.', 'error');
@@ -291,7 +299,8 @@ export default function VolunteerDashboard() {
 
   const confirmarAcao = async () => {
     if (codigoConfirmacao.length !== 6) { showAlert('Inválido', 'Digite 6 dígitos', 'warning'); return; }
-    const res = await fetch(`/api/deliveries/${selectedDelivery}/confirm`, {
+    const API_URL = import.meta.env.VITE_API_URL || '';
+    const res = await fetch(`${API_URL}/api/deliveries/${selectedDelivery}/confirm`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ delivery_code: codigoConfirmacao })
