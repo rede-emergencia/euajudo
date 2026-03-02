@@ -346,6 +346,23 @@ export default function ShelterDashboard() {
   const { alert, showAlert, closeAlert } = useAlert();
   const { showConfirm, ModalComponent } = useModal();
   
+  // Função reutilizável para tratar erros de autenticação
+  const handleAuthError = (error, customMessage = null) => {
+    console.error('Erro de autenticação:', error);
+    
+    if (error.response?.status === 401 || error.response?.data?.detail?.includes('Could not validate credentials')) {
+      showAlert('Sessão Expirada', 'Sua sessão expirou. Por favor, faça login novamente.', 'error');
+      localStorage.removeItem('token');
+      setTimeout(() => navigate('/login'), 2000);
+      return true; // Indica que foi um erro de auth
+    }
+    
+    if (customMessage) {
+      showAlert('Erro', customMessage, 'error');
+    }
+    return false; // Não foi erro de auth
+  };
+  
   const [tab, setTab] = useState('ativas');
   const [allRequests, setAllRequests] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -388,7 +405,9 @@ export default function ShelterDashboard() {
       );
       setAllRequests(shelterRequests);
     } catch (error) {
-      console.error('Erro ao carregar:', error);
+      if (!handleAuthError(error, 'Não foi possível carregar suas solicitações. Tente novamente.')) {
+        console.error('Erro ao carregar dados:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -529,7 +548,9 @@ export default function ShelterDashboard() {
       setItems([]);
       loadData();
     } catch (error) {
-      showAlert('Erro', error.response?.data?.detail || 'Erro ao criar', 'error');
+      if (!handleAuthError(error, error.response?.data?.detail || 'Erro ao criar solicitação')) {
+        console.error('Erro ao criar solicitação:', error);
+      }
     }
   };
 
@@ -549,8 +570,9 @@ export default function ShelterDashboard() {
           showAlert('Sucesso!', `Solicitação #${id} cancelada com sucesso!\n\nOs itens retornaram para o estoque e estão disponíveis para novos voluntários.`, 'success');
           loadData();
         } catch (error) {
-          const errorMessage = error.response?.data?.detail || error.message || 'Erro ao cancelar solicitação';
-          showAlert('Erro ao Cancelar', `Não foi possível cancelar a solicitação #${id}.\n\n${errorMessage}`, 'error');
+          if (!handleAuthError(error, `Não foi possível cancelar a solicitação #${id}.\n\n${error.response?.data?.detail || error.message || 'Erro ao cancelar solicitação'}`)) {
+            console.error('Erro ao cancelar solicitação:', error);
+          }
         }
       },
       'Sim, cancelar',
