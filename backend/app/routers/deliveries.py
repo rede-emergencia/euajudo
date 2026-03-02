@@ -527,9 +527,40 @@ def cancel_delivery(
                 quantity_returned = delivery.quantity
                 print(f"⚠️ DEBUG CANCEL: Parent not found, just deleting")
         else:
-            # Direct delivery without parent - just delete
-            quantity_returned = delivery.quantity
-            print(f"🗑️ DEBUG CANCEL: Direct delivery, just deleting")
+            # This is a parent delivery that may have split deliveries (partial deliveries)
+            # Check if there are split deliveries (children)
+            child_deliveries = db.query(Delivery).filter(Delivery.parent_delivery_id == delivery_id).all()
+            
+            if child_deliveries:
+                print(f"🔍 DEBUG CANCEL: Parent delivery {delivery_id} has {len(child_deliveries)} split deliveries")
+                print(f"🔍 DEBUG CANCEL: Parent quantity: {delivery.quantity}, Total delivered: {sum(d.quantity for d in child_deliveries)}")
+                
+                # Calculate remaining quantity (parent - already delivered)
+                delivered_quantity = sum(d.quantity for d in child_deliveries)
+                remaining_quantity = delivery.quantity - delivered_quantity
+                
+                if remaining_quantity > 0:
+                    print(f"🔄 DEBUG CANCEL: Returning {remaining_quantity} to batch (undelivered portion)")
+                    # Return only the undelivered portion to batch
+                    if delivery.batch_id:
+                        batch = db.query(ProductBatch).filter(ProductBatch.id == delivery.batch_id).first()
+                        if batch:
+                            batch.quantity_available += remaining_quantity
+                            quantity_returned = remaining_quantity
+                            print(f"🔄 DEBUG CANCEL: Returned {remaining_quantity} to batch {batch.id}")
+                    else:
+                        quantity_returned = remaining_quantity
+                        print(f"🗑️ DEBUG CANCEL: Direct delivery, returning {remaining_quantity}")
+                else:
+                    print(f"✅ DEBUG CANCEL: All items already delivered, nothing to return")
+                    quantity_returned = 0
+                
+                # Delete the parent delivery - children remain as completed deliveries
+                print(f"🗑️ DEBUG CANCEL: Deleting parent delivery {delivery_id} (keeping split deliveries)")
+            else:
+                # No split deliveries - regular direct delivery
+                quantity_returned = delivery.quantity
+                print(f"🗑️ DEBUG CANCEL: Direct delivery with no splits, returning {quantity_returned}")
         
         db.delete(delivery)
         db.commit()
