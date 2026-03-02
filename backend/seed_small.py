@@ -15,6 +15,10 @@ import os
 # Usar DATABASE_URL do environment ou padrão local
 if not os.environ.get("DATABASE_URL"):
     os.environ["DATABASE_URL"] = "sqlite:///./euajudo.db"
+from seed_data import (
+    ADMIN_CREDENTIALS, VOLUNTEERS, SHELTERS, PROVIDERS, 
+    CATEGORIES, print_credentials
+)
 from app.models import (
     User, DeliveryLocation, ProductBatch, Delivery, 
     Category, CategoryAttribute, ResourceRequest, ResourceItem, ResourceReservation, ReservationItem, Order,

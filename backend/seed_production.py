@@ -11,18 +11,14 @@ from sqlalchemy import create_engine, text
 
 # Configurar ambiente para produção
 os.environ["DATABASE_URL"] = "postgresql://euajudo_user:niHQGFxb2EClbnS6Rvq86GDFS6fuexNM@dpg-d6h6fj0gjchc73cidakg-a.oregon-postgres.render.com/euajudo"
-os.environ["ENVIRONMENT"] = "production"
-
-sys.path.append(os.path.join(os.path.dirname(__file__)))
-
-from app.database import Base
-from app.models import (
-    User, DeliveryLocation, ProductBatch, Delivery, 
-    Category, CategoryAttribute, ResourceRequest, ResourceItem, 
-    ResourceReservation, ReservationItem, Order, ProductType, DeliveryStatus
-)
 from app.auth import get_password_hash
 from app.enums import UserRole
+from sqlalchemy.orm import Session
+import random
+from seed_data import (
+    ADMIN_CREDENTIALS, VOLUNTEERS, SHELTERS, PROVIDERS, 
+    CATEGORIES, print_credentials
+)
 
 def clear_database(engine):
     """Limpa todas as tabelas na ordem correta"""
@@ -46,14 +42,15 @@ def clear_database(engine):
                 print(f"  ⚠️ Pulando {table}: {e}")
         conn.commit()
 
-def create_admin_user(db: Session):
-    """Cria usuário admin"""
+def create_admin(db: Session):
+    """Cria admin"""
     print("👑 Criando admin...")
+    
     admin = User(
-        email="admin@vouajudar.org",
-        hashed_password=get_password_hash("admin123"),
-        name="Administrador",
-        phone="11999999999",
+        email=ADMIN_CREDENTIALS["email"],
+        hashed_password=get_password_hash(ADMIN_CREDENTIALS["password"]),
+        name=ADMIN_CREDENTIALS["name"],
+        phone=ADMIN_CREDENTIALS["phone"],
         roles=[UserRole.ADMIN.value],
         city_id=1,
         address="Endereço Admin",
@@ -61,28 +58,13 @@ def create_admin_user(db: Session):
     )
     db.add(admin)
     db.commit()
-    print("✅ Admin criado: admin@vouajudar.org / senha: admin123")
+    print(f"✅ Admin criado: {ADMIN_CREDENTIALS['email']} / senha: {ADMIN_CREDENTIALS['password']}")
 
 def create_volunteers(db: Session):
     """Cria voluntários"""
-    print("🤝 Criando 2 voluntários...")
+    print(f"🤝 Criando {len(VOLUNTEERS)} voluntários...")
     
-    volunteers = [
-        {
-            "email": "joao@vouajudar.org",
-            "password": "joao123",
-            "name": "João Voluntário",
-            "phone": "11888888888"
-        },
-        {
-            "email": "maria@vouajudar.org", 
-            "password": "maria123",
-            "name": "Maria Voluntária",
-            "phone": "11777777777"
-        }
-    ]
-    
-    for vol in volunteers:
+    for vol in VOLUNTEERS:
         user = User(
             email=vol["email"],
             hashed_password=get_password_hash(vol["password"]),
@@ -100,26 +82,9 @@ def create_volunteers(db: Session):
 
 def create_shelters(db: Session):
     """Cria abrigos"""
-    print("🏠 Criando abrigos...")
+    print(f"🏠 Criando {len(SHELTERS)} abrigos...")
     
-    shelters = [
-        {
-            "email": "abrigo.centro@vouajudar.org",
-            "password": "123",
-            "name": "Abrigo Centro de Operações",
-            "phone": "2133335555",
-            "address": "Praça da República, 100 - Centro, Juiz de Fora - MG"
-        },
-        {
-            "email": "abrigo.saosebastiao@vouajudar.org",
-            "password": "123", 
-            "name": "Abrigo São Sebastião",
-            "phone": "2133336666",
-            "address": "Rua São Sebastião, 200 - São Sebastião, Juiz de Fora - MG"
-        }
-    ]
-    
-    for shelter in shelters:
+    for shelter in SHELTERS:
         # Criar usuário
         user = User(
             email=shelter["email"],
@@ -138,11 +103,13 @@ def create_shelters(db: Session):
         location = DeliveryLocation(
             name=shelter["name"],
             address=shelter["address"],
-            latitude=-21.7642 if "centro" in shelter["email"].lower() else -21.7842,
-            longitude=-43.3505 if "centro" in shelter["email"].lower() else -43.3705,
+            latitude=shelter["latitude"],
+            longitude=shelter["longitude"],
             phone=shelter["phone"],
+            contact_person=shelter["contact_person"],
             user_id=user.id,
-            active=True
+            active=True,
+            approved=True
         )
         db.add(location)
         
@@ -152,252 +119,45 @@ def create_shelters(db: Session):
 
 def create_categories(db: Session):
     """Cria categorias essenciais"""
-    print("📦 Criando categorias essenciais para desastres...")
+    print(f"📦 Criando {len(CATEGORIES)} categorias essenciais para desastres...")
     
-    categories_data = [
-        {
-            "name": "agua",
-            "display_name": "Água",
-            "description": "Água para consumo",
-            "icon": "💧",
-            "color": "#2196F3",
-            "sort_order": 1,
-            "attributes": [
-                {
-                    "name": "measurement_unit",
-                    "display_name": "Unidade",
-                    "attribute_type": "select",
-                    "required": True,
-                    "sort_order": 1,
-                    "options": [
-                        {"value": "litros", "label": "Litros"},
-                        {"value": "ml", "label": "Mililitros"}
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "alimentos",
-            "display_name": "Alimentos",
-            "description": "Ingredientes básicos para preparo",
-            "icon": "🥫",
-            "color": "#FF9800",
-            "sort_order": 2,
-            "attributes": [
-                {
-                    "name": "tipo_alimento",
-                    "display_name": "Tipo de Alimento *",
-                    "attribute_type": "select",
-                    "required": True,
-                    "sort_order": 1,
-                    "options": [
-                        {"value": "arroz", "label": "Arroz"},
-                        {"value": "feijao", "label": "Feijão"},
-                        {"value": "macarrao", "label": "Macarrão/Massa"},
-                        {"value": "oleo", "label": "Óleo/Azeite"},
-                        {"value": "sal", "label": "Sal/Açúcar"},
-                        {"value": "farinha", "label": "Farinha"},
-                        {"value": "conservas", "label": "Conservas/Enlatados"},
-                        {"value": "graos", "label": "Grãos/Cereais"},
-                        {"value": "outro", "label": "Outro"}
-                    ]
-                },
-                {
-                    "name": "descricao",
-                    "display_name": "Descrição (opcional)",
-                    "attribute_type": "text",
-                    "required": False,
-                    "sort_order": 2
-                },
-                {
-                    "name": "measurement_unit",
-                    "display_name": "Unidade *",
-                    "attribute_type": "select",
-                    "required": True,
-                    "sort_order": 3,
-                    "options": [
-                        {"value": "kg", "label": "Quilogramas"},
-                        {"value": "unidades", "label": "Unidades"},
-                        {"value": "litros", "label": "Litros"},
-                        {"value": "pacotes", "label": "Pacotes"},
-                        {"value": "sacos", "label": "Sacos"}
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "refeicoes_prontas",
-            "display_name": "Refeições Prontas",
-            "description": "Marmitas e refeições prontas para consumo",
-            "icon": "🍱",
-            "color": "#795548",
-            "sort_order": 3,
-            "attributes": [
-                {
-                    "name": "tipo_refeicao",
-                    "display_name": "Tipo de Refeição *",
-                    "attribute_type": "select",
-                    "required": True,
-                    "sort_order": 1,
-                    "options": [
-                        {"value": "marmita", "label": "Marmita"},
-                        {"value": "sopa", "label": "Sopa"},
-                        {"value": "prato_feito", "label": "Prato Feito"},
-                        {"value": "vegano", "label": "Opção Vegana"},
-                        {"value": "outro", "label": "Outro"}
-                    ]
-                },
-                {
-                    "name": "descricao",
-                    "display_name": "Descrição/Composição *",
-                    "attribute_type": "text",
-                    "required": True,
-                    "sort_order": 2
-                }
-            ]
-        },
-        {
-            "name": "higiene",
-            "display_name": "Higiene",
-            "description": "Itens de higiene",
-            "icon": "🧼",
-            "color": "#4CAF50",
-            "sort_order": 4,
-            "attributes": [
-                {
-                    "name": "tipo",
-                    "display_name": "Tipo",
-                    "attribute_type": "select",
-                    "required": True,
-                    "sort_order": 1,
-                    "options": [
-                        {"value": "sabonete", "label": "Sabonete"},
-                        {"value": "papel", "label": "Papel Higiênico"},
-                        {"value": "outro", "label": "Outro"}
-                    ]
-                },
-                {
-                    "name": "measurement_unit",
-                    "display_name": "Unidade",
-                    "attribute_type": "select",
-                    "required": True,
-                    "sort_order": 2,
-                    "options": [
-                        {"value": "unidades", "label": "Unidades"}
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "roupas",
-            "display_name": "Roupas",
-            "description": "Roupas para doação",
-            "icon": "👕",
-            "color": "#9C27B0",
-            "sort_order": 5,
-            "attributes": [
-                {
-                    "name": "tipo",
-                    "display_name": "Tipo",
-                    "attribute_type": "select",
-                    "required": True,
-                    "sort_order": 1,
-                    "options": [
-                        {"value": "camiseta", "label": "Camiseta"},
-                        {"value": "calca", "label": "Calça"},
-                        {"value": "outro", "label": "Outro"}
-                    ]
-                },
-                {
-                    "name": "tamanho",
-                    "display_name": "Tamanho",
-                    "attribute_type": "select",
-                    "required": False,
-                    "sort_order": 2,
-                    "options": [
-                        {"value": "P", "label": "P"},
-                        {"value": "M", "label": "M"},
-                        {"value": "G", "label": "G"}
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "medicamentos",
-            "display_name": "Medicamentos",
-            "description": "Medicamentos essenciais",
-            "icon": "💊",
-            "color": "#F44336",
-            "sort_order": 6,
-            "attributes": [
-                {
-                    "name": "tipo_medicamento",
-                    "display_name": "Tipo de Medicamento",
-                    "attribute_type": "select",
-                    "required": False,
-                    "sort_order": 1,
-                    "options": [
-                        {"value": "analgesico", "label": "Analgésico"},
-                        {"value": "antibiotico", "label": "Antibiótico"},
-                        {"value": "antiinflamatorio", "label": "Anti-inflamatório"},
-                        {"value": "antifebril", "label": "Antitérmico"},
-                        {"value": "vitamina", "label": "Vitamina/Suplemento"},
-                        {"value": "curativo", "label": "Curativo/Material"},
-                        {"value": "outro", "label": "Outro"}
-                    ]
-                },
-                {
-                    "name": "nome_medicamento",
-                    "display_name": "Nome do Medicamento *",
-                    "attribute_type": "text",
-                    "required": True,
-                    "sort_order": 2
-                },
-                {
-                    "name": "measurement_unit",
-                    "display_name": "Unidade",
-                    "attribute_type": "select",
-                    "required": True,
-                    "sort_order": 3,
-                    "options": [
-                        {"value": "comprimidos", "label": "Comprimidos"},
-                        {"value": "capsulas", "label": "Cápsulas"},
-                        {"value": "ml", "label": "Mililitros (líquido)"},
-                        {"value": "unidades", "label": "Unidades"},
-                        {"value": "caixas", "label": "Caixas"},
-                        {"value": "frascos", "label": "Frascos"}
-                    ]
-                }
-            ]
-        }
-    ]
+    categories_data = CATEGORIES
     
     categories = []
-    
     for cat_data in categories_data:
-        attributes = cat_data.pop("attributes", [])
-        
+        # Criar categoria
         category = Category(
-            active=True,
-            **cat_data
+            name=cat_data["name"],
+            display_name=cat_data["name"],  # Usar name como display_name
+            description=cat_data["description"],
+            icon=cat_data["icon"],
+            color=cat_data["color"],
+            sort_order=len(categories) + 1,
+            active=True
         )
         db.add(category)
         db.flush()  # Para pegar o ID
         
-        # Adicionar atributos
-        for attr_data in attributes:
+        # Criar atributos
+        for i, attr_data in enumerate(cat_data["attributes"]):
             attribute = CategoryAttribute(
-                active=True,
-                **attr_data
+                category_id=category.id,
+                name=attr_data["name"],
+                display_name=attr_data["name"],
+                attribute_type=attr_data["type"],
+                required=attr_data["required"],
+                sort_order=i + 1,
+                min_value=attr_data.get("min_value"),
+                max_value=attr_data.get("max_value"),
+                max_length=attr_data.get("max_length"),
+                options=attr_data.get("options", [])
             )
-            attribute.category_id = category.id
             db.add(attribute)
         
         categories.append(category)
-        print(f"  ✅ Categoria criada: {category.display_name} {category.icon}")
-        print(f"     - {len(attributes)} atributos configurados")
+        print(f"  ✅ Categoria criada: {cat_data['name']} {cat_data['icon']}")
+        print(f"     - {len(cat_data['attributes'])} atributos configurados")
     
-    # Commit para garantir que as categorias sejam salvas
     db.commit()
     return categories
 
