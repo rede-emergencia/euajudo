@@ -9,6 +9,8 @@ import {
 import axios from 'axios';
 import { handlePhoneChange } from '../utils/phoneMask';
 import LocationPicker from '../components/LocationPicker';
+import AddressAutocomplete from '../components/AddressAutocomplete';
+import ImprovedLocationPicker from '../components/ImprovedLocationPicker';
 import { UserRole } from '../shared/enums';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -22,6 +24,7 @@ export default function Admin() {
   const [createStep, setCreateStep] = useState(1); // 1 = localização, 2 = dados do abrigo
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [createSuccess, setCreateSuccess] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
   const [createForm, setCreateForm] = useState({
     name: '',
     email: '',
@@ -41,9 +44,6 @@ export default function Admin() {
     address: ''
   });
   const [updatingLocation, setUpdatingLocation] = useState(false);
-  const [showEditShelterModal, setShowEditShelterModal] = useState(false);
-  const [editingShelterData, setEditingShelterData] = useState(null);
-  const [updatingShelter, setUpdatingShelter] = useState(false);
 
   // Novas abas organizadas profissionalmente
   const tabs = [
@@ -357,66 +357,6 @@ export default function Admin() {
     }
   };
 
-  const openEditShelterModal = (shelter) => {
-    setEditingShelterData({
-      id: shelter.id,
-      name: shelter.name || '',
-      address: shelter.address || '',
-      phone: shelter.phone || '',
-      contact_person: shelter.contact_person || '',
-      capacity: shelter.capacity || '',
-      daily_need: shelter.daily_need || '',
-      operating_hours: shelter.operating_hours || '',
-      active: shelter.active
-    });
-    setShowEditShelterModal(true);
-  };
-
-  const handleUpdateShelter = async (e) => {
-    e.preventDefault();
-    
-    if (!editingShelterData.name || !editingShelterData.address) {
-      alert('Nome e endereço são obrigatórios');
-      return;
-    }
-
-    setUpdatingShelter(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      const updates = {
-        name: editingShelterData.name,
-        address: editingShelterData.address,
-        phone: editingShelterData.phone,
-        contact_person: editingShelterData.contact_person,
-        capacity: editingShelterData.capacity ? parseInt(editingShelterData.capacity) : null,
-        daily_need: editingShelterData.daily_need ? parseInt(editingShelterData.daily_need) : null,
-        operating_hours: editingShelterData.operating_hours,
-        active: editingShelterData.active
-      };
-
-      await axios.patch(
-        `${API_URL}/api/admin/shelters/${editingShelterData.id}`,
-        updates,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      alert('Abrigo atualizado com sucesso!');
-      setShowEditShelterModal(false);
-      setEditingShelterData(null);
-      
-      // Atualizar dados das abas
-      loadData('shelters');
-      loadData('shelters-pending');
-      
-    } catch (error) {
-      console.error('Erro ao atualizar abrigo:', error);
-      alert(error.response?.data?.detail || 'Erro ao atualizar abrigo.');
-    } finally {
-      setUpdatingShelter(false);
-    }
-  };
-
   const handleCreateShelter = async (e) => {
     e.preventDefault();
     
@@ -487,6 +427,7 @@ export default function Admin() {
     });
     setCreateStep(1);
     setSelectedLocation(null);
+    setSelectedAddress(null);
   };
 
   const handleLocationSelected = (location) => {
@@ -629,28 +570,16 @@ export default function Admin() {
                   {item.active ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
                 </button>
                 {isShelterTab && (
-                  <>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditLocationModal(item);
-                      }}
-                      className="p-2 rounded-lg transition-colors bg-blue-100 hover:bg-blue-200 text-blue-700"
-                      title="Editar Localização no Mapa"
-                    >
-                      <MapPin className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditShelterModal(item);
-                      }}
-                      className="p-2 rounded-lg transition-colors bg-purple-100 hover:bg-purple-200 text-purple-700"
-                      title="Editar Dados do Abrigo"
-                    >
-                      <Settings className="h-4 w-4" />
-                    </button>
-                  </>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditLocationModal(item);
+                    }}
+                    className="p-2 rounded-lg transition-colors bg-blue-100 hover:bg-blue-200 text-blue-700"
+                    title="Editar Localização no Mapa"
+                  >
+                    <MapPin className="h-4 w-4" />
+                  </button>
                 )}
               </>
             )}
@@ -903,34 +832,85 @@ export default function Admin() {
 
             {/* Step 1: Seleção de Localização */}
             {createStep === 1 && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    📍 Selecionar Localização do Abrigo
+                    📍 Endereço do Abrigo
                   </h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Clique no mapa ou busque um endereço para selecionar a localização
+                    Digite o CEP ou endereço completo. O sistema buscará automaticamente a localização.
                   </p>
                 </div>
 
-                <LocationPicker
-                  latitude={createForm.latitude}
-                  longitude={createForm.longitude}
-                  address={createForm.address}
-                  onLocationChange={(lat, lng) => {
-                    setCreateForm({ ...createForm, latitude: lat, longitude: lng });
-                  }}
-                  onAddressChange={(addr) => {
-                    setCreateForm({ ...createForm, address: addr });
-                  }}
-                  onLocationSelect={(location) => {
-                    handleLocationSelected(location);
-                  }}
-                />
+                {/* Autocomplete de Endereço */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Endereço Completo *
+                  </label>
+                  <AddressAutocomplete
+                    onAddressSelect={(address) => {
+                      setSelectedAddress(address);
+                      if (address) {
+                        setCreateForm({
+                          ...createForm,
+                          address: address.endereco_completo,
+                          latitude: address.coordenadas?.lat || null,
+                          longitude: address.coordenadas?.lon || null
+                        });
+                      }
+                    }}
+                    initialAddress={createForm.address}
+                  />
+                </div>
+
+                {/* Mapa para confirmação (aparece após selecionar endereço) */}
+                {selectedAddress && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      🗺️ Confirmar Localização
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      A localização foi encontrada automaticamente. Você pode ajustar se necessário.
+                    </p>
+                    
+                    <ImprovedLocationPicker
+                      initialLat={createForm.latitude}
+                      initialLon={createForm.longitude}
+                      onLocationChange={(lat, lng) => {
+                        setCreateForm({ ...createForm, latitude: lat, longitude: lng });
+                      }}
+                      locked={false}
+                      address={selectedAddress}
+                    />
+                  </div>
+                )}
+
+                {/* Botão para avançar */}
+                {selectedAddress && createForm.latitude && createForm.longitude && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => {
+                        setSelectedLocation({
+                          address: createForm.address,
+                          latitude: createForm.latitude,
+                          longitude: createForm.longitude
+                        });
+                        setCreateStep(2);
+                      }}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Avançar para Dados do Abrigo →
+                    </button>
+                  </div>
+                )}
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
-                    💡 <strong>Dica:</strong> Clique no mapa para marcar a localização exata ou use a busca para encontrar um endereço. Após selecionar, você avançará automaticamente para o próximo passo.
+                    💡 <strong>Como funciona:</strong><br/>
+                    1. Digite o CEP para busca rápida e precisa<br/>
+                    2. Ou digite o endereço completo<br/>
+                    3. Confirme a localização no mapa<br/>
+                    4. Ajuste se necessário e avance
                   </p>
                 </div>
               </div>
@@ -946,9 +926,19 @@ export default function Admin() {
                     <span className="font-medium">Localização selecionada:</span>
                   </div>
                   <div className="mt-1 text-sm text-blue-700">
-                    <p>📍 {selectedLocation.address || 'Endereço não informado'}</p>
-                    <p>🌐 {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}</p>
+                    <p>📍 {selectedAddress?.endereco_completo || createForm.address || 'Endereço não informado'}</p>
+                    <p>🌐 {createForm.latitude?.toFixed(6)}, {createForm.longitude?.toFixed(6)}</p>
+                    {selectedAddress?.cep && (
+                      <p>📮 CEP: {selectedAddress.cep}</p>
+                    )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleBackToLocation}
+                    className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    ← Alterar localização
+                  </button>
                 </div>
 
                 {/* Campos do formulário */}
@@ -1058,138 +1048,6 @@ export default function Admin() {
                 </p>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Editar Abrigo (Dados Completos) */}
-      {showEditShelterModal && editingShelterData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-4 px-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[95vh] overflow-y-auto my-4">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  ⚙️ Editar Abrigo: {editingShelterData.name}
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  ID: {editingShelterData.id}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEditShelterModal(false);
-                  setEditingShelterData(null);
-                }}
-                className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Cancelar edição"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdateShelter} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome do Abrigo *
-                  </label>
-                  <input
-                    type="text"
-                    value={editingShelterData.name}
-                    onChange={(e) => setEditingShelterData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Pessoa de Contato
-                  </label>
-                  <input
-                    type="text"
-                    value={editingShelterData.contact_person}
-                    onChange={(e) => setEditingShelterData(prev => ({ ...prev, contact_person: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Endereço *
-                </label>
-                <textarea
-                  value={editingShelterData.address}
-                  onChange={(e) => setEditingShelterData(prev => ({ ...prev, address: e.target.value }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Telefone
-                  </label>
-                  <input
-                    type="tel"
-                    value={editingShelterData.phone}
-                    onChange={(e) => setEditingShelterData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Capacidade
-                  </label>
-                  <input
-                    type="number"
-                    value={editingShelterData.capacity}
-                    onChange={(e) => setEditingShelterData(prev => ({ ...prev, capacity: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Número de pessoas"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="active"
-                  checked={editingShelterData.active}
-                  onChange={(e) => setEditingShelterData(prev => ({ ...prev, active: e.target.checked }))}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="active" className="text-sm font-medium text-gray-700">
-                  Abrigo Ativo
-                </label>
-                <span className="text-xs text-gray-500">
-                  (Abrigos inativos não aparecem no mapa)
-                </span>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowEditShelterModal(false);
-                    setEditingShelterData(null);
-                  }}
-                  className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={updatingShelter}
-                  className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {updatingShelter ? 'Salvando...' : 'Salvar Alterações'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
