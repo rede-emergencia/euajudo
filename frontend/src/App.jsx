@@ -13,6 +13,7 @@ import Admin from './pages/Admin';
 import PerfilFornecedor from './pages/PerfilFornecedor';
 import Perfil from './pages/Perfil';
 import MinhasEntregas from './pages/MinhasEntregas';
+import NotFound from './pages/NotFound';
 import { UserRole } from './shared/enums';
 
 // Adicionar estilos globais para garantir que a borda seja visível
@@ -236,7 +237,7 @@ function App() {
             }
           />
           
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
           </div>
         </UserStateProvider>

@@ -4,7 +4,6 @@ import { auth as authApi } from '../lib/api';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  console.log('🚀 AuthProvider: Inicializando AuthContext');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,9 +33,17 @@ export function AuthProvider({ children }) {
         })
         .catch((error) => {
           console.log('❌ AuthContext: API error, clearing auth:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setUser(null);
+          
+          // Se for erro de autenticação (401/403), limpar tudo
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            console.log('🔐 AuthContext: Token expired or invalid, clearing auth');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+          } else {
+            // Para outros erros, manter o usuário do localStorage
+            console.log('⚠️ AuthContext: API error but keeping user from localStorage');
+          }
         })
         .finally(() => {
           console.log('🔍 AuthContext: Loading finished');
