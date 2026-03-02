@@ -196,6 +196,8 @@ export default function VolunteerDashboard() {
   const [showCodigoModal, setShowCodigoModal] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [codigoConfirmacao, setCodigoConfirmacao] = useState('');
+  const [showSuccessCard, setShowSuccessCard] = useState(false);
+  const [lastDeliveryInfo, setLastDeliveryInfo] = useState(null);
   const { alert, showAlert, closeAlert } = useAlert();
 
   const triggerUserStateUpdate = () =>
@@ -300,15 +302,41 @@ export default function VolunteerDashboard() {
   const confirmarAcao = async () => {
     if (codigoConfirmacao.length !== 6) { showAlert('Inválido', 'Digite 6 dígitos', 'warning'); return; }
     const API_URL = import.meta.env.VITE_API_URL || '';
-    const res = await fetch(`${API_URL}/api/deliveries/${selectedDelivery}/confirm`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ delivery_code: codigoConfirmacao })
-    });
-    if (res.ok) {
-      showAlert('Sucesso', '✅ Entrega confirmada!', 'success');
-      setShowCodigoModal(false); loadData(); triggerUserStateUpdate();
-    } else showAlert('Erro', '❌ Código inválido.', 'error');
+    
+    try {
+      const res = await fetch(`${API_URL}/api/deliveries/${selectedDelivery}/confirm`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delivery_code: codigoConfirmacao })
+      });
+      
+      if (res.ok) {
+        // Buscar informações da entrega para mostrar no card
+        const deliveryData = myDeliveries.find(d => d.id === selectedDelivery);
+        
+        setLastDeliveryInfo({
+          productType: deliveryData?.product_type || 'itens',
+          quantity: deliveryData?.quantity || 0,
+          location: deliveryData?.location?.name || 'Abrigo',
+          deliveredAt: new Date().toLocaleString('pt-BR')
+        });
+        
+        setShowSuccessCard(true);
+        setShowCodigoModal(false);
+        loadData();
+        triggerUserStateUpdate();
+        
+        // Fechar o card após 5 segundos
+        setTimeout(() => {
+          setShowSuccessCard(false);
+        }, 5000);
+        
+      } else {
+        showAlert('Erro', '❌ Código inválido.', 'error');
+      }
+    } catch (error) {
+      showAlert('Erro', '❌ Erro ao confirmar entrega.', 'error');
+    }
   };
 
   const activeCount = tab === 'entregas' ? myDeliveries.length : myDonations.length;
@@ -469,6 +497,119 @@ export default function VolunteerDashboard() {
           </div>
         </div>
       )}
+
+      {/* Card de Sucesso - Entrega Confirmada */}
+      {showSuccessCard && lastDeliveryInfo && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)',
+            zIndex: 10000,
+            maxWidth: '350px',
+            animation: 'slideInRight 0.5s ease-out',
+          }}
+        >
+          {/* Botão fechar */}
+          <button
+            onClick={() => setShowSuccessCard(false)}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              borderRadius: '8px',
+              width: '28px',
+              height: '28px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X size={14} color="white" />
+          </button>
+
+          {/* Ícone de sucesso */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '12px',
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              background: 'rgba(255,255,255,0.2)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Check size={24} color="white" />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>
+                Entrega Realizada!
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '13px', opacity: 0.9 }}>
+                {lastDeliveryInfo.deliveredAt}
+              </p>
+            </div>
+          </div>
+
+          {/* Detalhes da entrega */}
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '12px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '13px', opacity: 0.9 }}>Itens entregues:</span>
+              <span style={{ fontSize: '14px', fontWeight: '700' }}>
+                {lastDeliveryInfo.quantity} {lastDeliveryInfo.productType}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '13px', opacity: 0.9 }}>Local:</span>
+              <span style={{ fontSize: '14px', fontWeight: '700' }}>
+                {lastDeliveryInfo.location}
+              </span>
+            </div>
+          </div>
+
+          {/* Mensagem de agradecimento */}
+          <div style={{
+            textAlign: 'center',
+            fontSize: '13px',
+            fontWeight: '600',
+            opacity: 0.95,
+          }}>
+            🎉 Obrigado pela sua solidariedade!
+          </div>
+        </div>
+      )}
+
+      {/* Animação CSS */}
+      <style jsx>{`
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
 
       <AlertModal show={alert.show} onClose={closeAlert} title={alert.title} message={alert.message} type={alert.type} />
     </>
