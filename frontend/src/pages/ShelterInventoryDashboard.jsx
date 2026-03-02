@@ -595,14 +595,18 @@ export default function ShelterInventoryDashboard() {
         margin: '0 auto',
         padding: '24px',
         minHeight: '100vh',
-        background: '#f9fafb'
+        background: '#f9fafb',
+        position: 'relative',
+        zIndex: 1
       }}>
         {/* Header */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '24px'
+          marginBottom: '24px',
+          position: 'relative',
+          zIndex: 1
         }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', color: '#111' }}>
@@ -626,7 +630,9 @@ export default function ShelterInventoryDashboard() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+              position: 'relative',
+              zIndex: 1001
             }}
           >
             <Plus size={18} /> Adicionar Item
