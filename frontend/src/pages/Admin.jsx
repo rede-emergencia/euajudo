@@ -12,10 +12,12 @@ import LocationPicker from '../components/LocationPicker';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import ImprovedLocationPicker from '../components/ImprovedLocationPicker';
 import { UserRole } from '../shared/enums';
+import useModal from '../hooks/useModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function Admin() {
+  const { showSuccess, showError, showWarning, showConfirm, ModalComponent } = useModal();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(false);
@@ -132,7 +134,7 @@ export default function Admin() {
       setData(prev => ({ ...prev, [tabId]: response.data }));
     } catch (error) {
       console.error(`Erro ao carregar ${tab.label}:`, error);
-      alert(error.response?.data?.detail || `Erro ao carregar ${tab.label}`);
+      showError('Erro ao Carregar', error.response?.data?.detail || `Erro ao carregar ${tab.label}`);
     } finally {
       setLoading(false);
     }
@@ -165,10 +167,10 @@ export default function Admin() {
       updateTabData('users');
       updateTabData('users-pending');
       
-      alert(`Usuário ${!currentStatus ? 'aprovado' : 'desaprovado'} com sucesso!`);
+      showSuccess('Sucesso!', `Usuário ${!currentStatus ? 'aprovado' : 'desaprovado'} com sucesso!`);
     } catch (error) {
       console.error('Erro ao alterar aprovação:', error);
-      alert('Erro ao alterar aprovação do usuário.');
+      showError('Erro', 'Erro ao alterar aprovação do usuário.');
     }
   };
 
@@ -200,11 +202,11 @@ export default function Admin() {
       updateShelterTabData('shelters');
       updateShelterTabData('shelters-pending');
       
-      alert(`Abrigo ${!currentStatus ? 'aprovado' : 'rejeitado'} com sucesso!`);
+      showSuccess('Sucesso!', `Abrigo ${!currentStatus ? 'aprovado' : 'rejeitado'} com sucesso!`);
     } catch (error) {
       console.error('❌ Erro ao alterar aprovação do abrigo:', error);
       console.error('Detalhes:', error.response?.data);
-      alert('Erro ao alterar aprovação do abrigo: ' + (error.response?.data?.detail || error.message));
+      showError('Erro ao Alterar Aprovação', 'Erro ao alterar aprovação do abrigo: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -234,10 +236,10 @@ export default function Admin() {
       updateTabData('shelters');
       updateTabData('shelters-pending');
       
-      alert(`Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`);
+      showSuccess('Sucesso!', `Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`);
     } catch (error) {
       console.error('Erro ao alterar status:', error);
-      alert('Erro ao alterar status do usuário.');
+      showError('Erro', 'Erro ao alterar status do usuário.');
     }
   };
 
@@ -263,10 +265,10 @@ export default function Admin() {
       updateLocationTabData('locations');
       updateLocationTabData('locations-pending');
       
-      alert(`Local ${!currentStatus ? 'aprovado' : 'desaprovado'} com sucesso!`);
+      showSuccess('Sucesso!', `Local ${!currentStatus ? 'aprovado' : 'desaprovado'} com sucesso!`);
     } catch (error) {
       console.error('Erro ao alterar aprovação do local:', error);
-      alert('Erro ao alterar aprovação do local.');
+      showError('Erro', 'Erro ao alterar aprovação do local.');
     }
   };
 
@@ -298,11 +300,11 @@ export default function Admin() {
       updateLocationTabData('shelters');
       updateLocationTabData('shelters-pending');
       
-      alert(`Local ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`);
+      showSuccess('Sucesso!', `Local ${!currentStatus ? 'ativado' : 'desativado'} com sucesso!`);
     } catch (error) {
       console.error('❌ Erro ao alterar status do local:', error);
       console.error('Detalhes:', error.response?.data);
-      alert('Erro ao alterar status do local: ' + (error.response?.data?.detail || error.message));
+      showError('Erro ao Alterar Status', 'Erro ao alterar status do local: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -320,7 +322,7 @@ export default function Admin() {
     e.preventDefault();
     
     if (!editLocationForm.latitude || !editLocationForm.longitude) {
-      alert('Selecione a localização do abrigo no mapa');
+      showWarning('Localização Necessária', 'Selecione a localização do abrigo no mapa');
       return;
     }
 
@@ -340,7 +342,7 @@ export default function Admin() {
         }
       );
 
-      alert('Localização atualizada com sucesso!');
+      showSuccess('Sucesso!', 'Localização atualizada com sucesso!');
       setShowEditLocationModal(false);
       
       // Recarregar dados das abas relevantes
@@ -351,7 +353,7 @@ export default function Admin() {
       
     } catch (error) {
       console.error('Erro ao atualizar localização:', error);
-      alert(error.response?.data?.detail || 'Erro ao atualizar localização.');
+      showError('Erro ao Atualizar', error.response?.data?.detail || 'Erro ao atualizar localização.');
     } finally {
       setUpdatingLocation(false);
     }
@@ -361,17 +363,17 @@ export default function Admin() {
     e.preventDefault();
     
     if (!createForm.name || !createForm.email || !createForm.password) {
-      alert('Preencha todos os campos obrigatórios');
+      showWarning('Campos Obrigatórios', 'Preencha todos os campos obrigatórios');
       return;
     }
 
     if (!createForm.latitude || !createForm.longitude) {
-      alert('Selecione a localização do abrigo no mapa');
+      showWarning('Localização Necessária', 'Selecione a localização do abrigo no mapa');
       return;
     }
 
     if (createForm.password !== createForm.confirmPassword) {
-      alert('As senhas não coincidem');
+      showWarning('Senhas Diferentes', 'As senhas não coincidem');
       return;
     }
 
@@ -398,7 +400,7 @@ export default function Admin() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      alert('Abrigo criado com sucesso! Aguarde aprovação.');
+      showSuccess('Abrigo Criado!', 'Abrigo criado com sucesso! Aguarde aprovação.');
       setCreateSuccess(true);
       setTimeout(() => setCreateSuccess(false), 3000);
       setShowCreateModal(false);
@@ -408,7 +410,7 @@ export default function Admin() {
       
     } catch (error) {
       console.error('Erro ao criar abrigo:', error);
-      alert(error.response?.data?.detail || 'Erro ao criar abrigo.');
+      showError('Erro ao Criar', error.response?.data?.detail || 'Erro ao criar abrigo.');
     } finally {
       setCreatingShelter(false);
     }
@@ -1051,6 +1053,9 @@ export default function Admin() {
           </div>
         </div>
       )}
+      
+      {/* Modal Component - Renderiza todos os modais */}
+      {ModalComponent}
     </div>
   );
 }

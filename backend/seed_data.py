@@ -6,7 +6,7 @@ Centraliza todas as credenciais e informações para manter consistência
 # Credenciais universais (mesmas para todos os seeds)
 ADMIN_CREDENTIALS = {
     "email": "admin@vouajudar.org",
-    "password": "admin123",
+    "password": "123",
     "name": "Administrador Eu Ajudo",
     "phone": "32999999999"
 }
@@ -14,13 +14,13 @@ ADMIN_CREDENTIALS = {
 VOLUNTEERS = [
     {
         "email": "joao@vouajudar.org",
-        "password": "joao123",
+        "password": "123",
         "name": "João Voluntário",
         "phone": "32988887777"
     },
     {
         "email": "maria@vouajudar.org", 
-        "password": "maria123",
+        "password": "123",
         "name": "Maria Voluntária",
         "phone": "32977776666"
     }
@@ -29,7 +29,7 @@ VOLUNTEERS = [
 SHELTERS = [
     {
         "email": "abrigo.centro@vouajudar.org",
-        "password": "centro123",
+        "password": "123",
         "name": "Abrigo Centro de Operações",
         "phone": "32955554444",
         "address": "Praça da República, 100 - Centro, Juiz de Fora - MG",
@@ -39,7 +39,7 @@ SHELTERS = [
     },
     {
         "email": "abrigo.saosebastiao@vouajudar.org",
-        "password": "saosebastiao123",
+        "password": "123",
         "name": "Abrigo São Sebastião", 
         "phone": "32966665555",
         "address": "Rua São Sebastião, 200 - São Sebastião, Juiz de Fora - MG",
@@ -52,7 +52,7 @@ SHELTERS = [
 PROVIDERS = [
     {
         "email": "cozinha.solidaria@vouajudar.org",
-        "password": "cozinha123",
+        "password": "123",
         "name": "Cozinha Solidária",
         "phone": "32944443333",
         "address": "Avenida Brasil, 500 - Centro, Juiz de Fora - MG",
@@ -63,7 +63,7 @@ PROVIDERS = [
     },
     {
         "email": "restaurante.comunitario@vouajudar.org",
-        "password": "restaurante123",
+        "password": "123",
         "name": "Restaurante Comunitário",
         "phone": "32933332222", 
         "address": "Rua Rio de Janeiro, 300 - Floresta, Juiz de Fora - MG",

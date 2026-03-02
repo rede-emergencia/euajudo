@@ -63,7 +63,7 @@ def create_admin(db: Session):
     admin = User(
         name="Admin Sistema",
         email="admin@vouajudar.org",
-        hashed_password=get_password_hash("admin123"),
+        hashed_password=get_password_hash("123"),
         roles="admin",
         phone="21999999999",
         active=True,
@@ -72,7 +72,7 @@ def create_admin(db: Session):
     db.add(admin)
     db.commit()
     
-    print(f"✅ Admin criado: {admin.email} / senha: admin123")
+    print(f"✅ Admin criado: {admin.email} / senha: 123")
     return admin
 
 def create_volunteers(db: Session, count: int = 2):
@@ -83,14 +83,14 @@ def create_volunteers(db: Session, count: int = 2):
         {
             "name": "João Silva",
             "email": "joao@vouajudar.org",
-            "password": "joao123",
+            "password": "123",
             "phone": "21988887777",
             "vehicle": "Moto"
         },
         {
             "name": "Maria Santos",
             "email": "maria@vouajudar.org", 
-            "password": "maria123",
+            "password": "123",
             "phone": "21988886666",
             "vehicle": "Carro"
         }
@@ -123,7 +123,7 @@ def create_shelters(db: Session):
         {
             "name": "Abrigo Centro de Operações",
             "email": "abrigo.centro@vouajudar.org",
-            "password": "123456",
+            "password": "123",
             "phone": "2133335555",
             "address": "Praça da República, 100 - Centro, Juiz de Fora - MG",
             "latitude": -21.7642,
@@ -136,7 +136,7 @@ def create_shelters(db: Session):
         {
             "name": "Abrigo São Sebastião",
             "email": "abrigo.saosebastiao@vouajudar.org",
-            "password": "saosebastiao123",
+            "password": "123",
             "phone": "2133336666",
             "address": "Rua São Sebastião, 200 - São Sebastião, Juiz de Fora - MG",
             "latitude": -21.7842,
