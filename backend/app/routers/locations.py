@@ -57,7 +57,7 @@ def create_location(
     repo.refresh(new_location)
     return new_location
 
-@router.get("/debug-locations", response_model=List[dict])
+@router.get("/debug-info", response_model=List[dict])
 def debug_locations(
     db: Session = Depends(get_db)
 ):
