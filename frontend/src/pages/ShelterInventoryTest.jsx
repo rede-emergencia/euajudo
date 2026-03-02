@@ -27,9 +27,7 @@ export default function ShelterInventoryTest() {
       const token = localStorage.getItem('token');
       
       // Carregar dashboard
-      const dashboardResponse = await axios.get(`${API_URL}/api/shelter/inventory/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const dashboardResponse = await axios.get(`${API_URL}/api/shelter/inventory/dashboard-test`);
       
       // Carregar categorias
       const categoriesResponse = await axios.get(`${API_URL}/api/categories`, {

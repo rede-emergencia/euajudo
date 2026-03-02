@@ -31,6 +31,16 @@ router = APIRouter(prefix="/api/shelter/inventory", tags=["Shelter Inventory"])
 
 
 # ============================================================================
+# DEBUG ENDPOINT (TEMPORÁRIO - SEM AUTENTICAÇÃO)
+# ============================================================================
+
+@router.get("/test")
+def test_endpoint():
+    """Endpoint de teste para debug"""
+    return {"message": "Router está funcionando!", "timestamp": datetime.utcnow()}
+
+
+# ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
 
@@ -428,6 +438,21 @@ def get_item_movements(
 # ============================================================================
 # DASHBOARD & METRICS
 # ============================================================================
+
+@router.get("/dashboard-test")
+def get_dashboard_test(db: Session = Depends(get_db)):
+    """Endpoint de dashboard temporário sem autenticação"""
+    return {
+        "metrics": {
+            "total_items": 0,
+            "critical_items": 0,
+            "items_in_transit": 0,
+            "received_today": 0
+        },
+        "items": [],
+        "category_summary": [],
+        "recent_movements": []
+    }
 
 @router.get("/dashboard", response_model=InventoryDashboard)
 def get_dashboard(
