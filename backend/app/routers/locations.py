@@ -31,28 +31,6 @@ def list_locations(
     
     return repo.filter_by(**filters)
 
-@router.get("/debug-locations", response_model=List[dict])
-def debug_locations(
-    db: Session = Depends(get_db)
-):
-    """Debug endpoint para verificar status de todos os abrigos"""
-    locations = db.query(DeliveryLocation).all()
-    
-    debug_info = []
-    for loc in locations:
-        debug_info.append({
-            "id": loc.id,
-            "name": loc.name,
-            "active": loc.active,
-            "approved": loc.approved,
-            "latitude": loc.latitude,
-            "longitude": loc.longitude,
-            "user_id": loc.user_id,
-            "should_appear_on_map": loc.active and loc.approved and loc.latitude and loc.longitude
-        })
-    
-    return debug_info
-
 @router.post("/", response_model=DeliveryLocationResponse, status_code=201)
 def create_location(
     location: DeliveryLocationCreate,
@@ -78,6 +56,28 @@ def create_location(
     repo.commit()
     repo.refresh(new_location)
     return new_location
+
+@router.get("/debug-locations", response_model=List[dict])
+def debug_locations(
+    db: Session = Depends(get_db)
+):
+    """Debug endpoint para verificar status de todos os abrigos"""
+    locations = db.query(DeliveryLocation).all()
+    
+    debug_info = []
+    for loc in locations:
+        debug_info.append({
+            "id": loc.id,
+            "name": loc.name,
+            "active": loc.active,
+            "approved": loc.approved,
+            "latitude": loc.latitude,
+            "longitude": loc.longitude,
+            "user_id": loc.user_id,
+            "should_appear_on_map": loc.active and loc.approved and loc.latitude and loc.longitude
+        })
+    
+    return debug_info
 
 @router.get("/{location_id}", response_model=DeliveryLocationResponse)
 def get_location(location_id: int, db: Session = Depends(get_db)):
