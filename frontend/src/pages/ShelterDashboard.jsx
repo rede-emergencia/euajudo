@@ -556,6 +556,80 @@ export default function ShelterDashboard() {
 
   const displayed = tab === 'ativas' ? activeRequests : historyRequests;
 
+  // Função para renderizar status do histórico
+  const renderHistoryStatus = (request) => {
+    if (request.status === DeliveryStatus.DELIVERED) {
+      return (
+        <div style={{
+          background: '#f0fdf4', borderRadius: '8px', padding: '12px',
+          border: '2px solid #86efac', marginBottom: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Check size={20} color="#22c55e" />
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', color: '#166534', fontWeight: '700' }}>
+                Entrega Realizada com Sucesso
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#15803d' }}>
+                {request.delivered_at ? new Date(request.delivered_at).toLocaleDateString('pt-BR', { 
+                  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                }) : 'Data não disponível'}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    if (request.status === DeliveryStatus.CANCELLED) {
+      return (
+        <div style={{
+          background: '#fef2f2', borderRadius: '8px', padding: '12px',
+          border: '2px solid #fecaca', marginBottom: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <X size={20} color="#ef4444" />
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', color: '#991b1b', fontWeight: '700' }}>
+                Solicitação Cancelada
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#b91c1c' }}>
+                {request.cancelled_at ? new Date(request.cancelled_at).toLocaleDateString('pt-BR', { 
+                  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                }) : 'Data não disponível'}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    if (request.status === DeliveryStatus.EXPIRED) {
+      return (
+        <div style={{
+          background: '#fefce8', borderRadius: '8px', padding: '12px',
+          border: '2px solid #fde047', marginBottom: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Clock size={20} color="#ca8a04" />
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', color: '#713f12', fontWeight: '700' }}>
+                Solicitação Expirada
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#a16207' }}>
+                {request.expired_at ? new Date(request.expired_at).toLocaleDateString('pt-BR', { 
+                  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+                }) : 'Prazo encerrado sem voluntário'}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
   return (
     <>
       <Header />
@@ -731,16 +805,35 @@ export default function ShelterDashboard() {
             ) : (
               <div style={{ textAlign: 'center', padding: '48px 24px' }}>
                 <div style={{
-                  width: '64px', height: '64px', borderRadius: '16px',
-                  background: '#f9fafb', border: '2px solid #e5e7eb',
+                  width: '80px', height: '80px', borderRadius: '20px',
+                  background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)',
+                  border: '2px solid #e5e7eb',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 16px',
                 }}>
-                  <Clock size={32} color="#9ca3af" />
+                  <Clock size={40} color="#9ca3af" />
                 </div>
-                <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#6b7280' }}>
+                <p style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '800', color: '#111' }}>
                   Nenhuma solicitação no histórico
                 </p>
+                <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#6b7280', lineHeight: 1.6 }}>
+                  Suas solicitações concluídas (entregues ou canceladas)<br/>
+                  aparecerão aqui para consulta
+                </p>
+                <button
+                  onClick={() => setTab('ativas')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '8px',
+                    padding: '12px 24px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                    color: 'white',
+                    border: 'none', borderRadius: '12px',
+                    fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)',
+                  }}
+                >
+                  <Home size={18} /> Ver Solicitações Ativas
+                </button>
               </div>
             )
           ) : (
@@ -772,6 +865,9 @@ export default function ShelterDashboard() {
                       </div>
                       <Badge status={r.status} />
                     </div>
+
+                    {/* Status do histórico - apenas para aba de histórico */}
+                    {tab === 'historico' && renderHistoryStatus(r)}
 
                     <div style={{ 
                       display: 'flex', alignItems: 'center', gap: '12px',
