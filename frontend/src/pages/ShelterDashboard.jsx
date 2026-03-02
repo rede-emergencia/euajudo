@@ -562,9 +562,12 @@ export default function ShelterDashboard() {
 
       <div style={{
         paddingTop: '72px',
-        minHeight: '100dvh',
+        minHeight: '100vh',
+        height: '100vh',
+        overflowY: 'auto',
         background: '#f9fafb',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: '"Plus Jakarta Sans", sans-serif',
+        WebkitOverflowScrolling: 'touch' /* Melhor scroll em iOS */
       }}>
         <div style={{ maxWidth: '520px', margin: '0 auto', padding: '20px 16px 100px' }}>
 
