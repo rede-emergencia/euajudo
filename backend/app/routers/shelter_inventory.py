@@ -9,7 +9,8 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 
 from app.database import get_db
-from app.models import ShelterInventoryItem, InventoryMovement, User, Category, Delivery
+from app.models import ShelterInventoryItem, InventoryMovement, User, Category, Delivery, Location
+from app.enums import DeliveryStatus
 from app.schemas_inventory import (
     ShelterInventoryItemCreate,
     ShelterInventoryItemUpdate,
@@ -541,4 +542,214 @@ def get_dashboard(
         "items": enriched_items,
         "category_summary": category_summary,
         "recent_movements": enriched_movements
+    }
+
+
+# ============================================================================
+# DELIVERIES (Entregas do Abrigo)
+# ============================================================================
+
+@router.get("/deliveries")
+def get_shelter_deliveries(
+    status: Optional[str] = None,
+    category_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Lista todas as entregas relacionadas ao abrigo"""
+    
+    # Verificar se é abrigo
+    if UserRole.SHELTER.value not in current_user.roles.split(','):
+        raise HTTPException(status_code=403, detail="Apenas abrigos podem acessar entregas")
+    
+    # Buscar location do abrigo
+    shelter_location = db.query(Location).filter(Location.user_id == current_user.id).first()
+    if not shelter_location:
+        return []
+    
+    query = db.query(Delivery).filter(Delivery.location_id == shelter_location.id)
+    
+    # Filtros
+    if status:
+        query = query.filter(Delivery.status == status)
+    if category_id:
+        query = query.filter(Delivery.category_id == category_id)
+    
+    deliveries = query.order_by(Delivery.created_at.desc()).all()
+    
+    # Enriquecer com dados relacionados
+    result = []
+    for delivery in deliveries:
+        volunteer = db.query(User).filter(User.id == delivery.volunteer_id).first() if delivery.volunteer_id else None
+        category = db.query(Category).filter(Category.id == delivery.category_id).first()
+        
+        result.append({
+            "id": delivery.id,
+            "category_id": delivery.category_id,
+            "category_name": category.display_name if category else "Desconhecido",
+            "category_icon": category.icon if category else "📦",
+            "quantity": delivery.quantity,
+            "status": delivery.status.value if hasattr(delivery.status, 'value') else delivery.status,
+            "volunteer_id": delivery.volunteer_id,
+            "volunteer_name": volunteer.name if volunteer else None,
+            "delivery_code": delivery.delivery_code,
+            "created_at": delivery.created_at,
+            "reserved_at": delivery.reserved_at,
+            "picked_up_at": delivery.picked_up_at,
+            "delivered_at": delivery.delivered_at
+        })
+    
+    return result
+
+
+# ============================================================================
+# ANALYTICS (Analíticos)
+# ============================================================================
+
+@router.get("/analytics")
+def get_analytics(
+    days: int = 30,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna dados analíticos e métricas avançadas"""
+    
+    # Verificar se é abrigo
+    if UserRole.SHELTER.value not in current_user.roles.split(','):
+        raise HTTPException(status_code=403, detail="Apenas abrigos podem acessar analíticos")
+    
+    # Buscar itens do abrigo
+    items = db.query(ShelterInventoryItem).filter(
+        and_(
+            ShelterInventoryItem.shelter_id == current_user.id,
+            ShelterInventoryItem.active == True
+        )
+    ).all()
+    
+    # Dados para gráfico de barras (Necessário vs Estoque vs Em Trânsito)
+    chart_data = []
+    for item in items:
+        category = db.query(Category).filter(Category.id == item.category_id).first()
+        chart_data.append({
+            "category": category.display_name if category else "Desconhecido",
+            "needed": item.needed_quantity,
+            "stock": item.current_stock,
+            "reserved": item.reserved_quantity
+        })
+    
+    # Evolução do estoque (últimos N dias)
+    date_range = datetime.utcnow() - timedelta(days=days)
+    movements = db.query(InventoryMovement).filter(
+        and_(
+            InventoryMovement.inventory_item_id.in_([item.id for item in items]),
+            InventoryMovement.created_at >= date_range
+        )
+    ).order_by(InventoryMovement.created_at).all()
+    
+    # Agrupar movimentações por dia
+    daily_movements = {}
+    for mov in movements:
+        day = mov.created_at.date().isoformat()
+        if day not in daily_movements:
+            daily_movements[day] = {"in": 0, "out": 0}
+        
+        if mov.movement_type == "in":
+            daily_movements[day]["in"] += mov.quantity
+        else:
+            daily_movements[day]["out"] += mov.quantity
+    
+    timeline_data = [
+        {"date": day, "in": data["in"], "out": data["out"]}
+        for day, data in sorted(daily_movements.items())
+    ]
+    
+    # KPIs
+    total_stock = sum(item.current_stock for item in items)
+    total_needed = sum(item.needed_quantity for item in items)
+    total_reserved = sum(item.reserved_quantity for item in items)
+    avg_fulfillment = (total_stock + total_reserved) / total_needed * 100 if total_needed > 0 else 0
+    
+    return {
+        "chart_data": chart_data,
+        "timeline_data": timeline_data,
+        "kpis": {
+            "total_stock": total_stock,
+            "total_needed": total_needed,
+            "total_reserved": total_reserved,
+            "avg_fulfillment_rate": round(avg_fulfillment, 2),
+            "critical_items": len([item for item in items if (item.current_stock + item.reserved_quantity) / item.needed_quantity < 0.2 if item.needed_quantity > 0])
+        }
+    }
+
+
+# ============================================================================
+# HISTORY (Histórico Completo)
+# ============================================================================
+
+@router.get("/history")
+def get_full_history(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    movement_type: Optional[str] = None,
+    category_id: Optional[int] = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna histórico completo de movimentações com filtros"""
+    
+    # Verificar se é abrigo
+    if UserRole.SHELTER.value not in current_user.roles.split(','):
+        raise HTTPException(status_code=403, detail="Apenas abrigos podem acessar histórico")
+    
+    # Buscar itens do abrigo
+    items = db.query(ShelterInventoryItem).filter(
+        ShelterInventoryItem.shelter_id == current_user.id
+    ).all()
+    
+    item_ids = [item.id for item in items]
+    
+    query = db.query(InventoryMovement).filter(
+        InventoryMovement.inventory_item_id.in_(item_ids)
+    )
+    
+    # Aplicar filtros
+    if start_date:
+        query = query.filter(InventoryMovement.created_at >= datetime.fromisoformat(start_date))
+    if end_date:
+        query = query.filter(InventoryMovement.created_at <= datetime.fromisoformat(end_date))
+    if movement_type:
+        query = query.filter(InventoryMovement.movement_type == movement_type)
+    if category_id:
+        filtered_items = [item.id for item in items if item.category_id == category_id]
+        query = query.filter(InventoryMovement.inventory_item_id.in_(filtered_items))
+    
+    total = query.count()
+    movements = query.order_by(InventoryMovement.created_at.desc()).limit(limit).offset(offset).all()
+    
+    # Enriquecer dados
+    result = []
+    for mov in movements:
+        item = db.query(ShelterInventoryItem).filter(ShelterInventoryItem.id == mov.inventory_item_id).first()
+        category = db.query(Category).filter(Category.id == item.category_id).first() if item else None
+        user = db.query(User).filter(User.id == mov.created_by).first()
+        
+        result.append({
+            "id": mov.id,
+            "movement_type": mov.movement_type,
+            "quantity": mov.quantity,
+            "source_type": mov.source_type,
+            "notes": mov.notes,
+            "created_at": mov.created_at,
+            "created_by_name": user.name if user else "Desconhecido",
+            "category_name": category.display_name if category else "Desconhecido",
+            "category_icon": category.icon if category else "📦"
+        })
+    
+    return {
+        "total": total,
+        "movements": result,
+        "limit": limit,
+        "offset": offset
     }
