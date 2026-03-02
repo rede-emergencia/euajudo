@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 
 from app.database import get_db
-from app.models import ShelterInventoryItem, InventoryMovement, User, Category, Delivery, Location
+from app.models import ShelterInventoryItem, InventoryMovement, User, Category, Delivery, DeliveryLocation
 from app.enums import DeliveryStatus
 from app.schemas_inventory import (
     ShelterInventoryItemCreate,
@@ -563,7 +563,7 @@ def get_shelter_deliveries(
         raise HTTPException(status_code=403, detail="Apenas abrigos podem acessar entregas")
     
     # Buscar location do abrigo
-    shelter_location = db.query(Location).filter(Location.user_id == current_user.id).first()
+    shelter_location = db.query(DeliveryLocation).filter(DeliveryLocation.user_id == current_user.id).first()
     if not shelter_location:
         return []
     

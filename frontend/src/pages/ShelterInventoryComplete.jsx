@@ -544,7 +544,7 @@ export default function ShelterInventoryComplete() {
         )}
 
         {/* ABA ANALÍTICOS */}
-        {activeTab === 'analiticos' && analytics && (
+        {activeTab === 'analiticos' && (analytics ? (
           <div>
             {/* KPIs */}
             <div style={{
@@ -649,7 +649,23 @@ export default function ShelterInventoryComplete() {
               </div>
             </div>
           </div>
-        )}
+        ) : (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: 'white',
+            borderRadius: '16px',
+            border: '2px dashed #e5e7eb'
+          }}>
+            <BarChart3 size={48} color="#9ca3af" style={{ marginBottom: '16px' }} />
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#111' }}>
+              Carregando analíticos...
+            </h3>
+            <p style={{ margin: '8px 0', fontSize: '14px', color: '#6b7280' }}>
+              Aguarde um momento
+            </p>
+          </div>
+        ))}
 
         {/* ABA HISTÓRICO */}
         {activeTab === 'historico' && (
