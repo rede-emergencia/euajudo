@@ -5,6 +5,12 @@ import {
   Activity, CheckCircle, Clock, Truck as TruckIcon, ShoppingCart, LayoutDashboard, Check,
   Users, Building, HelpingHand
 } from 'lucide-react';
+
+// Helper para URL da API
+const getApiUrl = (path) => {
+  const API_URL = import.meta.env.VITE_API_URL || '';
+  return `${API_URL}${path}`;
+};
 import { useAuth } from '../contexts/AuthContext';
 import { useUserState } from '../contexts/UserStateContext';
 import { useNavigate } from 'react-router-dom';
@@ -159,7 +165,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
     if (!confirmed) return;
 
     try {
-      const response = await fetch(`/api/deliveries/${deliveryId}/confirm-pickup`, {
+      const response = await fetch(getApiUrl(`/api/deliveries/${deliveryId}/confirm-pickup`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -188,7 +194,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
     if (!deliveryCode) return;
 
     try {
-      const response = await fetch(`/api/deliveries/${deliveryId}/validate-delivery`, {
+      const response = await fetch(getApiUrl(`/api/deliveries/${deliveryId}/validate-delivery`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -965,7 +971,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                   }
 
                                   try {
-                                    const response = await fetch(`/api/deliveries/${operation.id}/confirm-pickup`, {
+                                    const response = await fetch(getApiUrl(`/api/deliveries/${operation.id}/confirm-pickup`), {
                                       method: 'POST',
                                       headers: {
                                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -1021,7 +1027,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                   }
 
                                   try {
-                                    const response = await fetch(`/api/deliveries/${operation.id}`, {
+                                    const response = await fetch(getApiUrl(`/api/deliveries/${operation.id}`), {
                                       method: 'DELETE',
                                       headers: {
                                         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -1133,7 +1139,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                 }
 
                                 try {
-                                  const response = await fetch(`/api/deliveries/${operation.id}/validate-delivery`, {
+                                  const response = await fetch(getApiUrl(`/api/deliveries/${operation.id}/validate-delivery`), {
                                     method: 'POST',
                                     headers: {
                                       'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -1191,7 +1197,7 @@ export default function Header({ showFilters = false, onFilterChange, currentFil
                                 }
 
                                 try {
-                                  const response = await fetch(`/api/deliveries/${operation.id}`, {
+                                  const response = await fetch(getApiUrl(`/api/deliveries/${operation.id}`), {
                                     method: 'DELETE',
                                     headers: {
                                       'Authorization': `Bearer ${localStorage.getItem('token')}`,
