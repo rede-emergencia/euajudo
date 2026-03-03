@@ -88,7 +88,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://vouajudar.org", "http://localhost:3000", "http://localhost:5173"],
+    allow_origins=[
+        "https://vouajudar.org", 
+        "https://euajudo-api.onrender.com",
+        "https://euajudo-frontend.onrender.com",
+        "http://localhost:3000", 
+        "http://localhost:5173"
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],

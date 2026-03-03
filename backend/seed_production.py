@@ -14,7 +14,7 @@ os.environ["DATABASE_URL"] = "postgresql://euajudo_user:niHQGFxb2EClbnS6Rvq86GDF
 from app.database import Base
 from app.models import User, DeliveryLocation, Category, CategoryAttribute
 from app.auth import get_password_hash
-from app.enums import UserRole
+from app.shared.enums import UserRole
 from sqlalchemy.orm import Session
 import random
 from seed_data import (
@@ -53,7 +53,7 @@ def create_admin(db: Session):
         hashed_password=get_password_hash(ADMIN_CREDENTIALS["password"]),
         name=ADMIN_CREDENTIALS["name"],
         phone=ADMIN_CREDENTIALS["phone"],
-        roles=[UserRole.ADMIN.value],
+        roles=UserRole.ADMIN.value,
         city_id=1,
         address="Endereço Admin",
         approved=True
@@ -72,7 +72,7 @@ def create_volunteers(db: Session):
             hashed_password=get_password_hash(vol["password"]),
             name=vol["name"],
             phone=vol["phone"],
-            roles=[UserRole.VOLUNTEER.value],
+            roles=UserRole.VOLUNTEER.value,
             city_id=1,
             address="Endereço Voluntário",
             approved=True
@@ -93,7 +93,7 @@ def create_shelters(db: Session):
             hashed_password=get_password_hash(shelter["password"]),
             name=shelter["name"],
             phone=shelter["phone"],
-            roles=[UserRole.SHELTER.value],
+            roles=UserRole.SHELTER.value,
             city_id=1,
             address=shelter["address"],
             approved=True

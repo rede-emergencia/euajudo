@@ -77,63 +77,69 @@ PROVIDERS = [
 # Categorias essenciais para desastres
 CATEGORIES = [
     {
-        "name": "Água",
+        "name": "agua",
+        "display_name": "Água",
         "description": "Água mineral em litros",
         "icon": "💧",
         "color": "#3b82f6",
         "attributes": [
-            {"name": "quantidade_litros", "type": "number", "required": True, "min_value": 1}
+            {"name": "quantidade_litros", "display_name": "Quantidade (Litros)", "type": "number", "required": True, "min_value": 1}
         ]
     },
     {
-        "name": "Alimentos",
+        "name": "alimentos",
+        "display_name": "Alimentos",
         "description": "Alimentos não perecíveis",
         "icon": "🥫",
         "color": "#f59e0b", 
         "attributes": [
-            {"name": "quantidade_kg", "type": "number", "required": True, "min_value": 1},
-            {"name": "tipo_alimento", "type": "text", "required": True}
+            {"name": "quantidade_kg", "display_name": "Quantidade (kg)", "type": "number", "required": True, "min_value": 1},
+            {"name": "tipo_alimento", "display_name": "Tipo de Alimento", "type": "text", "required": True}
         ]
     },
     {
-        "name": "Refeições Prontas",
+        "name": "refeicoes_prontas",
+        "display_name": "Refeições Prontas",
         "description": "Marmitas e refeições preparadas",
         "icon": "🍱",
         "color": "#10b981",
         "attributes": [
-            {"name": "quantidade", "type": "number", "required": True, "min_value": 1},
-            {"name": "tipo_refeicao", "type": "text", "required": True}
+            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1},
+            {"name": "tipo_refeicao", "display_name": "Tipo de Refeição", "type": "text", "required": True}
         ]
     },
     {
-        "name": "Higiene",
+        "name": "higiene",
+        "display_name": "Higiene",
         "description": "Itens de higiene pessoal",
         "icon": "🧼",
         "color": "#8b5cf6",
         "attributes": [
-            {"name": "quantidade", "type": "number", "required": True, "min_value": 1},
-            {"name": "tipo_item", "type": "text", "required": True}
+            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1},
+            {"name": "tipo_item", "display_name": "Tipo de Item", "type": "text", "required": True}
         ]
     },
     {
-        "name": "Roupas",
+        "name": "roupas",
+        "display_name": "Roupas",
         "description": "Roupas e vestuário",
         "icon": "👕",
         "color": "#ef4444",
         "attributes": [
-            {"name": "quantidade", "type": "number", "required": True, "min_value": 1},
-            {"name": "tamanho", "type": "text", "required": True},
-            {"name": "genero", "type": "text", "required": True}
+            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1},
+            {"name": "tamanho", "display_name": "Tamanho", "type": "text", "required": True},
+            {"name": "genero", "display_name": "Gênero", "type": "text", "required": True}
         ]
     },
     {
-        "name": "Medicamentos",
+        "name": "medicamentos",
+        "display_name": "Medicamentos",
         "description": "Medicamentos e itens de saúde",
         "icon": "💊",
         "color": "#06b6d4",
         "attributes": [
-            {"name": "quantidade", "type": "number", "required": True, "min_value": 1},
-            {"name": "tipo_medicamento", "type": "text", "required": True}
+            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1},
+            {"name": "tipo_medicamento", "display_name": "Tipo de Medicamento", "type": "text", "required": True}
         ]
     }
 ]
