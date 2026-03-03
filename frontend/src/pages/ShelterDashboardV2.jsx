@@ -1264,9 +1264,10 @@ export default function ShelterDashboardV2() {
             </div>
           ))}
 
+          {attributes.length === 0 && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {isEdit ? 'Quantidade em Estoque *' : 'Quantidade a Adicionar *'}
+              Quantidade *
             </label>
             <input
               type="number"
@@ -1275,9 +1276,10 @@ export default function ShelterDashboardV2() {
               onChange={e => setStockForm(f => ({ ...f, quantity_in_stock: e.target.value }))}
               required
               className="w-full border rounded-lg p-2"
-              placeholder={isEdit ? "Ex: 100" : "Ex: 50 (quantidade para adicionar)"}
+              placeholder="Ex: 50"
             />
           </div>
+        )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Alerta de Estoque Baixo</label>
             <input
