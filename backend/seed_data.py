@@ -13,13 +13,13 @@ ADMIN_CREDENTIALS = {
 
 VOLUNTEERS = [
     {
-        "email": "joao@vouajudar.org",
+        "email": "v1@vouajudar.org",
         "password": "123",
         "name": "João Voluntário",
         "phone": "32988887777"
     },
     {
-        "email": "maria@vouajudar.org", 
+        "email": "v2@vouajudar.org", 
         "password": "123",
         "name": "Maria Voluntária",
         "phone": "32977776666"
@@ -28,7 +28,7 @@ VOLUNTEERS = [
 
 SHELTERS = [
     {
-        "email": "abrigo.centro@vouajudar.org",
+        "email": "a1@vouajudar.org",
         "password": "123",
         "name": "Abrigo Centro de Operações",
         "phone": "32955554444",
@@ -38,7 +38,7 @@ SHELTERS = [
         "contact_person": "Coordenador do Abrigo Centro"
     },
     {
-        "email": "abrigo.saosebastiao@vouajudar.org",
+        "email": "a2@vouajudar.org",
         "password": "123",
         "name": "Abrigo São Sebastião", 
         "phone": "32966665555",
@@ -51,7 +51,7 @@ SHELTERS = [
 
 PROVIDERS = [
     {
-        "email": "cozinha.solidaria@vouajudar.org",
+        "email": "c1@vouajudar.org",
         "password": "123",
         "name": "Cozinha Solidária",
         "phone": "32944443333",
@@ -62,7 +62,7 @@ PROVIDERS = [
         "operating_hours": "08:00-18:00"
     },
     {
-        "email": "restaurante.comunitario@vouajudar.org",
+        "email": "c2@vouajudar.org",
         "password": "123",
         "name": "Restaurante Comunitário",
         "phone": "32933332222", 
