@@ -79,11 +79,15 @@ CATEGORIES = [
     {
         "name": "agua",
         "display_name": "Água",
-        "description": "Água mineral em litros",
+        "description": "Água mineral",
         "icon": "💧",
         "color": "#3b82f6",
         "attributes": [
-            {"name": "quantidade_litros", "display_name": "Quantidade (Litros)", "type": "number", "required": True, "min_value": 1}
+            {"name": "unidade", "display_name": "Unidade", "type": "select", "required": True, "options": [
+                {"value": "litros", "label": "Litros"},
+                {"value": "ml", "label": "Mililitros (ML)"}
+            ]},
+            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1}
         ]
     },
     {
