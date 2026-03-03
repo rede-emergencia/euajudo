@@ -79,15 +79,37 @@ CATEGORIES = [
     {
         "name": "agua",
         "display_name": "Água",
-        "description": "Água mineral",
+        "description": "Água potável",
         "icon": "💧",
         "color": "#3b82f6",
         "attributes": [
-            {"name": "unidade", "display_name": "Unidade", "type": "select", "required": True, "options": [
-                {"value": "litros", "label": "Litros"},
-                {"value": "ml", "label": "Mililitros (ML)"}
-            ]},
-            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1}
+            {
+                "name": "tipo",
+                "display_name": "Tipo",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "potavel", "label": "Água Potável"},
+                    {"value": "mineral", "label": "Água Mineral"},
+                    {"value": "filtrada", "label": "Água Filtrada"}
+                ]
+            },
+            {
+                "name": "unidade",
+                "display_name": "Unidade",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "litros", "label": "Litros"}
+                ]
+            },
+            {
+                "name": "quantidade",
+                "display_name": "Quantidade",
+                "type": "number",
+                "required": True,
+                "min_value": 1
+            }
         ]
     },
     {
@@ -95,55 +117,260 @@ CATEGORIES = [
         "display_name": "Alimentos",
         "description": "Alimentos não perecíveis",
         "icon": "🥫",
-        "color": "#f59e0b", 
+        "color": "#f59e0b",
         "attributes": [
-            {"name": "quantidade_kg", "display_name": "Quantidade (kg)", "type": "number", "required": True, "min_value": 1},
-            {"name": "tipo_alimento", "display_name": "Tipo de Alimento", "type": "text", "required": True}
+            {
+                "name": "tipo",
+                "display_name": "Tipo",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "arroz", "label": "Arroz"},
+                    {"value": "feijao", "label": "Feijão"},
+                    {"value": "macarrao", "label": "Macarrão"},
+                    {"value": "oleo", "label": "Óleo"},
+                    {"value": "acucar", "label": "Açúcar"},
+                    {"value": "sal", "label": "Sal"},
+                    {"value": "cafe", "label": "Café"},
+                    {"value": "leite_po", "label": "Leite em Pó"},
+                    {"value": "enlatados", "label": "Enlatados"},
+                    {"value": "biscoitos", "label": "Biscoitos"}
+                ]
+            },
+            {
+                "name": "unidade",
+                "display_name": "Unidade",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "kg", "label": "Kg"},
+                    {"value": "pacote", "label": "Pacote"},
+                    {"value": "lata", "label": "Lata"},
+                    {"value": "unidade", "label": "Unidade"}
+                ]
+            },
+            {
+                "name": "quantidade",
+                "display_name": "Quantidade",
+                "type": "number",
+                "required": True,
+                "min_value": 1
+            }
         ]
     },
     {
-        "name": "refeicoes_prontas",
+        "name": "refeicoes",
         "display_name": "Refeições Prontas",
-        "description": "Marmitas e refeições preparadas",
+        "description": "Marmitas e refeições prontas",
         "icon": "🍱",
         "color": "#10b981",
         "attributes": [
-            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1},
-            {"name": "tipo_refeicao", "display_name": "Tipo de Refeição", "type": "text", "required": True}
+            {
+                "name": "tipo",
+                "display_name": "Tipo",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "marmita", "label": "Marmita"},
+                    {"value": "lanche", "label": "Lanche"},
+                    {"value": "sopa", "label": "Sopa"}
+                ]
+            },
+            {
+                "name": "unidade",
+                "display_name": "Unidade",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "unidade", "label": "Unidade"}
+                ]
+            },
+            {
+                "name": "quantidade",
+                "display_name": "Quantidade",
+                "type": "number",
+                "required": True,
+                "min_value": 1
+            }
         ]
     },
     {
         "name": "higiene",
         "display_name": "Higiene",
-        "description": "Itens de higiene pessoal",
+        "description": "Produtos de higiene pessoal",
         "icon": "🧼",
         "color": "#8b5cf6",
         "attributes": [
-            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1},
-            {"name": "tipo_item", "display_name": "Tipo de Item", "type": "text", "required": True}
+            {
+                "name": "tipo",
+                "display_name": "Tipo",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "sabonete", "label": "Sabonete"},
+                    {"value": "shampoo", "label": "Shampoo"},
+                    {"value": "pasta_dente", "label": "Pasta de Dente"},
+                    {"value": "papel_higienico", "label": "Papel Higiênico"},
+                    {"value": "absorvente", "label": "Absorvente"},
+                    {"value": "fralda_adulto", "label": "Fralda Adulto"},
+                    {"value": "fralda_bebe", "label": "Fralda Bebê"},
+                    {"value": "kit_higiene", "label": "Kit Higiene"}
+                ]
+            },
+            {
+                "name": "unidade",
+                "display_name": "Unidade",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "unidade", "label": "Unidade"},
+                    {"value": "kit", "label": "Kit"}
+                ]
+            },
+            {
+                "name": "quantidade",
+                "display_name": "Quantidade",
+                "type": "number",
+                "required": True,
+                "min_value": 1
+            }
         ]
     },
     {
         "name": "roupas",
         "display_name": "Roupas",
-        "description": "Roupas e vestuário",
+        "description": "Roupas e calçados",
         "icon": "👕",
-        "color": "#ef4444",
+        "color": "#ec4899",
         "attributes": [
-            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1},
-            {"name": "tamanho", "display_name": "Tamanho", "type": "text", "required": True},
-            {"name": "genero", "display_name": "Gênero", "type": "text", "required": True}
+            {
+                "name": "tipo",
+                "display_name": "Tipo",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "camiseta", "label": "Camiseta"},
+                    {"value": "calca", "label": "Calça"},
+                    {"value": "blusa", "label": "Blusa"},
+                    {"value": "jaqueta", "label": "Jaqueta"},
+                    {"value": "sapato", "label": "Sapato"},
+                    {"value": "chinelo", "label": "Chinelo"},
+                    {"value": "meia", "label": "Meia"},
+                    {"value": "cobertor", "label": "Cobertor"},
+                    {"value": "toalha", "label": "Toalha"}
+                ]
+            },
+            {
+                "name": "unidade",
+                "display_name": "Unidade",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "unidade", "label": "Unidade"}
+                ]
+            },
+            {
+                "name": "tamanho",
+                "display_name": "Tamanho",
+                "type": "select",
+                "required": False,
+                "options": [
+                    {"value": "pp", "label": "PP"},
+                    {"value": "p", "label": "P"},
+                    {"value": "m", "label": "M"},
+                    {"value": "g", "label": "G"},
+                    {"value": "gg", "label": "GG"},
+                    {"value": "unico", "label": "Único"}
+                ]
+            },
+            {
+                "name": "quantidade",
+                "display_name": "Quantidade",
+                "type": "number",
+                "required": True,
+                "min_value": 1
+            }
         ]
     },
     {
         "name": "medicamentos",
         "display_name": "Medicamentos",
-        "description": "Medicamentos e itens de saúde",
+        "description": "Medicamentos e primeiros socorros",
         "icon": "💊",
-        "color": "#06b6d4",
+        "color": "#ef4444",
         "attributes": [
-            {"name": "quantidade", "display_name": "Quantidade", "type": "number", "required": True, "min_value": 1},
-            {"name": "tipo_medicamento", "display_name": "Tipo de Medicamento", "type": "text", "required": True}
+            {
+                "name": "tipo",
+                "display_name": "Tipo",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "analgesico", "label": "Analgésico"},
+                    {"value": "antitermico", "label": "Antitérmico"},
+                    {"value": "antibiotico", "label": "Antibiótico"},
+                    {"value": "curativo", "label": "Material de Curativo"},
+                    {"value": "kit_primeiros_socorros", "label": "Kit Primeiros Socorros"}
+                ]
+            },
+            {
+                "name": "unidade",
+                "display_name": "Unidade",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "caixa", "label": "Caixa"},
+                    {"value": "kit", "label": "Kit"},
+                    {"value": "frasco", "label": "Frasco"}
+                ]
+            },
+            {
+                "name": "quantidade",
+                "display_name": "Quantidade",
+                "type": "number",
+                "required": True,
+                "min_value": 1
+            }
+        ]
+    },
+    {
+        "name": "epi",
+        "display_name": "EPI - Equipamento de Proteção",
+        "description": "Equipamentos de Proteção Individual",
+        "icon": "⛑️",
+        "color": "#f97316",
+        "attributes": [
+            {
+                "name": "tipo",
+                "display_name": "Tipo de EPI",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "luvas", "label": "Luvas"},
+                    {"value": "mascara", "label": "Máscara"},
+                    {"value": "oculos", "label": "Óculos de Proteção"},
+                    {"value": "capacete", "label": "Capacete"},
+                    {"value": "bota", "label": "Bota de Segurança"},
+                    {"value": "avental", "label": "Avental"},
+                    {"value": "touca", "label": "Touca"},
+                    {"value": "protetor_auricular", "label": "Protetor Auricular"}
+                ]
+            },
+            {
+                "name": "unidade",
+                "display_name": "Unidade",
+                "type": "select",
+                "required": True,
+                "options": [
+                    {"value": "unidade", "label": "Unidade"}
+                ]
+            },
+            {
+                "name": "quantidade",
+                "display_name": "Quantidade",
+                "type": "number",
+                "required": True,
+                "min_value": 1
+            }
         ]
     }
 ]

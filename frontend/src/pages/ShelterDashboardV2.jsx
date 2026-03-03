@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { inventory, categories as categoriesApi, deliveries } from '../lib/api';
 import Header from '../components/Header';
+import ItemFormModal from '../components/ItemFormModal';
 
 const STATUS_COLORS = {
   available: 'bg-yellow-100 text-yellow-800',
@@ -47,6 +48,7 @@ export default function ShelterDashboardV2() {
   const [shelterDeliveries, setShelterDeliveries] = useState([]);
   const [categoryList, setCategoryList] = useState([]);
   const [distributions, setDistributions] = useState([]);
+  const [expandedCategories, setExpandedCategories] = useState({});
 
   // Modals
   const [showRequestForm, setShowRequestForm] = useState(false);
@@ -126,14 +128,30 @@ export default function ShelterDashboardV2() {
 
   // ========== ACTIONS ==========
 
-  const handleCreateRequest = async (e) => {
-    e.preventDefault();
+  const handleCreateRequest = async (data) => {
     try {
+      // Helper function to normalize metadata values
+      const normalizeMetadata = (metadata) => {
+        const normalized = { ...metadata };
+        
+        // Convert numeric fields from string to number
+        Object.keys(normalized).forEach(key => {
+          const value = normalized[key];
+          if (key === 'quantidade' && value !== undefined && value !== '') {
+            normalized[key] = parseInt(value) || 0;
+          }
+        });
+        
+        return normalized;
+      };
+      
+      const normalizedMetadata = normalizeMetadata(data.metadata_cache);
+      
       await inventory.createRequest({
-        category_id: parseInt(requestForm.category_id),
-        quantity_requested: parseInt(requestForm.quantity_requested),
-        notes: requestForm.notes || null,
-        metadata_cache: requestForm.metadata,
+        category_id: parseInt(data.category_id),
+        quantity_requested: parseInt(data.quantity_requested),
+        notes: data.notes || null,
+        metadata_cache: normalizedMetadata,
       });
       setShowRequestForm(false);
       setRequestForm({ category_id: '', quantity_requested: '', notes: '', metadata: {} });
@@ -174,15 +192,32 @@ export default function ShelterDashboardV2() {
     }
   };
 
-  const handleAddStock = async (e) => {
-    e.preventDefault();
+  const handleAddStock = async (data) => {
     try {
+      // Helper function to normalize metadata values
+      const normalizeMetadata = (metadata) => {
+        const normalized = { ...metadata };
+        
+        // Convert numeric fields from string to number
+        Object.keys(normalized).forEach(key => {
+          const value = normalized[key];
+          if (key === 'quantidade' && value !== undefined && value !== '') {
+            normalized[key] = parseInt(value) || 0;
+          }
+        });
+        
+        return normalized;
+      };
+      
+      const normalizedMetadata = normalizeMetadata(data.metadata_cache);
+      
+      // Always use createItem - backend will handle upsert logic with metadata matching
       await inventory.createItem({
-        category_id: parseInt(stockForm.category_id),
-        quantity_in_stock: parseInt(stockForm.quantity_in_stock),
-        min_threshold: parseInt(stockForm.min_threshold) || 0,
-        metadata_cache: stockForm.metadata,
+        category_id: parseInt(data.category_id),
+        quantity_in_stock: parseInt(data.quantity_in_stock),
+        metadata_cache: normalizedMetadata,
       });
+      
       setShowStockForm(null);
       setStockForm({ category_id: '', quantity_in_stock: '', min_threshold: '', metadata: {} });
       await refreshData();
@@ -192,17 +227,38 @@ export default function ShelterDashboardV2() {
     }
   };
 
-  const handleEditStock = async (e) => {
-    e.preventDefault();
+  const handleEditStock = async (data) => {
     try {
-      await inventory.updateItem(showStockForm.id, {
-        quantity_in_stock: parseInt(stockForm.quantity_in_stock),
-        min_threshold: parseInt(stockForm.min_threshold),
+      // Helper function to normalize metadata values
+      const normalizeMetadata = (metadata) => {
+        const normalized = { ...metadata };
+        
+        // Convert numeric fields from string to number
+        Object.keys(normalized).forEach(key => {
+          const value = normalized[key];
+          if (key === 'quantidade' && value !== undefined && value !== '') {
+            normalized[key] = parseInt(value) || 0;
+          }
+        });
+        
+        return normalized;
+      };
+      
+      const normalizedMetadata = normalizeMetadata(data.metadata_cache);
+      
+      // Use createItem with the new quantity - backend will handle updating the correct item
+      // based on metadata matching (tipo + unidade)
+      await inventory.createItem({
+        category_id: parseInt(data.category_id),
+        quantity_in_stock: parseInt(data.quantity_in_stock),
+        metadata_cache: normalizedMetadata,
+        replace_quantity: true,  // This tells backend to replace instead of add
       });
+      
       setShowStockForm(null);
-      setStockForm({ category_id: '', quantity_in_stock: '', min_threshold: '' });
+      setStockForm({ category_id: '', quantity_in_stock: '', min_threshold: '', metadata: {} });
       await refreshData();
-      alert('Estoque atualizado!');
+      alert('Estoque atualizado com sucesso!');
     } catch (err) {
       alert('Erro: ' + (err.response?.data?.detail || err.message));
     }
@@ -336,6 +392,21 @@ export default function ShelterDashboardV2() {
     return cat?.display_name || cat?.name || `Cat #${id}`;
   };
 
+  const formatItemDisplay = (categoryName, metadataCache) => {
+    const metadata = metadataCache || {};
+    const tipo = metadata.tipo;
+    const unidade = metadata.unidade;
+    
+    if (tipo && unidade) {
+      // Formato: "Feijão, quilos, 50 quilos"
+      const tipoFormatado = tipo.charAt(0).toUpperCase() + tipo.slice(1).replace('_', ' ');
+      const unidadeFormatada = unidade.charAt(0).toUpperCase() + unidade.slice(1);
+      return `${categoryName}, ${unidadeFormatada}, ${tipoFormatado}`;
+    }
+    
+    return categoryName;
+  };
+
   if (loading) {
     return (
       <>
@@ -370,7 +441,7 @@ export default function ShelterDashboardV2() {
   return (
     <>
       <Header />
-      <div className="p-4 md:p-6 max-w-7xl mx-auto" style={{ paddingTop: '100px' }}>
+      <div className="p-4 md:p-6 max-w-7xl mx-auto" style={{ paddingTop: '100px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
         {/* Title */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
@@ -512,17 +583,52 @@ export default function ShelterDashboardV2() {
   }
 
   function renderInventory(items) {
+    // Check if items are already grouped or individual items
+    const isAlreadyGrouped = items.length > 0 && items[0].items !== undefined;
+    
+    let itemsByCategory = {};
+    
+    if (isAlreadyGrouped) {
+      // Items are already grouped by category
+      items.forEach(group => {
+        const categoryId = group.category_id;
+        itemsByCategory[categoryId] = {
+          category: categoryList.find(c => c.id === categoryId),
+          items: group.items || []
+        };
+      });
+    } else {
+      // Items are individual, need to group them
+      items.forEach(item => {
+        const categoryId = item.category_id;
+        if (!itemsByCategory[categoryId]) {
+          itemsByCategory[categoryId] = {
+            category: categoryList.find(c => c.id === categoryId),
+            items: []
+          };
+        }
+        itemsByCategory[categoryId].items.push(item);
+      });
+    }
+
+    const toggleCategory = (categoryId) => {
+      setExpandedCategories(prev => ({
+        ...prev,
+        [categoryId]: !prev[categoryId]
+      }));
+    };
+
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold">Estoque Atual</h3>
-            <p className="text-sm text-gray-500">Itens que o abrigo já possui</p>
+            <p className="text-sm text-gray-500">Itens organizados por categoria</p>
           </div>
           <button
             onClick={() => {
               setShowStockForm('add');
-              setStockForm({ category_id: '', quantity_in_stock: '', min_threshold: '' });
+              setStockForm({ category_id: '', quantity_in_stock: '', min_threshold: '', metadata: {} });
             }}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
           >
@@ -533,51 +639,100 @@ export default function ShelterDashboardV2() {
         {items.length === 0 ? (
           <EmptyState message="Nenhum item no estoque." actionLabel="Adicionar Primeiro Item" onAction={() => setShowStockForm('add')} />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left p-3 font-medium text-gray-600">Categoria</th>
-                  <th className="text-right p-3 font-medium text-gray-600">Em Estoque</th>
-                  <th className="text-right p-3 font-medium text-gray-600">Reservado</th>
-                  <th className="text-right p-3 font-medium text-gray-600">Disponível</th>
-                  <th className="text-center p-3 font-medium text-gray-600">Status</th>
-                  <th className="text-center p-3 font-medium text-gray-600">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {items.map(item => (
-                  <tr key={item.category_id} className="hover:bg-gray-50">
-                    <td className="p-3 font-medium">{item.category_name}</td>
-                    <td className="p-3 text-right">{item.quantity_in_stock}</td>
-                    <td className="p-3 text-right text-orange-600">{item.quantity_reserved}</td>
-                    <td className="p-3 text-right font-bold">{item.quantity_available}</td>
-                    <td className="p-3 text-center">
-                      {item.is_low_stock ? (
-                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Baixo</span>
-                      ) : (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">OK</span>
-                      )}
-                    </td>
-                    <td className="p-3 text-center">
-                      <button
-                        onClick={() => {
-                          setShowStockForm(item);
-                          setStockForm({
-                            category_id: item.category_id,
-                            quantity_in_stock: item.quantity_in_stock.toString(),
-                            min_threshold: item.min_threshold.toString(),
-                          });
-                        }}
-                        className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                      >
-                        Editar
+          <div className="space-y-3">
+            {Object.entries(itemsByCategory).map(([categoryId, { category, items: categoryItems }]) => {
+              const isExpanded = expandedCategories[categoryId];
+              
+              return (
+                <div key={categoryId} className="border rounded-lg overflow-hidden">
+                  {/* Category Header */}
+                  <div 
+                    className="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => toggleCategory(categoryId)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <button className="text-gray-600 hover:text-gray-800">
+                        {isExpanded ? (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <span className="text-2xl">{category?.icon}</span>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{category?.display_name}</h4>
+                        <p className="text-sm text-gray-500">{categoryItems.length} tipo(s)</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Items Table */}
+                  {isExpanded && (
+                    <div className="bg-white">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-100 border-t">
+                          <tr>
+                            <th className="text-left p-3 font-medium text-gray-600">Tipo</th>
+                            <th className="text-left p-3 font-medium text-gray-600">Unidade</th>
+                            <th className="text-right p-3 font-medium text-gray-600">Quantidade</th>
+                            <th className="text-right p-3 font-medium text-gray-600">Reservado</th>
+                            <th className="text-right p-3 font-medium text-gray-600">Disponível</th>
+                            <th className="text-center p-3 font-medium text-gray-600">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {categoryItems.map(item => {
+                            const metadata = item.metadata_cache || {};
+                            const tipo = metadata.tipo || 'N/A';
+                            const unidade = metadata.unidade || 'un';
+                            const tamanho = metadata.tamanho;
+                            
+                            return (
+                              <tr key={item.id} className="hover:bg-gray-50">
+                                <td className="p-3">
+                                  <div className="font-medium text-gray-900">
+                                    {tipo.charAt(0).toUpperCase() + tipo.slice(1).replace('_', ' ')}
+                                  </div>
+                                  {tamanho && (
+                                    <div className="text-xs text-gray-500">Tamanho: {tamanho.toUpperCase()}</div>
+                                  )}
+                                </td>
+                                <td className="p-3 text-gray-600">
+                                  {unidade.charAt(0).toUpperCase() + unidade.slice(1)}
+                                </td>
+                                <td className="p-3 text-right font-semibold">{item.quantity_in_stock}</td>
+                                <td className="p-3 text-right text-orange-600">{item.quantity_reserved}</td>
+                                <td className="p-3 text-right font-bold text-green-600">{item.quantity_available}</td>
+                                <td className="p-3 text-center">
+                                  <button
+                                    onClick={() => {
+                                      setShowStockForm(item);
+                                      setStockForm({
+                                        category_id: item.category_id,
+                                        quantity_in_stock: item.quantity_in_stock.toString(),
+                                        min_threshold: item.min_threshold?.toString() || '0',
+                                        metadata: metadata
+                                      });
+                                    }}
+                                    className="px-3 py-1 text-sm bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded transition-colors"
+                                  >
+                                    Editar
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -605,8 +760,8 @@ export default function ShelterDashboardV2() {
               <div key={req.id} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-semibold">
-                      Pedido #{req.id} — {getCategoryName(req.category_id)}
+                    <h4 className="font-semibold text-lg">
+                      {formatItemDisplay(getCategoryName(req.category_id), req.metadata_cache)}
                     </h4>
                     <p className="text-sm text-gray-600 mt-1">
                       Solicitado: <strong>{req.quantity_requested}</strong> |
@@ -900,113 +1055,20 @@ export default function ShelterDashboardV2() {
   // ========== MODAL RENDERERS ==========
 
   function renderRequestFormModal() {
-    // Filtrar apenas categorias de PRODUTOS
-    const productCategories = categoryList.filter(c => 
-      !c.name.startsWith('servico_')
-    );
-    const selectedCategory = categoryList.find(c => c.id === parseInt(requestForm.category_id));
-    const attributes = selectedCategory?.attributes || [];
-
     return (
-      <ModalOverlay onClose={() => setShowRequestForm(false)} title="Pedir Doações de Produtos">
-        <form onSubmit={handleCreateRequest} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Categoria de Produto</label>
-            <select
-              value={requestForm.category_id}
-              onChange={e => setRequestForm(f => ({ ...f, category_id: e.target.value, metadata: {} }))}
-              required
-              className="w-full border rounded-lg p-2"
-            >
-              <option value="">Selecione um produto...</option>
-              {productCategories.map(c => (
-                <option key={c.id} value={c.id}>{c.display_name || c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Dynamic metadata fields */}
-          {attributes.map(attr => (
-            <div key={attr.name}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {attr.display_name}
-              </label>
-              {attr.attribute_type === 'select' ? (
-                <select
-                  value={requestForm.metadata[attr.name] || ''}
-                  onChange={e => setRequestForm(f => ({
-                    ...f,
-                    metadata: { ...f.metadata, [attr.name]: e.target.value }
-                  }))}
-                  required={attr.required}
-                  className="w-full border rounded-lg p-2"
-                >
-                  <option value="">Selecione...</option>
-                  {attr.options?.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              ) : attr.attribute_type === 'number' ? (
-                <input
-                  type="number"
-                  value={requestForm.metadata[attr.name] || ''}
-                  onChange={e => setRequestForm(f => ({
-                    ...f,
-                    metadata: { ...f.metadata, [attr.name]: e.target.value }
-                  }))}
-                  required={attr.required}
-                  min={attr.min_value}
-                  max={attr.max_value}
-                  className="w-full border rounded-lg p-2"
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={requestForm.metadata[attr.name] || ''}
-                  onChange={e => setRequestForm(f => ({
-                    ...f,
-                    metadata: { ...f.metadata, [attr.name]: e.target.value }
-                  }))}
-                  required={attr.required}
-                  maxLength={attr.max_length}
-                  className="w-full border rounded-lg p-2"
-                />
-              )}
-            </div>
-          ))}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
-            <input
-              type="number"
-              min="1"
-              value={requestForm.quantity_requested}
-              onChange={e => setRequestForm(f => ({ ...f, quantity_requested: e.target.value }))}
-              required
-              className="w-full border rounded-lg p-2"
-              placeholder="Ex: 100"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Observações (opcional)</label>
-            <textarea
-              value={requestForm.notes}
-              onChange={e => setRequestForm(f => ({ ...f, notes: e.target.value }))}
-              className="w-full border rounded-lg p-2"
-              placeholder="Ex: Urgente, precisamos de roupas infantis"
-              rows={2}
-            />
-          </div>
-          <div className="flex gap-2 pt-2">
-            <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
-              Criar Pedido
-            </button>
-            <button type="button" onClick={() => setShowRequestForm(false)} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
-              Cancelar
-            </button>
-          </div>
-        </form>
-      </ModalOverlay>
+      <ItemFormModal
+        onClose={() => setShowRequestForm(false)}
+        onSubmit={handleCreateRequest}
+        title="Pedir Doações de Produtos"
+        description="Solicite itens específicos que voluntários podem trazer para o abrigo."
+        submitButtonText="Criar Pedido"
+        initialData={requestForm}
+        showQuantityField={false}
+        quantityFieldName="quantity_requested"
+        quantityLabel="Quantidade"
+        quantityPlaceholder="Ex: 100"
+        filterProductCategories={true}
+      />
     );
   }
 
@@ -1187,120 +1249,20 @@ export default function ShelterDashboardV2() {
 
   function renderStockFormModal() {
     const isEdit = showStockForm && showStockForm !== 'add';
-    const selectedCategory = categoryList.find(c => c.id === parseInt(stockForm.category_id));
-    const attributes = selectedCategory?.attributes || [];
     
     return (
-      <ModalOverlay onClose={() => setShowStockForm(null)} title={isEdit ? 'Editar Estoque' : 'Adicionar Itens ao Estoque'}>
-        <p className="text-sm text-gray-600 mb-4">
-          {isEdit ? 'Atualize a quantidade em estoque.' : 'Adicione mais itens ao estoque existente.'}
-        </p>
-        <form onSubmit={isEdit ? handleEditStock : handleAddStock} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
-            <select
-              value={stockForm.category_id}
-              onChange={e => {
-                setStockForm(f => ({ ...f, category_id: e.target.value, metadata: {} }));
-              }}
-              required
-              disabled={isEdit}
-              className="w-full border rounded-lg p-2 disabled:bg-gray-100"
-            >
-              <option value="">Selecione...</option>
-              {categoryList.map(c => (
-                <option key={c.id} value={c.id}>{c.display_name || c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Dynamic metadata fields */}
-          {attributes.map(attr => (
-            <div key={attr.name}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {attr.display_name}
-              </label>
-              {attr.attribute_type === 'select' ? (
-                <select
-                  value={stockForm.metadata[attr.name] || ''}
-                  onChange={e => setStockForm(f => ({
-                    ...f,
-                    metadata: { ...f.metadata, [attr.name]: e.target.value }
-                  }))}
-                  required={attr.required}
-                  className="w-full border rounded-lg p-2"
-                >
-                  <option value="">Selecione...</option>
-                  {attr.options?.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              ) : attr.attribute_type === 'number' ? (
-                <input
-                  type="number"
-                  value={stockForm.metadata[attr.name] || ''}
-                  onChange={e => setStockForm(f => ({
-                    ...f,
-                    metadata: { ...f.metadata, [attr.name]: e.target.value }
-                  }))}
-                  required={attr.required}
-                  min={attr.min_value}
-                  max={attr.max_value}
-                  className="w-full border rounded-lg p-2"
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={stockForm.metadata[attr.name] || ''}
-                  onChange={e => setStockForm(f => ({
-                    ...f,
-                    metadata: { ...f.metadata, [attr.name]: e.target.value }
-                  }))}
-                  required={attr.required}
-                  maxLength={attr.max_length}
-                  className="w-full border rounded-lg p-2"
-                />
-              )}
-            </div>
-          ))}
-
-          {attributes.length === 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Quantidade *
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={stockForm.quantity_in_stock}
-              onChange={e => setStockForm(f => ({ ...f, quantity_in_stock: e.target.value }))}
-              required
-              className="w-full border rounded-lg p-2"
-              placeholder="Ex: 50"
-            />
-          </div>
-        )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Alerta de Estoque Baixo</label>
-            <input
-              type="number"
-              min="0"
-              value={stockForm.min_threshold}
-              onChange={e => setStockForm(f => ({ ...f, min_threshold: e.target.value }))}
-              className="w-full border rounded-lg p-2"
-              placeholder="Ex: 10 (alertar quando abaixo deste valor)"
-            />
-          </div>
-          <div className="flex gap-2 pt-2">
-            <button type="submit" className="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
-              {isEdit ? 'Atualizar' : 'Adicionar'}
-            </button>
-            <button type="button" onClick={() => setShowStockForm(null)} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
-              Cancelar
-            </button>
-          </div>
-        </form>
-      </ModalOverlay>
+      <ItemFormModal
+        onClose={() => setShowStockForm(null)}
+        onSubmit={isEdit ? handleEditStock : handleAddStock}
+        title={isEdit ? 'Editar Estoque' : 'Adicionar Itens ao Estoque'}
+        description={isEdit ? 'Atualize a quantidade em estoque.' : 'Adicione mais itens ao estoque existente.'}
+        submitButtonText={isEdit ? 'Atualizar' : 'Adicionar'}
+        initialData={isEdit ? stockForm : {}}
+        showQuantityField={true}
+        quantityFieldName="quantity_in_stock"
+        quantityLabel="Quantidade *"
+        quantityPlaceholder="Ex: 50"
+      />
     );
   }
 

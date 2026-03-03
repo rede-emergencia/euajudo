@@ -227,7 +227,20 @@ export default function DeliveryCommitmentModal({
                         
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: '600', color: '#111', marginBottom: '4px' }}>
-                            {delivery.category?.display_name || 'Produto'}
+                            {(() => {
+                              const metadata = delivery.metadata_cache || {};
+                              const tipo = metadata.tipo;
+                              const unidade = metadata.unidade;
+                              
+                              if (tipo && unidade) {
+                                // Formato: "Feijão, quilos, 50 quilos"
+                                const tipoFormatado = tipo.charAt(0).toUpperCase() + tipo.slice(1).replace('_', ' ');
+                                const unidadeFormatada = unidade.charAt(0).toUpperCase() + unidade.slice(1);
+                                return `${delivery.category?.display_name || 'Produto'}, ${unidadeFormatada}, ${tipoFormatado}`;
+                              }
+                              
+                              return delivery.category?.display_name || 'Produto';
+                            })()}
                           </div>
                           <div style={{ fontSize: '14px', color: '#6b7280' }}>
                             Disponível: {delivery.quantity} {unit}
@@ -331,7 +344,23 @@ export default function DeliveryCommitmentModal({
                       padding: '8px 0',
                       borderBottom: '1px solid #bbf7d0'
                     }}>
-                      <span style={{ color: '#166534' }}>{item.category?.display_name}</span>
+                      <span style={{ color: '#166534' }}>
+                        {(() => {
+                          const delivery = deliveries.find(d => d.id === item.deliveryId);
+                          const metadata = delivery?.metadata_cache || {};
+                          const tipo = metadata.tipo;
+                          const unidade = metadata.unidade;
+                          
+                          if (tipo && unidade) {
+                            // Formato: "Feijão, quilos, 50 quilos"
+                            const tipoFormatado = tipo.charAt(0).toUpperCase() + tipo.slice(1).replace('_', ' ');
+                            const unidadeFormatada = unidade.charAt(0).toUpperCase() + unidade.slice(1);
+                            return `${item.category?.display_name || 'Produto'}, ${unidadeFormatada}, ${tipoFormatado}`;
+                          }
+                          
+                          return item.category?.display_name || 'Produto';
+                        })()}
+                      </span>
                       <span style={{ fontWeight: '600', color: '#166534' }}>
                         {item.quantity} {unit}
                       </span>
@@ -394,10 +423,10 @@ export default function DeliveryCommitmentModal({
                 </div>
 
                 <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111', marginBottom: '8px' }}>
-                  Obrigado por ajudar!
+                  Compromisso Confirmado!
                 </h3>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
-                  Seu compromisso foi confirmado com sucesso
+                  Você precisa entregar em até 24 horas
                 </p>
 
                 <div style={{
@@ -428,15 +457,45 @@ export default function DeliveryCommitmentModal({
                   padding: '16px',
                   fontSize: '14px',
                   color: '#1e40af',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  marginBottom: '20px'
                 }}>
-                  <strong>📋 Próximos passos:</strong>
+                  <div style={{ fontWeight: '600', marginBottom: '12px' }}>
+                    � Endereço de Entrega:
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    {location.address}, {location.neighborhood}<br />
+                    {location.city} - {location.state}<br />
+                    CEP: {location.postal_code}
+                  </div>
+                  
+                  <div style={{ fontWeight: '600', marginBottom: '8px' }}>
+                    ⏰ Prazo de Entrega:
+                  </div>
+                  <div>
+                    Máximo 24 horas a partir de agora<br />
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                      Entregas após o prazo podem ser canceladas automaticamente
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#fef3c7',
+                  border: '1px solid #fde047',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  fontSize: '14px',
+                  color: '#92400e',
+                  textAlign: 'left',
+                  marginBottom: '20px'
+                }}>
+                  <strong>📋 Fluxo de Entrega:</strong>
                   <ol style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
-                    <li>Vá até o local de retirada</li>
-                    <li>Apresente o código acima</li>
-                    <li>Retire os itens</li>
-                    <li>Entregue no destino</li>
-                    <li>Confirme a entrega pelo app</li>
+                    <li>Retire os itens no local de origem</li>
+                    <li>Apresente este código: <strong>{pickupCode}</strong></li>
+                    <li>Entregue no endereço acima</li>
+                    <li>Confirme a entrega pelo aplicativo</li>
                   </ol>
                 </div>
 
@@ -445,7 +504,7 @@ export default function DeliveryCommitmentModal({
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  Você pode acompanhar suas entregas em <strong>Ações</strong>
+                  Acompanhe suas entregas em <strong>Ações → Minhas Entregas</strong>
                 </div>
               </div>
             </>

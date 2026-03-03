@@ -3,6 +3,7 @@ import { pedidosInsumo } from '@/lib/api';
 import { formatDate, getStatusBadgeClass, getStatusLabel } from '@/lib/utils';
 import { Plus, X, Package } from 'lucide-react';
 import AlertModal from '../components/AlertModal';
+import ItemFormModal from '../components/ItemFormModal';
 
 export default function PedidosInsumo() {
   const [pedidos, setPedidos] = useState([]);
@@ -73,25 +74,19 @@ export default function PedidosInsumo() {
     setFormData({ ...formData, itens: newItens });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (data) => {
     try {
-      const data = {
-        quantidade_marmitas: parseInt(formData.quantidade_marmitas),
-        horario_recebimento: formData.horario_recebimento || null,
-        itens: formData.itens.map(item => ({
-          nome: item.nome,
-          quantidade: parseFloat(item.quantidade),
-          unidade: item.unidade,
-        })),
+      const requestData = {
+        quantidade_marmitas: data.quantity_in_stock,
+        horario_recebimento: null,
+        itens: [{
+          nome: data.metadata_cache.tipo || 'Item',
+          quantidade: data.quantity_in_stock,
+          unidade: data.metadata_cache.unidade || 'unidades',
+        }],
       };
-      await pedidosInsumo.create(data);
+      await pedidosInsumo.create(requestData);
       setShowModal(false);
-      setFormData({
-        quantidade_marmitas: '',
-        horario_recebimento: '',
-        itens: [{ nome: '', quantidade: '', unidade: 'kg' }],
-      });
       loadPedidos();
     } catch (error) {
       showAlert('Erro ao Criar Pedido', error.response?.data?.detail || 'Erro ao criar pedido', 'error');
@@ -203,116 +198,17 @@ export default function PedidosInsumo() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Novo Pedido de Insumo</h2>
-                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">Quantidade de Marmitas</label>
-                    <input
-                      type="number"
-                      value={formData.quantidade_marmitas}
-                      onChange={(e) => setFormData({ ...formData, quantidade_marmitas: e.target.value })}
-                      className="input"
-                      required
-                      min="1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="label">Horário de Recebimento (opcional)</label>
-                    <input
-                      type="datetime-local"
-                      value={formData.horario_recebimento}
-                      onChange={(e) => setFormData({ ...formData, horario_recebimento: e.target.value })}
-                      className="input"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <label className="label mb-0">Insumos Necessários</label>
-                    <button
-                      type="button"
-                      onClick={handleAddItem}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Adicionar Item
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {formData.itens.map((item, index) => (
-                      <div key={index} className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Nome do insumo"
-                          value={item.nome}
-                          onChange={(e) => handleItemChange(index, 'nome', e.target.value)}
-                          className="input flex-1"
-                          required
-                        />
-                        <input
-                          type="number"
-                          placeholder="Quantidade"
-                          value={item.quantidade}
-                          onChange={(e) => handleItemChange(index, 'quantidade', e.target.value)}
-                          className="input w-32"
-                          required
-                          min="0.1"
-                          step="0.1"
-                        />
-                        <select
-                          value={item.unidade}
-                          onChange={(e) => handleItemChange(index, 'unidade', e.target.value)}
-                          className="input w-24"
-                        >
-                          <option value="kg">kg</option>
-                          <option value="g">g</option>
-                          <option value="L">L</option>
-                          <option value="ml">ml</option>
-                          <option value="un">un</option>
-                        </select>
-                        {formData.itens.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(index)}
-                            className="btn btn-danger"
-                          >
-                            <X className="h-5 w-5" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="btn btn-secondary"
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Criar Pedido
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+        <ItemFormModal
+          onClose={() => setShowModal(false)}
+          onSubmit={handleSubmit}
+          title="Novo Pedido de Insumo"
+          description="Solicite insumos para produzir marmitas usando as categorias disponíveis."
+          submitButtonText="Criar Pedido"
+          showQuantityField={true}
+          quantityFieldName="quantity_in_stock"
+          quantityLabel="Quantidade *"
+          quantityPlaceholder="Ex: 50"
+        />
       )}
 
       {/* Alert Modal */}

@@ -19,10 +19,12 @@ class InventoryItemBase(BaseModel):
     metadata_cache: Optional[Dict[str, Any]] = None
 
 class InventoryItemCreate(InventoryItemBase):
-    pass
+    """Create initial inventory item (only when item doesn't exist)"""
+    replace_quantity: Optional[bool] = Field(False, description="If true, replace quantity instead of adding")
 
 class InventoryItemUpdate(BaseModel):
-    quantity_in_stock: Optional[int] = None
+    """Update inventory item - can adjust stock (+/-), thresholds, and metadata"""
+    quantity_adjustment: Optional[int] = Field(None, description="Positive to add, negative to remove from stock")
     min_threshold: Optional[int] = None
     max_threshold: Optional[int] = None
     metadata_cache: Optional[Dict[str, Any]] = None
@@ -185,6 +187,7 @@ class CategoryStock(BaseModel):
     quantity_available: int
     min_threshold: int
     is_low_stock: bool
+    metadata_cache: Optional[Dict[str, Any]] = None
 
 class RecentActivity(BaseModel):
     transaction_type: str

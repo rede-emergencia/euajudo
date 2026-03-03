@@ -181,9 +181,10 @@ class DonationCommitmentService(BaseCommitmentService[Delivery]):
             )
             self.db.add(link)
             
-            # Atualizar quantity_received para diminuir disponível
-            request.quantity_received += quantity
-            request.quantity_pending += quantity  # Adicionar ao pending também
+            # CRITICAL FIX: Only update quantity_pending when volunteer commits
+            # quantity_received should ONLY be updated when delivery is actually delivered
+            request.quantity_pending += quantity  # Adicionar ao pendente (correto)
+            # NÃO incrementar quantity_received aqui - isso só acontece na entrega efetiva!
             
             if request.status == "pending":
                 request.status = "active"

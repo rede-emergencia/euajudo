@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { deliveries, resourceReservations } from '../lib/api';
 
@@ -30,8 +30,6 @@ const getProductNameInPortuguese = (productType) => {
 };
 
 export const UserStateProvider = ({ children }) => {
-  console.log('🚀 DEBUG UserStateContext: Iniciando UserStateProvider');
-  
   const { user } = useAuth();
   
   // Estado centralizado do usuário
@@ -58,6 +56,9 @@ export const UserStateProvider = ({ children }) => {
     isLoading: false,
     error: null
   });
+
+  // Ref para evitar múltiplas chamadas simultâneas
+  const loadingRef = useRef(false);
 
   /**
    * Mapear status de operação para estado do usuário
@@ -151,10 +152,14 @@ export const UserStateProvider = ({ children }) => {
    * Carregar estado do usuário do backend
    */
   const loadUserState = async () => {
-    console.log('🔄 UserStateContext: loadUserState chamado', { user: user?.email, userId: user?.id, roles: user?.roles });
+    // Evitar múltiplas chamadas simultâneas
+    if (loadingRef.current) {
+      return;
+    }
+    
+    loadingRef.current = true;
     
     if (!user) {
-      console.log('⚠️ UserStateContext: Sem usuário, resetando para idle');
       setUserState({
         currentState: 'idle',
         activeOperation: null,
@@ -164,6 +169,7 @@ export const UserStateProvider = ({ children }) => {
         isLoading: false,
         error: null
       });
+      loadingRef.current = false;
       return;
     }
 
@@ -173,32 +179,28 @@ export const UserStateProvider = ({ children }) => {
       const operations = [];
 
       // 1. Verificar entregas ativas do voluntário
-      console.log('🔍 UserStateContext: Verificando deliveries...', { isVolunteer: user.roles?.includes('volunteer') });
       if (user.roles?.includes('volunteer')) {
         const deliveriesResp = await deliveries.list();
-        console.log('📦 UserStateContext: Deliveries recebidas:', deliveriesResp.data?.length || 0);
-        console.log('📦 UserStateContext: Todas deliveries:', deliveriesResp.data?.map(d => ({ id: d.id, volunteer_id: d.volunteer_id, status: d.status })));
+        
+        // Debug: verificar todas as deliveries do usuário
+        const allUserDeliveries = deliveriesResp.data?.filter(d => Number(d.volunteer_id) === Number(user.id)) || [];
+        console.log('🔍 DEBUG UserStateContext - Todas as deliveries do usuário:', allUserDeliveries.map(d => ({
+          id: d.id,
+          status: d.status,
+          quantity: d.quantity,
+          category: d.category?.name
+        })));
         
         const activeDeliveries = deliveriesResp.data?.filter(d => {
           const match = Number(d.volunteer_id) === Number(user.id);
           const validStatus = ['pending_confirmation', 'reserved', 'picked_up', 'in_transit'].includes(d.status);
-          console.log(`  Delivery ${d.id}: volunteer_id=${d.volunteer_id}, match=${match}, status=${d.status}, validStatus=${validStatus}`);
           return match && validStatus;
         }) || [];
         
-        console.log('✅ UserStateContext: Active deliveries encontradas:', activeDeliveries.length);
-        console.log('📋 UserStateContext: IDs das deliveries:', activeDeliveries.map(d => d.id));
+        console.log('🔍 DEBUG UserStateContext - Deliveries ativas (para cálculo):', activeDeliveries.length);
+        console.log('🔍 DEBUG UserStateContext - Deliveries entregues:', allUserDeliveries.filter(d => d.status === 'delivered').length);
         
         activeDeliveries.forEach(delivery => {
-          console.log('🔍 DEBUG UserStateContext - Delivery:', {
-            id: delivery.id,
-            category: delivery.category,
-            category_id: delivery.category_id,
-            product_type: delivery.product_type,
-            quantity: delivery.quantity,
-            location: delivery.location?.name
-          });
-          
           // Mapear categoria para nome do produto (mais flexível)
           const categoryToProductMap = {
             'agua': 'Água',
@@ -237,24 +239,14 @@ export const UserStateProvider = ({ children }) => {
                               delivery.category_name || 
                               '';
           
-          // Debug completo da categoria
-          console.log('🔍 DEBUG UserStateContext - Categoria completa:', {
-            category: delivery.category,
-            display_name: delivery.category?.display_name,
-            name: delivery.category?.name,
-            category_name: delivery.category_name,
-            category_id: delivery.category_id
-          });
-          
           // Fallback melhor: usar display_name da categoria se existir
           let productName = delivery.category?.display_name || 
                           categoryToProductMap[categoryName] || 
                           delivery.category?.name || 
-                          'Item'; // Mudar fallback para "Item" em vez de "Produto"
+                          'Item';
           
           // Se ainda for "Item", tentar usar o category_id como fallback
           if (productName === 'Item') {
-            // Fallback 1: Usar category_id se existir
             if (delivery.category_id) {
               const categoryIdMap = {
                 1: 'Água',
@@ -266,7 +258,6 @@ export const UserStateProvider = ({ children }) => {
               };
               productName = categoryIdMap[delivery.category_id] || 'Item';
             }
-            // Fallback 2: Usar product_type legado se existir
             else if (delivery.product_type) {
               const productTypeMap = {
                 'water': 'Água',
@@ -281,13 +272,6 @@ export const UserStateProvider = ({ children }) => {
           }
           
           const unit = categoryToUnitMap[categoryName] || 'unidades';
-          
-          console.log('🎯 DEBUG UserStateContext - Mapeamento:', {
-            categoryName,
-            productName,
-            unit,
-            description: `${delivery.quantity} ${unit} de ${productName} para ${delivery.location?.name}`
-          });
           
           // Obter nome do abrigo de diferentes formas possíveis
           const shelterName = delivery.delivery_location?.owner?.name || 
@@ -331,7 +315,6 @@ export const UserStateProvider = ({ children }) => {
       }
 
       // REGRA: Permitir múltiplas operações ativas (para volunteers com múltiplas deliveries)
-      // Manter todas as operações ativas para exibição no modal
       const activeOperations = operations.filter(op => 
         !['completed', 'cancelled', 'expired'].includes(op.status)
       );
@@ -344,24 +327,10 @@ export const UserStateProvider = ({ children }) => {
       const currentState = getStateFromOperation(activeOperation);
       const stateColors = getColorsForState(currentState);
 
-      console.log('🎯 UserStateContext: Estado final:', { 
-        operationsCount: operations.length, 
-        activeOperationsCount: activeOperations.length,
-        activeOperation: activeOperation ? { id: activeOperation.id, type: activeOperation.type, status: activeOperation.status } : null,
-        currentState 
-      });
-      
-      console.log('📋 UserStateContext: Todas as operações:', operations.map(op => ({
-        id: op.id,
-        type: op.type,
-        status: op.status,
-        description: op.description
-      })));
-
       setUserState({
         currentState,
         activeOperation,
-        activeOperations, // Nova: todas as operações ativas
+        activeOperations,
         operationHistory: operations,
         stateColors,
         lastUpdate: new Date(),
@@ -386,6 +355,8 @@ export const UserStateProvider = ({ children }) => {
         isLoading: false,
         error: error.message
       }));
+    } finally {
+      loadingRef.current = false;
     }
   };
 
@@ -419,22 +390,38 @@ export const UserStateProvider = ({ children }) => {
 
   // Carregar estado quando usuário mudar
   useEffect(() => {
+    if (!user) {
+      // Resetar estado se não há usuário
+      setUserState({
+        currentState: 'idle',
+        activeOperation: null,
+        operationHistory: [],
+        stateColors: getColorsForState('idle'),
+        lastUpdate: new Date(),
+        isLoading: false,
+        error: null
+      });
+      return;
+    }
+
     loadUserState();
     
-    // Atualizar a cada 30 segundos
-    const interval = setInterval(loadUserState, 30000);
+    // Atualizar a cada 60 segundos (aumentado de 30 para reduzir carga)
+    const interval = setInterval(loadUserState, 60000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user?.id]); // Mudar dependência para user.id em vez de user inteiro
 
   // Ouvir eventos de atualização de estado
   useEffect(() => {
     const handleRefresh = () => {
-      loadUserState();
+      if (!loadingRef.current) {
+        loadUserState();
+      }
     };
 
     window.addEventListener('refreshUserState', handleRefresh);
     return () => window.removeEventListener('refreshUserState', handleRefresh);
-  }, [user]);
+  }, []);
 
   const value = {
     // Estado atual

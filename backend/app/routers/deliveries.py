@@ -295,8 +295,14 @@ def confirm_delivery(
         raise HTTPException(status_code=422, detail="Invalid delivery code")
     
     # Mark as delivered
+    print(f"🔍 DEBUG confirm_delivery: Delivery {delivery_id} - Status antes: {delivery.status}")
+    print(f"🔍 DEBUG confirm_delivery: User {current_user.id} - Code {code}")
+    print(f"🔍 DEBUG confirm_delivery: Delivery code esperado: {delivery.delivery_code}")
+    
     delivery.status = DeliveryStatus.DELIVERED
     delivery.delivered_at = datetime.utcnow()
+    
+    print(f"✅ DEBUG confirm_delivery: Delivery {delivery_id} marcado como DELIVERED")
     
     # Hook: notify inventory service — add to shelter stock
     on_delivery_confirmed(db, delivery, current_user.id)
@@ -532,8 +538,14 @@ def validate_delivery_code(
     delivery.status = DeliveryStatus.DELIVERED
     delivery.delivered_at = datetime.utcnow()
     
-    # Hook: notify inventory service — add to shelter stock
-    on_delivery_confirmed(db, delivery, current_user.id)
+    # CRITICAL FIX: Only call on_delivery_confirmed for direct donations (FLUXO 1)
+    # For batch deliveries (FLUXO 2), this should only be called by /confirm-delivery
+    if is_direct_donation:
+        print(f"🏪 DEBUG: Doação direta - chamando on_delivery_confirmed")
+        # Hook: notify inventory service — add to shelter stock
+        on_delivery_confirmed(db, delivery, current_user.id)
+    else:
+        print(f"🚚 DEBUG: Entrega com batch - NÃO chamar on_delivery_confirmed (será chamado pelo /confirm-delivery)")
     
     db.commit()
     db.refresh(delivery)

@@ -304,7 +304,7 @@ export default function VolunteerDashboard() {
     const API_URL = import.meta.env.VITE_API_URL || '';
     
     try {
-      const res = await fetch(`${API_URL}/api/deliveries/${selectedDelivery}/confirm`, {
+      const res = await fetch(`${API_URL}/api/deliveries/${selectedDelivery}/confirm-delivery`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ delivery_code: codigoConfirmacao })
@@ -323,8 +323,12 @@ export default function VolunteerDashboard() {
         
         setShowSuccessCard(true);
         setShowCodigoModal(false);
-        loadData();
-        triggerUserStateUpdate();
+        
+        // Pequeno delay para garantir que backend processou
+        setTimeout(() => {
+          loadData();
+          triggerUserStateUpdate();
+        }, 500);
         
         // Fechar o card após 5 segundos
         setTimeout(() => {

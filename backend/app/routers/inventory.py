@@ -65,39 +65,92 @@ def create_inventory_item(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create or update inventory item for a category (upsert)"""
+    """Create or update inventory item for a specific type/unit combination"""
     if not has_role(current_user, 'shelter'):
         raise HTTPException(status_code=403, detail="Only shelters can manage inventory")
     
-    # Check if item already exists
-    existing = db.query(InventoryItem).filter(
+    print(f"🔍 DEBUG Backend - Item recebido:")
+    print(f"  category_id: {item.category_id}")
+    print(f"  quantity_in_stock: {item.quantity_in_stock}")
+    print(f"  metadata_cache: {item.metadata_cache}")
+    
+    # Create a unique key for type+unit combination from metadata
+    tipo = item.metadata_cache.get('tipo') if item.metadata_cache else None
+    unidade = item.metadata_cache.get('unidade') if item.metadata_cache else None
+    
+    print(f"🔍 DEBUG Backend - Tipo: {tipo}, Unidade: {unidade}")
+    
+    # Get all items for this category and shelter
+    existing_items = db.query(InventoryItem).filter(
         InventoryItem.shelter_id == current_user.id,
         InventoryItem.category_id == item.category_id
-    ).first()
+    ).all()
+    
+    print(f"🔍 DEBUG Backend - Itens existentes na categoria: {len(existing_items)}")
+    for i, existing_item in enumerate(existing_items):
+        print(f"  Item {i}: id={existing_item.id}, metadata={existing_item.metadata_cache}")
+    
+    # If we have tipo and unidade, look for exact match in metadata
+    existing = None
+    if tipo and unidade:
+        for existing_item in existing_items:
+            if (existing_item.metadata_cache and 
+                existing_item.metadata_cache.get('tipo') == tipo and
+                existing_item.metadata_cache.get('unidade') == unidade):
+                existing = existing_item
+                break
+        print(f"🔍 DEBUG Backend - Correspondência encontrada: {existing.id if existing else 'None'}")
+    # If no tipo/unidade, always create new item (don't overwrite existing)
     
     if existing:
-        # Update existing item - add to stock
-        quantity_change = item.quantity_in_stock
-        existing.quantity_in_stock += quantity_change
-        existing.quantity_available = existing.quantity_in_stock - existing.quantity_reserved
+        if item.replace_quantity:
+            # Replace quantity entirely (for editing)
+            old_quantity = existing.quantity_in_stock
+            existing.quantity_in_stock = item.quantity_in_stock
+            quantity_change = item.quantity_in_stock - old_quantity
+            existing.quantity_available = existing.quantity_in_stock - existing.quantity_reserved
+            
+            # Update thresholds if provided
+            if item.min_threshold is not None:
+                existing.min_threshold = item.min_threshold
+            if item.max_threshold is not None:
+                existing.max_threshold = item.max_threshold
+            
+            # Create transaction
+            transaction = InventoryTransaction(
+                inventory_item_id=existing.id,
+                transaction_type=TransactionType.MANUAL_ADJUSTMENT,
+                quantity_change=quantity_change,
+                balance_after=existing.quantity_in_stock,
+                reserved_after=existing.quantity_reserved,
+                available_after=existing.quantity_available,
+                user_id=current_user.id,
+                notes=f"Stock updated: {old_quantity} → {item.quantity_in_stock} units"
+            )
+        else:
+            # Add to stock (for adding new items)
+            quantity_change = item.quantity_in_stock
+            existing.quantity_in_stock += quantity_change
+            existing.quantity_available = existing.quantity_in_stock - existing.quantity_reserved
+            
+            # Update thresholds if provided
+            if item.min_threshold is not None:
+                existing.min_threshold = item.min_threshold
+            if item.max_threshold is not None:
+                existing.max_threshold = item.max_threshold
+            
+            # Create transaction
+            transaction = InventoryTransaction(
+                inventory_item_id=existing.id,
+                transaction_type=TransactionType.MANUAL_ADJUSTMENT,
+                quantity_change=quantity_change,
+                balance_after=existing.quantity_in_stock,
+                reserved_after=existing.quantity_reserved,
+                available_after=existing.quantity_available,
+                user_id=current_user.id,
+                notes=f"Stock added: {quantity_change} units"
+            )
         
-        # Update thresholds if provided
-        if item.min_threshold is not None:
-            existing.min_threshold = item.min_threshold
-        if item.max_threshold is not None:
-            existing.max_threshold = item.max_threshold
-        
-        # Create transaction
-        transaction = InventoryTransaction(
-            inventory_item_id=existing.id,
-            transaction_type=TransactionType.MANUAL_ADJUSTMENT,
-            quantity_change=quantity_change,
-            balance_after=existing.quantity_in_stock,
-            reserved_after=existing.quantity_reserved,
-            available_after=existing.quantity_available,
-            user_id=current_user.id,
-            notes=f"Stock added: {quantity_change} units"
-        )
         db.add(transaction)
         existing.last_transaction_at = datetime.utcnow()
         db.commit()
@@ -141,7 +194,7 @@ def update_inventory_item(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update inventory item settings"""
+    """Update inventory item - can adjust stock (+/-), thresholds, and metadata"""
     if not has_role(current_user, 'shelter'):
         raise HTTPException(status_code=403, detail="Only shelters can manage inventory")
     
@@ -153,25 +206,34 @@ def update_inventory_item(
     if not item:
         raise HTTPException(status_code=404, detail="Inventory item not found")
     
-    # Handle stock adjustment
-    if update.quantity_in_stock is not None and update.quantity_in_stock != item.quantity_in_stock:
-        quantity_change = update.quantity_in_stock - item.quantity_in_stock
+    # Handle stock adjustment (positive or negative)
+    if update.quantity_adjustment is not None and update.quantity_adjustment != 0:
+        new_stock = item.quantity_in_stock + update.quantity_adjustment
+        
+        # Validate we don't go below zero
+        if new_stock < 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot remove {abs(update.quantity_adjustment)} items. Available: {item.quantity_in_stock}"
+            )
+        
+        quantity_change = update.quantity_adjustment
         
         # Create adjustment transaction
         transaction = InventoryTransaction(
             inventory_item_id=item.id,
             transaction_type=TransactionType.MANUAL_ADJUSTMENT,
             quantity_change=quantity_change,
-            balance_after=update.quantity_in_stock,
+            balance_after=new_stock,
             reserved_after=item.quantity_reserved,
-            available_after=update.quantity_in_stock - item.quantity_reserved,
+            available_after=new_stock - item.quantity_reserved,
             user_id=current_user.id,
-            notes="Manual stock adjustment"
+            notes=f"Stock adjustment: {'+' if quantity_change > 0 else ''}{quantity_change} units"
         )
         db.add(transaction)
         
-        item.quantity_in_stock = update.quantity_in_stock
-        item.quantity_available = item.quantity_in_stock - item.quantity_reserved
+        item.quantity_in_stock = new_stock
+        item.quantity_available = new_stock - item.quantity_reserved
         item.last_transaction_at = datetime.utcnow()
     
     # Update other fields
@@ -733,7 +795,8 @@ def get_shelter_dashboard(
             quantity_reserved=item.quantity_reserved,
             quantity_available=item.quantity_available,
             min_threshold=item.min_threshold,
-            is_low_stock=item.quantity_available <= item.min_threshold
+            is_low_stock=item.quantity_available <= item.min_threshold,
+            metadata_cache=item.metadata_cache
         ))
     
     # Recent transactions
@@ -764,7 +827,8 @@ def get_shelter_dashboard(
             quantity_reserved=item.quantity_reserved,
             quantity_available=item.quantity_available,
             min_threshold=item.min_threshold,
-            is_low_stock=True
+            is_low_stock=True,
+            metadata_cache=item.metadata_cache
         )
         for item in inventory_items
         if item.quantity_available <= item.min_threshold

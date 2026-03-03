@@ -313,29 +313,24 @@ function getUserBasedState(location, user, filteredDeliveries, shelterRequests) 
   const hasUserCompletedDelivery = userDeliveries.some(d => d.status === 'delivered');
   
   // Debug logs
-  console.log(`🔍 DEBUG STATE - Location ${location.id}:`, {
-    userId: user?.id,
-    totalDeliveries: filteredDeliveries.length,
-    userDeliveries: userDeliveries.length,
-    hasUserReservation,
-    hasUserCompletedDelivery,
-    hasActiveOrder,
-    hasAvailableItems,
-    isCompletelyReserved,
-    hasShelterRequests,
-    activeShelterRequests: activeShelterRequests.length
-  });
+  if (location.user?.roles?.includes('shelter')) {
+    console.log(`🏠 DEBUG SHELTER - Location ${location.id}:`, {
+      locationUserId: location.user_id,
+      locationUser: location.user,
+      totalShelterRequests: shelterRequests?.length || 0,
+      shelterRequestsData: shelterRequests?.map(r => ({
+        id: r.id,
+        shelter_id: r.shelter_id,
+        status: r.status,
+        matches: r.shelter_id === location.user_id
+      })),
+      activeShelterRequests: activeShelterRequests.length,
+      hasShelterRequests
+    });
+  }
 
   // NOVO: Se tem qualquer necessidade ativa, usar sistema escalável
   if (shelterNeeds.hasAnyNeeds) {
-    console.log(`${needType.icon} NECESSIDADES ATIVAS - Location ${location.id}:`, {
-      donations: shelterNeeds.donations,
-      services: shelterNeeds.services,
-      deliveries: shelterNeeds.deliveries,
-      total: shelterNeeds.total,
-      needType: needType.label
-    });
-    
     return {
       color: needType.color,
       icon: needType.icon,
@@ -351,7 +346,6 @@ function getUserBasedState(location, user, filteredDeliveries, shelterRequests) 
   
   // Retornar estado baseado na prioridade do usuário
   if (hasUserReservation && !hasUserCompletedDelivery) {
-    console.log(`🟠 CAMINHO LARANJA - Location ${location.id}: Usuário tem reserva ativa`);
     return {
       color: STATE_COLORS.participant,  // 🟠 Laranja
       size: getStateSize(true),
@@ -364,7 +358,6 @@ function getUserBasedState(location, user, filteredDeliveries, shelterRequests) 
       hasAvailableItems: hasAvailableItems
     };
   } else if (hasUserCompletedDelivery) {
-    console.log(`🟢 CAMINHO VERDE COMPLETADO - Location ${location.id}: Usuário completou entrega`);
     return {
       color: STATE_COLORS.available,    // 🟢 Verde
       size: getStateSize(false),
@@ -377,7 +370,6 @@ function getUserBasedState(location, user, filteredDeliveries, shelterRequests) 
       hasAvailableItems: false
     };
   } else if (isCompletelyReserved) {
-    console.log(`🟢 CAMINHO VERDE RESERVADO - Location ${location.id}: Tudo reservado (público)`);
     return {
       color: STATE_COLORS.available,    // 🟢 Verde (público)
       size: getStateSize(false),
@@ -390,7 +382,6 @@ function getUserBasedState(location, user, filteredDeliveries, shelterRequests) 
       hasAvailableItems: false
     };
   } else if (hasActiveOrder) {
-    console.log(`🔴 CAMINHO VERMELHO - Location ${location.id}: Pedido em aberto (público)`);
     return {
       color: STATE_COLORS.urgent,       // 🔴 Vermelho
       size: getStateSize(true),
@@ -400,10 +391,9 @@ function getUserBasedState(location, user, filteredDeliveries, shelterRequests) 
       hasUserReservation: false,
       hasUserCompletedDelivery: false,
       isCompletelyReserved: false,
-      hasAvailableItems: hasAvailableItems
+      hasAvailableItems: true
     };
   } else {
-    console.log(`🟢 CAMINHO VERDE DISPONÍVEL - Location ${location.id}: Disponível (público)`);
     return {
       color: STATE_COLORS.available,    // 🟢 Verde
       size: getStateSize(false),
@@ -605,15 +595,12 @@ export default function MapView() {
 
   useEffect(() => {
     if (isUpdating) {
-      console.log('⏸️ MapView já está atualizando, ignorando...');
       return;
     }
 
-    console.log('🔄 useEffect disparado - atualizando mapa');
     setIsUpdating(true);
     
     if (mapInstance) {
-      // Usar whenReady para garantir que o mapa está pronto
       mapInstance.whenReady(() => {
         updateMarkers(mapInstance);
         setIsUpdating(false);
@@ -1206,24 +1193,13 @@ export default function MapView() {
                 ` : ''}
               </div>
             </div>
-          `);
-        }
-      });
 
-      console.log('✅ Todos os marcadores foram adicionados ao mapa');
-    }
+      // Usar ícone Store com cor verde (disponível) - consistente com legenda
+      const icon = makeLucideIcon('store', STATE_COLORS.available, 30);
+      const marker = L.marker(coords, { icon })
+        .addTo(map);
 
-    // Adicionar marcadores para lotes de produtos disponíveis APENAS se estiverem READY
-    if (activeFilters.fornecedores) {
-      batches.forEach(batch => {
-        // MOSTRAR APENAS FORNECEDORES COM PRODUTOS DISPONÍVEIS (READY)
-        if (batch.provider &&
-          batch.provider.latitude &&
-          batch.provider.longitude &&
-          batch.status === 'ready' &&  // Apenas batches prontos!
-          batch.quantity_available > 0) { // E com quantidade disponível!
-
-          const coords = [batch.provider.latitude, batch.provider.longitude];
+      const establishmentType = batch.provider.establishment_type || 'Cozinha';
 
           // Definir ícone e emoji baseado no tipo de produto
           const productIcons = {

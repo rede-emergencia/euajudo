@@ -65,7 +65,7 @@ class DonationService(IDonationService):
             
             return {
                 "code": result["code"],
-                "delivery_ids": result["entity_ids"]
+                "delivery_ids": result["delivery_ids"]  # Corrigido: era entity_ids
             }
             
         except DonationError:

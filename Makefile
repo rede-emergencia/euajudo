@@ -1,7 +1,7 @@
 # EuAjudo Makefile
 # Facilita setup, desenvolvimento e deploy do projeto
 
-.PHONY: help setup seed seed-status backend frontend dev kill clean test lint format reset-db create-admin seed-safe seed-small
+.PHONY: help setup seed seed-status backend frontend dev kill clean test lint format reset-db create-admin seed-small
 
 # Cores para output
 RED := \033[0;31m
@@ -347,19 +347,13 @@ create-admin: ## Cria apenas usuário administrador
 	source venv/bin/activate && \
 	$(PYTHON) create_admin.py
 
-seed-safe: ## Popula banco com dados de teste (não duplica existentes)
-	@echo "$(YELLOW)🌱 Populando banco com dados seguros...$(NC)"
-	cd $(BACKEND_DIR) && \
-	source venv/bin/activate && \
-	$(PYTHON) seed_safe.py && \
-	echo "$(GREEN)✅ Seed seguro concluído$(NC)"
-
-seed-small: ## Seed minimalista: admin + 2 pontos de coleta com pedidos
+seed-small: ## Seed minimalista: admin + 1 volunteer + 1 shelter + categorias básicas
 	@echo "$(YELLOW)🌱 Criando seed minimalista...$(NC)"
 	@echo "$(CYAN)Configuração:$(NC)"
 	@echo "  • 1 Admin"
-	@echo "  • 2 Voluntários"
-	@echo "  • 2 Pontos de Coleta (com pedidos de marmitas e camisetas)"
+	@echo "  • 1 Volunteer"
+	@echo "  • 1 Shelter"
+	@echo "  • Categorias essenciais"
 	@echo ""
 	cd $(BACKEND_DIR) && \
 	source venv/bin/activate && \
