@@ -1191,9 +1191,9 @@ export default function ShelterDashboardV2() {
     const attributes = selectedCategory?.attributes || [];
     
     return (
-      <ModalOverlay onClose={() => setShowStockForm(null)} title={isEdit ? 'Editar Estoque' : 'Adicionar ao Estoque'}>
+      <ModalOverlay onClose={() => setShowStockForm(null)} title={isEdit ? 'Editar Estoque' : 'Adicionar Itens ao Estoque'}>
         <p className="text-sm text-gray-600 mb-4">
-          {isEdit ? 'Atualize a quantidade em estoque.' : 'Registre itens que o abrigo já possui.'}
+          {isEdit ? 'Atualize a quantidade em estoque.' : 'Adicione mais itens ao estoque existente.'}
         </p>
         <form onSubmit={isEdit ? handleEditStock : handleAddStock} className="space-y-4">
           <div>
@@ -1265,7 +1265,9 @@ export default function ShelterDashboardV2() {
           ))}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Quantidade em Estoque *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {isEdit ? 'Quantidade em Estoque *' : 'Quantidade a Adicionar *'}
+            </label>
             <input
               type="number"
               min="0"
@@ -1273,7 +1275,7 @@ export default function ShelterDashboardV2() {
               onChange={e => setStockForm(f => ({ ...f, quantity_in_stock: e.target.value }))}
               required
               className="w-full border rounded-lg p-2"
-              placeholder="Ex: 100"
+              placeholder={isEdit ? "Ex: 100" : "Ex: 50 (quantidade para adicionar)"}
             />
           </div>
           <div>
